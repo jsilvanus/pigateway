@@ -1,0 +1,1962 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "pigateway API",
+    "version": "0.1.0",
+    "description": "The Pi device gateway: ATEM, cameras and the Atlona matrix (through the AMX master). Writes under /api/v1 need X-Api-Key or a Bearer token unless the client is on PIGATEWAY_AUTH_ALLOWED_HOSTS."
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:3100",
+      "description": "Local default"
+    }
+  ],
+  "paths": {
+    "/api/v1/atem": {
+      "get": {
+        "operationId": "getAtemState",
+        "tags": [
+          "ATEM"
+        ],
+        "summary": "ATEM switcher connection and program/preview state",
+        "responses": {
+          "200": {
+            "description": "Current ATEM state (connected=false when no ATEM is configured)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtemState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/atem/auto": {
+      "post": {
+        "operationId": "autoAtem",
+        "tags": [
+          "ATEM"
+        ],
+        "summary": "Auto (mix) transition of preview to program on the ATEM M/E row",
+        "responses": {
+          "200": {
+            "description": "Auto transition started; returns the new state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtemState"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "ATEM is not connected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/atem/cut": {
+      "post": {
+        "operationId": "cutAtem",
+        "tags": [
+          "ATEM"
+        ],
+        "summary": "Cut program and preview on the ATEM M/E row",
+        "responses": {
+          "200": {
+            "description": "Cut sent; returns the new state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtemState"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "ATEM is not connected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/atem/dsk/{dsk}/on-air": {
+      "put": {
+        "operationId": "setAtemDskOnAir",
+        "tags": [
+          "ATEM"
+        ],
+        "summary": "Put a downstream keyer on air or take it off (cut, like the ON AIR button)",
+        "parameters": [
+          {
+            "name": "dsk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "onAir"
+                ],
+                "properties": {
+                  "onAir": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Keyer updated; returns the new state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtemState"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid keyer number or body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "ATEM is not connected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/atem/dsk/{dsk}/setup": {
+      "put": {
+        "operationId": "setupAtemDsk",
+        "tags": [
+          "ATEM"
+        ],
+        "summary": "Point a media player still at a downstream keyer",
+        "parameters": [
+          {
+            "name": "dsk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "mediaPlayer",
+                  "slot",
+                  "fillInput",
+                  "cutInput"
+                ],
+                "properties": {
+                  "mediaPlayer": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 4
+                  },
+                  "slot": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  },
+                  "fillInput": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "cutInput": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Set up; returns the ATEM state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtemState"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "ATEM is not connected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/atem/dsk/{dsk}/tie": {
+      "put": {
+        "operationId": "setAtemDskTie",
+        "tags": [
+          "ATEM"
+        ],
+        "summary": "Set the tie of a downstream keyer (rides with the next transition)",
+        "parameters": [
+          {
+            "name": "dsk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "tie"
+                ],
+                "properties": {
+                  "tie": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tie updated; returns the new state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtemState"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid keyer number or body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "ATEM is not connected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/atem/ftb": {
+      "post": {
+        "operationId": "toggleAtemFadeToBlack",
+        "tags": [
+          "ATEM"
+        ],
+        "summary": "Fade to black on the ATEM M/E row (fades back in when already black)",
+        "responses": {
+          "200": {
+            "description": "Fade started; returns the new state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtemState"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "ATEM is not connected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/atem/media/stills/{slot}": {
+      "put": {
+        "operationId": "uploadAtemStill",
+        "tags": [
+          "ATEM"
+        ],
+        "summary": "Upload a raw RGBA still to the media pool (1-based slot)",
+        "parameters": [
+          {
+            "name": "slot",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 64
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Uploaded"
+          },
+          "422": {
+            "description": "Invalid slot or empty body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "ATEM is not connected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/atem/preview": {
+      "put": {
+        "operationId": "setAtemPreview",
+        "tags": [
+          "ATEM"
+        ],
+        "summary": "Set the preview input on the ATEM M/E row",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtemInputRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Preview set; returns the new state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtemState"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Input is not a valid ATEM input number",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "ATEM is not connected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/atem/program": {
+      "put": {
+        "operationId": "setAtemProgram",
+        "tags": [
+          "ATEM"
+        ],
+        "summary": "Set the program input on the ATEM M/E row",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtemInputRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Switched; returns the new state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtemState"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Input is not a valid ATEM input number",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "ATEM is not connected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cameras": {
+      "get": {
+        "operationId": "listCameras",
+        "tags": [
+          "Cameras"
+        ],
+        "summary": "List configured cameras",
+        "description": "Returns all configured PTZ cameras with their current connection, streaming, and position state.",
+        "responses": {
+          "200": {
+            "description": "List of cameras",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Camera"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cameras/{cameraId}": {
+      "get": {
+        "operationId": "getCamera",
+        "tags": [
+          "Cameras"
+        ],
+        "summary": "Get details and status for a specific camera",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cameraId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CameraId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Camera details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Camera"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/cameras/{cameraId}/focus": {
+      "post": {
+        "operationId": "setCameraFocusMode",
+        "tags": [
+          "Cameras"
+        ],
+        "summary": "Set autofocus or manual focus",
+        "description": "Standard VISCA CAM_Focus auto or manual. Auto also ends a privacy blur. Not yet verified on a real PTZ330.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cameraId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CameraId"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CameraFocusRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Focus mode updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CameraActionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "description": "Invalid focus mode",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cameras/{cameraId}/freed": {
+      "get": {
+        "operationId": "getCameraFreed",
+        "tags": [
+          "Cameras"
+        ],
+        "summary": "Read the camera's FreeD output settings",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cameraId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CameraId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "FreeD state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CameraFreedResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "502": {
+            "description": "The camera CGI did not answer or rejected the request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "setCameraFreed",
+        "tags": [
+          "Cameras"
+        ],
+        "summary": "Turn the camera's FreeD output on or off, optionally setting the target",
+        "description": "Sends the FreeD target (when `target` is given) through the camera CGI, switches FreeD on or off, then reads the state back. Uses the camera's CGI port and login. Commands follow the camera web UI; not yet verified on a real PTZ330 beyond the read-back.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cameraId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CameraId"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CameraFreedRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "FreeD updated; state read back",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CameraFreedResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The camera CGI did not answer or rejected the request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cameras/{cameraId}/move": {
+      "post": {
+        "operationId": "moveCamera",
+        "tags": [
+          "Cameras"
+        ],
+        "summary": "Move camera pan/tilt",
+        "description": "Drives pan/tilt continuously or stops motion using VISCA over IP.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cameraId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CameraId"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CameraMoveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Motion command sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CameraActionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "description": "Invalid direction or speed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cameras/{cameraId}/power": {
+      "post": {
+        "operationId": "setCameraPower",
+        "tags": [
+          "Cameras"
+        ],
+        "summary": "Wake the camera or send it to standby",
+        "description": "Standard VISCA CAM_Power. `on: true` wakes the camera from standby, `on: false` sends it to standby. The command leaves from UDP source port 52381 (configurable per camera). Tested on cam1 only.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cameraId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CameraId"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CameraPowerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Power command sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CameraActionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cameras/{cameraId}/presets/{presetId}/recall": {
+      "post": {
+        "operationId": "recallCameraPreset",
+        "tags": [
+          "Cameras"
+        ],
+        "summary": "Recall camera preset",
+        "description": "Recalls a saved preset (0-254) on the camera via VISCA CAM_Memory.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cameraId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CameraId"
+            }
+          },
+          {
+            "in": "path",
+            "name": "presetId",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 254
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Preset recall command sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CameraActionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "description": "Invalid preset ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cameras/{cameraId}/presets/{presetId}/save": {
+      "post": {
+        "operationId": "saveCameraPreset",
+        "tags": [
+          "Cameras"
+        ],
+        "summary": "Save current camera position to preset",
+        "description": "Saves the current position, zoom, and image state to a preset (0-254) via VISCA CAM_Memory Set.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cameraId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CameraId"
+            }
+          },
+          {
+            "in": "path",
+            "name": "presetId",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 254
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Preset saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CameraActionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "description": "Invalid preset ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cameras/{cameraId}/presets/{presetId}/thumbnail": {
+      "post": {
+        "operationId": "captureCameraPresetThumbnail",
+        "tags": [
+          "Cameras"
+        ],
+        "summary": "Capture a thumbnail for a camera preset",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cameraId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "presetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "description": "Invalid request"
+          }
+        }
+      }
+    },
+    "/api/v1/cameras/{cameraId}/privacy-blur": {
+      "post": {
+        "operationId": "setCameraPrivacyBlur",
+        "tags": [
+          "Cameras"
+        ],
+        "summary": "Blur the picture for privacy",
+        "description": "On switches the camera from autofocus to manual focus, sets the near focus limit to the closest distance and drives focus to the nearest point, so the picture is out of focus. Off restores the normal near limit (PIMATRIX_CAMERA_NEAR_LIMIT_M, default 1.5 m, unverified mapping) and returns the camera to autofocus. Uses standard VISCA focus commands; not yet verified on a real PTZ330.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cameraId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CameraId"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CameraPrivacyBlurRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Privacy blur updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CameraActionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cameras/{cameraId}/smartframe": {
+      "post": {
+        "operationId": "setCameraSmartFrame",
+        "tags": [
+          "Cameras"
+        ],
+        "summary": "Control SmartFrame AI auto-framing",
+        "description": "Enables, disables, or triggers one-shot SmartFrame auto framing.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cameraId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CameraId"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CameraSmartFrameRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "SmartFrame mode updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CameraActionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "description": "Invalid SmartFrame mode",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cameras/{cameraId}/stream/start": {
+      "post": {
+        "operationId": "startCameraStream",
+        "tags": [
+          "Cameras"
+        ],
+        "summary": "Start video streaming from camera to MediaMTX",
+        "description": "Commands the camera to push its RTMP feed to MediaMTX or ensures MediaMTX is pulling RTSP.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cameraId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CameraId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Camera stream started",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CameraStreamResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/cameras/{cameraId}/stream/stop": {
+      "post": {
+        "operationId": "stopCameraStream",
+        "tags": [
+          "Cameras"
+        ],
+        "summary": "Stop video streaming from camera",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cameraId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CameraId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Camera stream stopped",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CameraStreamResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/cameras/{cameraId}/zoom": {
+      "post": {
+        "operationId": "zoomCamera",
+        "tags": [
+          "Cameras"
+        ],
+        "summary": "Zoom camera in or out",
+        "description": "Drives optical zoom tele/wide or stops zoom using VISCA over IP.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cameraId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CameraId"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CameraZoomRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Zoom command sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CameraActionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "description": "Invalid zoom action or speed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events": {
+      "get": {
+        "operationId": "streamEvents",
+        "tags": [
+          "Gateway"
+        ],
+        "summary": "Server-sent events: ready, camera, atem, matrix",
+        "responses": {
+          "200": {
+            "description": "Event stream",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/matrix": {
+      "get": {
+        "operationId": "getMatrix",
+        "tags": [
+          "Outputs"
+        ],
+        "summary": "Atlona matrix routes and lock state",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "description": "Invalid request"
+          }
+        }
+      }
+    },
+    "/api/v1/matrix/lock": {
+      "put": {
+        "operationId": "setMatrixLock",
+        "tags": [
+          "Outputs"
+        ],
+        "summary": "Lock or unlock the Atlona matrix",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "locked"
+                ],
+                "properties": {
+                  "locked": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "description": "Invalid request"
+          }
+        }
+      }
+    },
+    "/api/v1/matrix/route": {
+      "post": {
+        "operationId": "requestMatrixRoute",
+        "tags": [
+          "System"
+        ],
+        "summary": "Request an Atlona matrix route through the AMX NetLinx master",
+        "description": "AMX remains the sole controller of the Atlona. PiMatrix forwards the routing request to AMX.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "input",
+                  "output"
+                ],
+                "properties": {
+                  "input": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 4
+                  },
+                  "output": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 5
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Matrix route requested successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatrixRouteResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input or output parameter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "AMX master is unreachable or route command failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/status": {
+      "get": {
+        "operationId": "getStatus",
+        "tags": [
+          "Gateway"
+        ],
+        "summary": "Mode, ATEM connection and camera links",
+        "responses": {
+          "200": {
+            "description": "Status"
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "getHealth",
+        "tags": [
+          "Gateway"
+        ],
+        "summary": "Liveness",
+        "responses": {
+          "200": {
+            "description": "Alive"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CameraZoomRequest": {
+        "type": "object",
+        "required": [
+          "action"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "in",
+              "out",
+              "stop"
+            ]
+          },
+          "speed": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 7,
+            "default": 4
+          }
+        }
+      },
+      "CameraFreedResponse": {
+        "type": "object",
+        "required": [
+          "cameraId",
+          "freed"
+        ],
+        "properties": {
+          "cameraId": {
+            "$ref": "#/components/schemas/CameraId"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "action": {
+            "type": "string"
+          },
+          "freed": {
+            "type": "object",
+            "required": [
+              "enabled",
+              "camId",
+              "addr",
+              "port"
+            ],
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "camId": {
+                "type": "integer",
+                "nullable": true
+              },
+              "addr": {
+                "type": "string",
+                "nullable": true
+              },
+              "port": {
+                "type": "integer",
+                "nullable": true
+              }
+            }
+          }
+        }
+      },
+      "CameraId": {
+        "type": "string",
+        "enum": [
+          "cam1",
+          "cam2",
+          "cam3"
+        ]
+      },
+      "CameraMoveRequest": {
+        "type": "object",
+        "required": [
+          "direction"
+        ],
+        "properties": {
+          "direction": {
+            "type": "string",
+            "enum": [
+              "up",
+              "down",
+              "left",
+              "right",
+              "upleft",
+              "upright",
+              "downleft",
+              "downright",
+              "stop",
+              "home",
+              "reset"
+            ]
+          },
+          "panSpeed": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 24,
+            "default": 10
+          },
+          "tiltSpeed": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 23,
+            "default": 10
+          }
+        }
+      },
+      "AtemState": {
+        "type": "object",
+        "required": [
+          "connected",
+          "programInput",
+          "previewInput",
+          "transition",
+          "fadeToBlack",
+          "downstreamKeyers"
+        ],
+        "properties": {
+          "connected": {
+            "type": "boolean"
+          },
+          "fadeToBlack": {
+            "type": "object",
+            "required": [
+              "fullyBlack",
+              "inTransition",
+              "remainingFrames"
+            ],
+            "properties": {
+              "fullyBlack": {
+                "type": "boolean"
+              },
+              "inTransition": {
+                "type": "boolean"
+              },
+              "remainingFrames": {
+                "type": "integer"
+              }
+            }
+          },
+          "downstreamKeyers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "dsk",
+                "onAir",
+                "tie",
+                "inTransition"
+              ],
+              "properties": {
+                "dsk": {
+                  "type": "integer",
+                  "description": "1-based keyer number as printed on the switcher"
+                },
+                "onAir": {
+                  "type": "boolean"
+                },
+                "tie": {
+                  "type": "boolean"
+                },
+                "inTransition": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "programInput": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "previewInput": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "transition": {
+            "type": "object",
+            "required": [
+              "inTransition",
+              "remainingFrames"
+            ],
+            "properties": {
+              "inTransition": {
+                "type": "boolean"
+              },
+              "remainingFrames": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      },
+      "CameraPrivacyBlurRequest": {
+        "type": "object",
+        "required": [
+          "enabled"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AtemInputRequest": {
+        "type": "object",
+        "required": [
+          "input"
+        ],
+        "properties": {
+          "input": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 40
+          }
+        }
+      },
+      "Camera": {
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "model",
+          "connection",
+          "streaming",
+          "smartFrame",
+          "privacyBlur",
+          "focusMode",
+          "position",
+          "presets"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/CameraId"
+          },
+          "label": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "connection": {
+            "type": "string",
+            "enum": [
+              "connected",
+              "disconnected",
+              "simulated"
+            ]
+          },
+          "streaming": {
+            "type": "boolean"
+          },
+          "streamUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "smartFrame": {
+            "type": "string",
+            "enum": [
+              "enabled",
+              "disabled",
+              "triggered",
+              "unsupported"
+            ]
+          },
+          "privacyBlur": {
+            "type": "boolean",
+            "description": "True while the privacy blur (manual focus driven near) is on."
+          },
+          "focusMode": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "manual"
+            ]
+          },
+          "position": {
+            "$ref": "#/components/schemas/CameraPosition"
+          },
+          "presets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CameraPreset"
+            }
+          }
+        }
+      },
+      "CameraPreset": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "CameraPosition": {
+        "type": "object",
+        "required": [
+          "pan",
+          "tilt",
+          "zoom"
+        ],
+        "properties": {
+          "pan": {
+            "type": "integer"
+          },
+          "tilt": {
+            "type": "integer"
+          },
+          "zoom": {
+            "type": "integer"
+          }
+        }
+      },
+      "MatrixRouteResponse": {
+        "type": "object",
+        "required": [
+          "requestId",
+          "success",
+          "input",
+          "output",
+          "confirmed"
+        ],
+        "properties": {
+          "requestId": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "input": {
+            "type": "integer"
+          },
+          "output": {
+            "type": "integer"
+          },
+          "confirmed": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message"
+            ],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "CameraFocusRequest": {
+        "type": "object",
+        "required": [
+          "mode"
+        ],
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "manual"
+            ]
+          }
+        }
+      },
+      "CameraPowerRequest": {
+        "type": "object",
+        "required": [
+          true
+        ],
+        "properties": {
+          "true": {
+            "type": "boolean",
+            "description": "true wakes the camera, false sends it to standby"
+          }
+        }
+      },
+      "CameraStreamResponse": {
+        "type": "object",
+        "required": [
+          "cameraId",
+          "streaming"
+        ],
+        "properties": {
+          "cameraId": {
+            "$ref": "#/components/schemas/CameraId"
+          },
+          "streaming": {
+            "type": "boolean"
+          },
+          "streamUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "CameraSmartFrameRequest": {
+        "type": "object",
+        "required": [
+          "mode"
+        ],
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "enable",
+              "disable",
+              "trigger"
+            ]
+          }
+        }
+      },
+      "CameraFreedRequest": {
+        "type": "object",
+        "required": [
+          "enabled"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "target": {
+            "type": "object",
+            "required": [
+              "camId",
+              "addr",
+              "port"
+            ],
+            "properties": {
+              "camId": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535,
+                "description": "FreeD camera ID the camera sends (the web UI shows it, e.g. 101)"
+              },
+              "addr": {
+                "type": "string",
+                "format": "ipv4",
+                "description": "Address the camera sends FreeD to"
+              },
+              "port": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
+              }
+            }
+          }
+        }
+      },
+      "CameraActionResponse": {
+        "type": "object",
+        "required": [
+          "cameraId",
+          "success",
+          "action"
+        ],
+        "properties": {
+          "cameraId": {
+            "$ref": "#/components/schemas/CameraId"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "action": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "responses": {
+      "NotFound": {
+        "description": "Requested resource was not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      }
+    }
+  }
+}
