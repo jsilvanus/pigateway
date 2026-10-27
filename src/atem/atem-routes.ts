@@ -108,4 +108,44 @@ export function registerAtemRoutes(
     await atem.setDownstreamKeyTie(dsk - 1, request.body.tie);
     return reply.code(200).send(atem.getState());
   });
+
+  // Media pool still (raw RGBA, width*height*4 bytes) and the keyer that shows it. Used by pimatrix composites.
+  // Slots, media players and DSKs are 1-based here, like the on-air and tie routes.
+  const MAX_STILL_BYTES = 64 * 1024 * 1024;
+  app.addContentTypeParser("application/octet-stream", { parseAs: "buffer", bodyLimit: MAX_STILL_BYTES }, (_req, body, done) => {
+    done(null, body);
+  });
+
+  app.put<{ Params: { slot: string }; Querystring: { name?: string }; Body: Buffer }>(
+    "/api/v1/atem/media/stills/:slot",
+    { bodyLimit: MAX_STILL_BYTES },
+    async (request, reply) => {
+      const slot = Number(request.params.slot);
+      if (!Number.isInteger(slot) || slot < 1 || slot > 64 || !Buffer.isBuffer(request.body) || request.body.length === 0) {
+        return reply.code(422).send({
+          error: { code: "INVALID_REQUEST", message: "slot must be 1-64 and the body raw RGBA bytes (application/octet-stream)" },
+        });
+      }
+      if (!atem.getState().connected) return notConnected(reply);
+      await atem.uploadStill(slot - 1, request.body, request.query.name?.slice(0, 64) || "pigateway");
+      return reply.code(200).send({ slot, bytes: request.body.length });
+    },
+  );
+
+  app.put<{ Params: { dsk: string }; Body: { mediaPlayer?: unknown; slot?: unknown; fillInput?: unknown; cutInput?: unknown } }>(
+    "/api/v1/atem/dsk/:dsk/setup",
+    async (request, reply) => {
+      const dsk = parseDsk(request.params.dsk);
+      const { mediaPlayer, slot, fillInput, cutInput } = request.body ?? {};
+      const ok = (v: unknown, max: number): v is number => typeof v === "number" && Number.isInteger(v) && v >= 1 && v <= max;
+      if (dsk === null || !ok(mediaPlayer, 4) || !ok(slot, 64) || !ok(fillInput, 65535) || !ok(cutInput, 65535)) {
+        return reply.code(422).send({
+          error: { code: "INVALID_REQUEST", message: "dsk 1-4, mediaPlayer 1-4, slot 1-64, fillInput and cutInput positive integers" },
+        });
+      }
+      if (!atem.getState().connected) return notConnected(reply);
+      await atem.setupDownstreamKey({ dsk: dsk - 1, mediaPlayer: mediaPlayer - 1, stillIndex: slot - 1, fillInput, cutInput });
+      return reply.code(200).send(atem.getState());
+    },
+  );
 }
