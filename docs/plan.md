@@ -12,10 +12,10 @@ pigateway is the one process on the Pi that holds the connections to the devices
 
 ## Phases
 
-1. **Scaffold, ATEM, cameras** (this PR): config, auth, CORS, SSE events, `/health`, `/api/v1/status`, ATEM adapter and routes, camera service and routes, ported with their tests.
-2. **AMX**: outbound client to the master (Atlona route and status, port 6501) and the TCP listener on 6600 (`PiMatrix_Bridge.axi`). Camera commands go to the camera service; video commands (SOURCE, OUTPUT, QUICK, PROGRAM) are forwarded to pimatrix over HTTP.
-3. **pimatrix switch-over**: pimatrix drops its ATEM, camera and AMX code and calls pigateway (`PIMATRIX_GATEWAY_URL`) for what it still needs (composites use the ATEM media player and DSK). Camera RTMP push URLs stay configurable here.
-4. **OpenAPI and CLI**: `openapi/openapi.yaml`, generated client and CLI like the other Pi services.
+1. **Scaffold, ATEM, cameras** (done): config, auth, CORS, SSE events, `/health`, `/api/v1/status`, ATEM adapter and routes, camera service and routes, ported with their tests.
+2. **AMX** (done): outbound client to the master (Atlona route and status, port 6501) and the TCP listener on 6600 (`PiMatrix_Bridge.axi`). Camera commands go to the camera service; video commands (SOURCE, OUTPUT, QUICK, PROGRAM) are forwarded to pimatrix over HTTP.
+3. **pimatrix switch-over** (done; pimatrix passes `/api/v1/atem*`, `/cameras*` and `/matrix*` on and relays events): pimatrix drops its ATEM, camera and AMX code and calls pigateway (`PIMATRIX_GATEWAY_URL`) for what it still needs (composites use the ATEM media player and DSK). Camera RTMP push URLs stay configurable here.
+4. **OpenAPI and CLI** (done; `openapi/openapi.json`, run-time CLI): `openapi/openapi.yaml`, generated client and CLI like the other Pi services.
 5. **Tally**: stream-light as an in-process source fed by the ATEM state, with outputs to the tally lamps.
 6. **Deploy** (later, with Juha): systemd user unit on kirkonpi, picontrol and picontrol-mcp pointed at the gateway, AMX master target updated.
 

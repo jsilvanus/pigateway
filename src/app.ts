@@ -20,6 +20,15 @@ export function buildApp(config: AppConfig): FastifyInstance {
     }
   });
 
+  // Every route as "METHOD /path/{param}", for the test that keeps openapi/openapi.json in step.
+  const routeTable = new Set<string>();
+  app.addHook("onRoute", (route) => {
+    for (const method of [route.method].flat()) {
+      if (method !== "HEAD" && method !== "OPTIONS") routeTable.add(`${method} ${route.url.replace(/:(\w+)/g, "{$1}")}`);
+    }
+  });
+  (app as unknown as { routeTable: Set<string> }).routeTable = routeTable;
+
   const eventBroker = new GatewayEventBroker();
 
   const atem = new AtemAdapter({ logger: app.log });
