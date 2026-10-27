@@ -13,7 +13,9 @@ function sendCameraCgiError(reply: { code: (n: number) => { send: (b: unknown) =
   throw err;
 }
 
-export function registerCameraRoutes(app: FastifyInstance, cameraService: CameraService): void {
+export function registerCameraRoutes(app: FastifyInstance, cameraService: CameraService,
+  hooks: { onPower?: (cameraId: string, on: boolean) => void } = {}
+): void {
   app.get("/api/v1/cameras", async () => ({ items: cameraService.list() }));
 
   app.get<{ Params: { cameraId: string } }>("/api/v1/cameras/:cameraId", async (request, reply) => {
@@ -265,6 +267,7 @@ export function registerCameraRoutes(app: FastifyInstance, cameraService: Camera
     }
 
     await cameraService.setPower(request.params.cameraId, on);
+    hooks.onPower?.(request.params.cameraId, on);
 
     return reply.code(200).send({
       cameraId: request.params.cameraId,

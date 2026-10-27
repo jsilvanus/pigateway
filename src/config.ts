@@ -26,15 +26,28 @@ export interface AppConfig {
   cam2CgiPort: number;
   cam2CgiUser?: string | undefined;
   cam2CgiPassword?: string | undefined;
+  /** AMX master (NetLinx) that owns the Atlona matrix (PIGATEWAY_AMX_MASTER_HOST/_PORT). */
+  amxMasterHost?: string | undefined;
+  amxMasterPort: number;
+  /** Listener the AMX connects to (PIGATEWAY_AMX_TCP_ENABLED or _PORT; 0 = any free port). */
+  amxTcpEnabled: boolean;
+  amxTcpHost: string;
+  amxTcpPort: number;
+  amxAllowedHosts?: string[] | undefined;
+  /** Fake AMX replies when no master is configured (PIGATEWAY_AMX_SIMULATED=true). */
+  amxSimulated: boolean;
+  /** pimatrix's own AMX line listener, where video commands are forwarded (PIGATEWAY_VIDEO_AMX_HOST/_PORT). */
+  videoAmxHost?: string | undefined;
+  videoAmxPort: number;
   /** MediaMTX bases a camera is told to push to (PIGATEWAY_MEDIAMTX_RTSP_URL / _RTMP_URL). */
   mediaMtxRtspUrl?: string | undefined;
   mediaMtxRtmpUrl?: string | undefined;
 }
 
-function validPort(value: string | undefined, fallback: number, name: string): number {
+function validPort(value: string | undefined, fallback: number, name: string, allowZero = false): number {
   const result = Number(value ?? fallback);
-  if (!Number.isInteger(result) || result < 1 || result > 65535) {
-    throw new Error(`${name} must be an integer between 1 and 65535`);
+  if (!Number.isInteger(result) || result < (allowZero ? 0 : 1) || result > 65535) {
+    throw new Error(`${name} must be an integer between ${allowZero ? 0 : 1} and 65535`);
   }
   return result;
 }
@@ -104,6 +117,15 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     cam2CgiPort: validPort(env.PIGATEWAY_CAM2_CGI_PORT, 80, "PIGATEWAY_CAM2_CGI_PORT"),
     cam2CgiUser: cam2Login?.user,
     cam2CgiPassword: cam2Login?.password,
+    amxMasterHost: env.PIGATEWAY_AMX_MASTER_HOST?.trim() || undefined,
+    amxMasterPort: validPort(env.PIGATEWAY_AMX_MASTER_PORT, 6501, "PIGATEWAY_AMX_MASTER_PORT"),
+    amxTcpEnabled: env.PIGATEWAY_AMX_TCP_ENABLED === "true" || env.PIGATEWAY_AMX_TCP_PORT !== undefined,
+    amxTcpHost: env.PIGATEWAY_AMX_TCP_HOST?.trim() || "127.0.0.1",
+    amxTcpPort: validPort(env.PIGATEWAY_AMX_TCP_PORT, 6600, "PIGATEWAY_AMX_TCP_PORT", true),
+    amxAllowedHosts: list(env.PIGATEWAY_AMX_ALLOWED_HOSTS),
+    amxSimulated: env.PIGATEWAY_AMX_SIMULATED === "true",
+    videoAmxHost: env.PIGATEWAY_VIDEO_AMX_HOST?.trim() || undefined,
+    videoAmxPort: validPort(env.PIGATEWAY_VIDEO_AMX_PORT, 6601, "PIGATEWAY_VIDEO_AMX_PORT"),
     mediaMtxRtspUrl: urlWithScheme(env.PIGATEWAY_MEDIAMTX_RTSP_URL, "PIGATEWAY_MEDIAMTX_RTSP_URL", ["rtsp:", "rtsps:"]),
     mediaMtxRtmpUrl: urlWithScheme(env.PIGATEWAY_MEDIAMTX_RTMP_URL, "PIGATEWAY_MEDIAMTX_RTMP_URL", ["rtmp:", "rtmps:"])
   };

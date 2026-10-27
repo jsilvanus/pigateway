@@ -12,9 +12,16 @@ export interface CameraEventPayload {
   position?: { pan: number; tilt: number; zoom: number };
 }
 
+export interface MatrixEventPayload {
+  locked: boolean;
+  routes: Record<number, number | null>;
+  lastChange?: { input: number; output: number };
+}
+
 export type GatewayEvent =
   | { type: "camera"; data: CameraEventPayload }
   | { type: "atem"; data: unknown }
+  | { type: "matrix"; data: MatrixEventPayload }
   | { type: "ready"; data: { status: string; time: string } };
 
 export class GatewayEventBroker {
