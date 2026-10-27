@@ -36,6 +36,10 @@ function fakeClient(): AtemClient & { calls: unknown[][] } {
     async autoTransition(...args: unknown[]) { calls.push(["auto", ...args]); },
     async fadeToBlack(...args: unknown[]) { calls.push(["ftb", ...args]); },
     async setDownstreamKeyTie(...args: unknown[]) { calls.push(["tie", ...args]); },
+    async uploadStill(...args: unknown[]) { calls.push(["still", args[0], (args[1] as Buffer).length, args[2]]); },
+    async setMediaPlayerSource(...args: unknown[]) { calls.push(["mp", ...args]); },
+    async setDownstreamKeyFillSource(...args: unknown[]) { calls.push(["fill", ...args]); },
+    async setDownstreamKeyCutSource(...args: unknown[]) { calls.push(["cut-src", ...args]); },
     async setDownstreamKeyOnAir(...args: unknown[]) { calls.push(["onair", ...args]); },
     on(event: string, listener: (...args: never[]) => void) {
       listeners.set(event, listener);
@@ -149,5 +153,27 @@ test("new ATEM routes answer 503 when no ATEM is connected", async () => {
     const res = await app.inject({ method, url, payload });
     assert.equal(res.statusCode, 503, url);
   }
+  await app.close();
+});
+
+test("still upload and DSK setup take 1-based numbers and raw RGBA", async () => {
+  const client = fakeClient();
+  const { app } = await build(client);
+  const rgba = Buffer.alloc(1920 * 1080 * 4, 7);
+  const up = await app.inject({
+    method: "PUT",
+    url: "/api/v1/atem/media/stills/2?name=slide",
+    headers: { "content-type": "application/octet-stream" },
+    payload: rgba,
+  });
+  assert.equal(up.statusCode, 200);
+  assert.deepEqual(client.calls.at(-1), ["still", 1, rgba.length, "slide"]);
+  const empty = await app.inject({ method: "PUT", url: "/api/v1/atem/media/stills/2", headers: { "content-type": "application/octet-stream" }, payload: Buffer.alloc(0) });
+  assert.equal(empty.statusCode, 422);
+  const setup = await app.inject({ method: "PUT", url: "/api/v1/atem/dsk/2/setup", payload: { mediaPlayer: 1, slot: 2, fillInput: 8010, cutInput: 8011 } });
+  assert.equal(setup.statusCode, 200);
+  assert.deepEqual(client.calls.slice(-3), [["mp", { sourceType: 1, stillIndex: 1 }, 0], ["fill", 8010, 1], ["cut-src", 8011, 1]]);
+  const bad = await app.inject({ method: "PUT", url: "/api/v1/atem/dsk/2/setup", payload: { mediaPlayer: 0 } });
+  assert.equal(bad.statusCode, 422);
   await app.close();
 });
