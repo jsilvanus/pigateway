@@ -1,6 +1,10 @@
 import Fastify, { type FastifyInstance } from "fastify";
+import { createAmxClient } from "./amx/amx-client.js";
+import { AmxTcpListener, tcpVideoForward, type AmxControl } from "./amx/amx-listener.js";
+import { AtlonaMatrix } from "./amx/atlona.js";
 import { AtemAdapter } from "./atem/atem-adapter.js";
 import { registerAtemRoutes } from "./atem/atem-routes.js";
+import type { PanTiltDirection, ZoomAction } from "./camera/visca-protocol.js";
 import { registerCameraRoutes } from "./camera/camera-routes.js";
 import { CameraService } from "./camera/camera-service.js";
 import type { AppConfig } from "./config.js";
@@ -42,9 +46,50 @@ export function buildApp(config: AppConfig): FastifyInstance {
     mediaMtxRtspBaseUrl: config.mediaMtxRtspUrl,
     mediaMtxRtmpBaseUrl: config.mediaMtxRtmpUrl
   });
-  registerCameraRoutes(app, cameraService);
+
+  // VISCA power is not read back, so "unknown" until AMX or the API sets it.
+  const cameraPower = new Map<string, "on" | "standby">();
+  registerCameraRoutes(app, cameraService, {
+    onPower: (id, on) => cameraPower.set(id, on ? "on" : "standby")
+  });
+  const amxClient = createAmxClient(config.amxSimulated, config.amxMasterHost, config.amxMasterPort, app.log);
+  const matrix = new AtlonaMatrix(amxClient, eventBroker, app.log);
+  matrix.register(app, config.mode);
+
+  const amxControl: AmxControl = {
+    cameras: () =>
+      cameraService.list().map((cam) => ({ id: cam.id, connection: cam.connection, power: cameraPower.get(cam.id) ?? "unknown" })),
+    cameraPower: async (id, on) => {
+      await cameraService.setPower(id, on);
+      cameraPower.set(id, on ? "on" : "standby");
+    },
+    cameraPreset: async (id, presetId, save) => {
+      await (save ? cameraService.savePreset(id, presetId) : cameraService.recallPreset(id, presetId));
+    },
+    cameraMove: async (id, direction) => {
+      await cameraService.move(id, direction as PanTiltDirection);
+    },
+    cameraZoom: async (id, action) => {
+      await cameraService.zoom(id, action as ZoomAction);
+    },
+    atlonaRoutes: () => ({ ...matrix.state.routes })
+  };
+  const amxListener = config.amxTcpEnabled
+    ? new AmxTcpListener({
+        control: amxControl,
+        forward: config.videoAmxHost ? tcpVideoForward(config.videoAmxHost, config.videoAmxPort) : undefined,
+        host: config.amxTcpHost,
+        port: config.amxTcpPort,
+        mode: config.mode,
+        logger: app.log,
+        allowedIps: config.amxAllowedHosts
+      })
+    : null;
+  (app as unknown as { amxListener?: AmxTcpListener | null }).amxListener = amxListener;
 
   app.addHook("onReady", async () => {
+    if (amxListener) await amxListener.start();
+    if (config.amxMasterHost) matrix.startPolling();
     if (config.atemHost) {
       await atem.connect(config.atemHost, config.atemPort).catch((error: unknown) => {
         app.log.warn({ err: error }, "ATEM connect failed; the adapter keeps retrying");
@@ -52,7 +97,13 @@ export function buildApp(config: AppConfig): FastifyInstance {
     }
   });
   app.addHook("onClose", async () => {
-    await Promise.allSettled([atem.disconnect(), cameraService.close()]);
+    matrix.stopPolling();
+    await Promise.allSettled([
+      atem.disconnect(),
+      cameraService.close(),
+      amxListener ? amxListener.stop() : Promise.resolve(),
+      amxClient.close()
+    ]);
   });
 
   // CORS for /api/v1, only for origins in PIGATEWAY_CORS_ORIGINS. Preflights are answered before routing.
