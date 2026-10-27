@@ -1,6 +1,6 @@
 # pigateway plan (2026-10-27)
 
-pigateway is the one process on the Pi that holds the connections to the devices: ATEM, cameras (VISCA over UDP and the CGI), the AMX master (TCP), later the tally light (stream-light) and the encoder. It owns device state and publishes it as events. It does no video work; ffmpeg, MediaMTX, HDMI out, effects and composites stay in pimatrix. YouTube is not here; that is pitube.
+pigateway is the one process on the Pi that holds the connections to the devices: ATEM, cameras (VISCA over UDP and the CGI), the AMX master (TCP), the Matrox Monarch HDX encoder (through `@jsilvanus/matrox-monarch-control`: state, start/stop, settings, RTMP target; one command at a time, busy answers retried) and, later, the tally light (stream-light). It owns device state and publishes it as events. It does no video work; ffmpeg, MediaMTX, HDMI out, effects and composites stay in pimatrix. YouTube is not here; that is pitube.
 
 ## Rules
 
