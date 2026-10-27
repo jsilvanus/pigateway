@@ -1,0 +1,13 @@
+[Unit]
+Description=pigateway device gateway
+After=network-online.target
+
+[Service]
+WorkingDirectory=%h/apps/pigateway
+EnvironmentFile=%h/apps/pigateway/.env
+ExecStart=%h/.local/node/bin/node dist/main.js
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=default.target
