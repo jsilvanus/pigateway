@@ -16,6 +16,10 @@ Needs Node 22 or newer (Node 24 on the Pi). `PIGATEWAY_MODE=simulation` (default
 
 `GET /health`, `GET /api/v1/status`, `GET /api/v1/events`, `/api/v1/atem/*` (program, preview, cut, auto, ftb, DSK tie and on-air), `/api/v1/cameras/*` (move, zoom, presets, smartframe, focus, power, FreeD, privacy blur, stream start and stop).
 
+## AMX
+
+The gateway listens for the AMX on `PIGATEWAY_AMX_TCP_PORT` (6600) and speaks the same line protocol pimatrix did. `CAM`, `DEV`, `PING` and the camera and Atlona parts of `STATUS:ALL` are answered here. `SOURCE`, `OUTPUT`, `QUICK` and `PROGRAM` are forwarded to pimatrix's own AMX listener (`PIGATEWAY_VIDEO_AMX_HOST/PORT`), so the AMX program does not change. Atlona routing (`POST /api/v1/matrix/route`, plus `/api/v1/matrix` and `/matrix/lock`) is sent to the AMX master on 6501.
+
 ## Configuration
 
 See [.env.example](.env.example). Camera and ATEM addresses, MediaMTX push URLs, API key, LAN allow list, CORS origins.
