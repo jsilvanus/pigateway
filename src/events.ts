@@ -22,6 +22,7 @@ export type GatewayEvent =
   | { type: "camera"; data: CameraEventPayload }
   | { type: "atem"; data: unknown }
   | { type: "matrix"; data: MatrixEventPayload }
+  | { type: "encoder"; data: unknown }
   | { type: "ready"; data: { status: string; time: string } };
 
 export class GatewayEventBroker {

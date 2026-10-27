@@ -4,6 +4,8 @@ import { AmxTcpListener, tcpVideoForward, type AmxControl } from "./amx/amx-list
 import { AtlonaMatrix } from "./amx/atlona.js";
 import { AtemAdapter } from "./atem/atem-adapter.js";
 import { registerAtemRoutes } from "./atem/atem-routes.js";
+import { registerEncoderRoutes } from "./encoder/encoder-routes.js";
+import { EncoderService } from "./encoder/encoder-service.js";
 import type { PanTiltDirection, ZoomAction } from "./camera/visca-protocol.js";
 import { registerCameraRoutes } from "./camera/camera-routes.js";
 import { CameraService } from "./camera/camera-service.js";
@@ -34,6 +36,16 @@ export function buildApp(config: AppConfig): FastifyInstance {
   const atem = new AtemAdapter({ logger: app.log });
   atem.onStateChange((state) => eventBroker.emit({ type: "atem", data: state }));
   registerAtemRoutes(app, atem);
+
+  const encoder = new EncoderService({
+    host: config.encoderHost,
+    username: config.encoderUser,
+    password: config.encoderPassword,
+    https: config.encoderHttps,
+    logger: app.log,
+    onChange: (state) => eventBroker.emit({ type: "encoder", data: state })
+  });
+  registerEncoderRoutes(app, encoder);
 
   const cameraService = new CameraService({
     mode: config.mode,
@@ -99,6 +111,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
   app.addHook("onReady", async () => {
     if (amxListener) await amxListener.start();
     if (config.amxMasterHost) matrix.startPolling();
+    encoder.start();
     if (config.atemHost) {
       await atem.connect(config.atemHost, config.atemPort).catch((error: unknown) => {
         app.log.warn({ err: error }, "ATEM connect failed; the adapter keeps retrying");
@@ -107,6 +120,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
   });
   app.addHook("onClose", async () => {
     matrix.stopPolling();
+    encoder.stop();
     await Promise.allSettled([
       atem.disconnect(),
       cameraService.close(),
@@ -167,6 +181,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
     service: "pigateway",
     mode: config.mode,
     atem: { configured: Boolean(config.atemHost), connected: atem.getState().connected },
+    encoder: { configured: encoder.getState().configured, connected: encoder.getState().connected },
     cameras: cameraService.list().map((cam) => ({ id: cam.id, connection: cam.connection }))
   }));
 

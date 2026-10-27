@@ -12,6 +12,11 @@ export interface AppConfig {
   corsOrigins?: string[] | undefined;
   atemHost?: string | undefined;
   atemPort: number;
+  /** Matrox Monarch HDX encoder (PIGATEWAY_ENCODER_HOST, _HTTPS, _USER, _PASSWORD; user and password together). */
+  encoderHost?: string | undefined;
+  encoderHttps: boolean;
+  encoderUser?: string | undefined;
+  encoderPassword?: string | undefined;
   /** Near focus limit in metres restored when privacy blur goes off. */
   cameraNearLimitM: number;
   cam1Name: string;
@@ -93,6 +98,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   if (!Number.isFinite(nearLimit) || nearLimit < 0.1 || nearLimit > 50) {
     throw new Error("PIGATEWAY_CAMERA_NEAR_LIMIT_M must be a number of metres between 0.1 and 50");
   }
+  const encoderLogin = cameraLogin(env, "PIGATEWAY_ENCODER");
   const cam1Login = cameraLogin(env, "PIGATEWAY_CAM1");
   const cam2Login = cameraLogin(env, "PIGATEWAY_CAM2");
   return {
@@ -104,6 +110,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     corsOrigins: list(env.PIGATEWAY_CORS_ORIGINS),
     atemHost: env.PIGATEWAY_ATEM_HOST?.trim() || undefined,
     atemPort: validPort(env.PIGATEWAY_ATEM_PORT, 9910, "PIGATEWAY_ATEM_PORT"),
+    encoderHost: env.PIGATEWAY_ENCODER_HOST?.trim() || undefined,
+    encoderHttps: env.PIGATEWAY_ENCODER_HTTPS === "true",
+    encoderUser: encoderLogin?.user,
+    encoderPassword: encoderLogin?.password,
     cameraNearLimitM: nearLimit,
     cam1Name: env.PIGATEWAY_CAM1_NAME?.trim() || "Camera 1",
     cam1Host: env.PIGATEWAY_CAM1_HOST?.trim() || undefined,

@@ -3,7 +3,7 @@
   "info": {
     "title": "pigateway API",
     "version": "0.1.0",
-    "description": "The Pi device gateway: ATEM, cameras and the Atlona matrix (through the AMX master). Writes under /api/v1 need X-Api-Key or a Bearer token unless the client is on PIGATEWAY_AUTH_ALLOWED_HOSTS."
+    "description": "The Pi device gateway: ATEM, cameras, the Atlona matrix (through the AMX master) and the Matrox Monarch HDX encoder. Writes under /api/v1 need X-Api-Key or a Bearer token unless the client is on PIGATEWAY_AUTH_ALLOWED_HOSTS."
   },
   "servers": [
     {
@@ -1260,13 +1260,491 @@
         }
       }
     },
+    "/api/v1/encoder": {
+      "get": {
+        "operationId": "getEncoder",
+        "tags": [
+          "Encoder"
+        ],
+        "summary": "Monarch HDX encoder state (polled; connected=false when unreachable)",
+        "responses": {
+          "200": {
+            "description": "Current encoder state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EncoderState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/encoder/input": {
+      "get": {
+        "operationId": "getEncoderInput",
+        "tags": [
+          "Encoder"
+        ],
+        "summary": "Video input the Monarch sees (input, resolution, frame rate)",
+        "responses": {
+          "200": {
+            "description": "Input status"
+          },
+          "409": {
+            "description": "Encoder refused (settings cannot change while running)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Encoder not reachable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No encoder configured, or it is busy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/encoder/settings": {
+      "get": {
+        "operationId": "getEncoderSettings",
+        "tags": [
+          "Encoder"
+        ],
+        "summary": "Monarch input, bitrate, record file name and RTMP targets (stream keys are never returned)",
+        "responses": {
+          "200": {
+            "description": "Settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EncoderSettings"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Encoder refused (settings cannot change while running)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Encoder not reachable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No encoder configured, or it is busy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "setEncoderSettings",
+        "tags": [
+          "Encoder"
+        ],
+        "summary": "Change Monarch settings; the device refuses while an encoder runs",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "videoInput": {
+                    "enum": [
+                      "SDI",
+                      "HDMI"
+                    ]
+                  },
+                  "audioInput": {
+                    "enum": [
+                      "ANALOG",
+                      "DIGITAL"
+                    ]
+                  },
+                  "bitrateKbps": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "recordFileName": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EncoderSettings"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Encoder refused (settings cannot change while running)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Encoder not reachable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No encoder configured, or it is busy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/encoder/start": {
+      "post": {
+        "operationId": "startEncoder",
+        "tags": [
+          "Encoder"
+        ],
+        "summary": "Start one or both Monarch encoders",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "encoder": {
+                    "description": "1, 2 or both (default both)",
+                    "enum": [
+                      1,
+                      2,
+                      "both"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Started; returns the new state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EncoderState"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Encoder refused (settings cannot change while running)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Encoder not reachable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No encoder configured, or it is busy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/encoder/stop": {
+      "post": {
+        "operationId": "stopEncoder",
+        "tags": [
+          "Encoder"
+        ],
+        "summary": "Stop one or both Monarch encoders",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "encoder": {
+                    "description": "1, 2 or both (default both)",
+                    "enum": [
+                      1,
+                      2,
+                      "both"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Stopped; returns the new state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EncoderState"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Encoder refused (settings cannot change while running)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Encoder not reachable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No encoder configured, or it is busy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/encoder/{encoder}/rtmp": {
+      "put": {
+        "operationId": "setEncoderRtmp",
+        "tags": [
+          "Encoder"
+        ],
+        "summary": "Set the RTMP target of one encoder (the stream key is write-only)",
+        "parameters": [
+          {
+            "name": "encoder",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "enum": [
+                1,
+                2
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "url",
+                  "streamName"
+                ],
+                "properties": {
+                  "url": {
+                    "type": "string"
+                  },
+                  "streamName": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Set"
+          },
+          "409": {
+            "description": "Encoder refused (settings cannot change while running)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Encoder not reachable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No encoder configured, or it is busy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/events": {
       "get": {
         "operationId": "streamEvents",
         "tags": [
           "Gateway"
         ],
-        "summary": "Server-sent events: ready, camera, atem, matrix",
+        "summary": "Server-sent events: ready, camera, atem, matrix, encoder",
         "responses": {
           "200": {
             "description": "Event stream",
@@ -1942,6 +2420,89 @@
           },
           "message": {
             "type": "string"
+          }
+        }
+      },
+      "EncoderState": {
+        "type": "object",
+        "properties": {
+          "configured": {
+            "type": "boolean"
+          },
+          "connected": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "encoder1": {
+            "type": "object",
+            "properties": {
+              "mode": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string"
+              }
+            }
+          },
+          "encoder2": {
+            "type": "object",
+            "properties": {
+              "mode": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string"
+              }
+            }
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "EncoderSettings": {
+        "type": "object",
+        "properties": {
+          "videoInput": {
+            "type": "string"
+          },
+          "audioInput": {
+            "type": "string"
+          },
+          "bitrateKbps": {
+            "type": "integer"
+          },
+          "recordFileName": {
+            "type": "string"
+          },
+          "rtmp": {
+            "type": "object",
+            "properties": {
+              "encoder1": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string"
+                  },
+                  "username": {
+                    "type": "string"
+                  }
+                }
+              },
+              "encoder2": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string"
+                  },
+                  "username": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
           }
         }
       }
