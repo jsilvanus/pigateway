@@ -6,6 +6,8 @@ import { AtemAdapter } from "./atem/atem-adapter.js";
 import { registerAtemRoutes } from "./atem/atem-routes.js";
 import { registerEncoderRoutes } from "./encoder/encoder-routes.js";
 import { EncoderService } from "./encoder/encoder-service.js";
+import { registerYoutubeRoutes } from "./youtube/youtube-routes.js";
+import { YoutubeStatusStore } from "./youtube/youtube-status.js";
 import type { PanTiltDirection, ZoomAction } from "./camera/visca-protocol.js";
 import { registerCameraRoutes } from "./camera/camera-routes.js";
 import { CameraService } from "./camera/camera-service.js";
@@ -46,6 +48,9 @@ export function buildApp(config: AppConfig): FastifyInstance {
     onChange: (state) => eventBroker.emit({ type: "encoder", data: state })
   });
   registerEncoderRoutes(app, encoder);
+
+  const youtube = new YoutubeStatusStore({ onChange: (record) => eventBroker.emit({ type: "youtube", data: record }) });
+  registerYoutubeRoutes(app, youtube);
 
   const cameraService = new CameraService({
     mode: config.mode,
@@ -121,6 +126,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
   app.addHook("onClose", async () => {
     matrix.stopPolling();
     encoder.stop();
+    youtube.stop();
     await Promise.allSettled([
       atem.disconnect(),
       cameraService.close(),
@@ -181,6 +187,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
     service: "pigateway",
     mode: config.mode,
     atem: { configured: Boolean(config.atemHost), connected: atem.getState().connected },
+    youtube: { state: youtube.get().state },
     encoder: { configured: encoder.getState().configured, connected: encoder.getState().connected },
     cameras: cameraService.list().map((cam) => ({ id: cam.id, connection: cam.connection }))
   }));
