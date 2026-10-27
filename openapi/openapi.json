@@ -1744,7 +1744,7 @@
         "tags": [
           "Gateway"
         ],
-        "summary": "Server-sent events: ready, camera, atem, matrix, encoder",
+        "summary": "Server-sent events: ready, camera, atem, matrix, encoder, youtube",
         "responses": {
           "200": {
             "description": "Event stream",
@@ -1895,6 +1895,96 @@
         "responses": {
           "200": {
             "description": "Status"
+          }
+        }
+      }
+    },
+    "/api/v1/youtube": {
+      "get": {
+        "operationId": "getYoutube",
+        "tags": [
+          "YouTube"
+        ],
+        "summary": "YouTube live status as pitube last reported it (unknown once its ttl has passed)",
+        "responses": {
+          "200": {
+            "description": "Status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/YoutubeStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/youtube/status": {
+      "put": {
+        "operationId": "setYoutubeStatus",
+        "tags": [
+          "YouTube"
+        ],
+        "summary": "Report the YouTube live status (written by pitube)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "state",
+                  "checkedAt",
+                  "ttlMs"
+                ],
+                "properties": {
+                  "state": {
+                    "enum": [
+                      "live",
+                      "offline",
+                      "unknown"
+                    ]
+                  },
+                  "detail": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "checkedAt": {
+                    "type": "integer",
+                    "description": "Epoch ms on the sender's clock"
+                  },
+                  "ttlMs": {
+                    "type": "integer",
+                    "minimum": 1000,
+                    "maximum": 3600000,
+                    "description": "How long the reading is good for"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Stored status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/YoutubeStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -2503,6 +2593,31 @@
                 }
               }
             }
+          }
+        }
+      },
+      "YoutubeStatus": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "enum": [
+              "live",
+              "offline",
+              "unknown"
+            ]
+          },
+          "detail": {
+            "type": "string"
+          },
+          "checkedAt": {
+            "type": "integer"
+          },
+          "ttlMs": {
+            "type": "integer"
+          },
+          "receivedAt": {
+            "type": "integer",
+            "description": "Epoch ms on the gateway's clock"
           }
         }
       }

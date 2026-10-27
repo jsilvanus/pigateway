@@ -23,6 +23,7 @@ export type GatewayEvent =
   | { type: "atem"; data: unknown }
   | { type: "matrix"; data: MatrixEventPayload }
   | { type: "encoder"; data: unknown }
+  | { type: "youtube"; data: unknown }
   | { type: "ready"; data: { status: string; time: string } };
 
 export class GatewayEventBroker {

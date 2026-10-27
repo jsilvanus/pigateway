@@ -1,6 +1,6 @@
 # pigateway
 
-The one process on the Raspberry Pi that talks to the devices: ATEM switcher, PTZ cameras (VISCA and CGI), the AMX master, the Matrox Monarch HDX encoder (`/api/v1/encoder`, env `PIGATEWAY_ENCODER_*`) and, next, the tally light. Other services call its HTTP API and listen to its events (`GET /api/v1/events`, Server-Sent Events). Video processing stays in [pimatrix](https://github.com/jsilvanus/pimatrix); YouTube is [pitube](https://github.com/jsilvanus/pitube). Plan and phases: [docs/plan.md](docs/plan.md).
+The one process on the Raspberry Pi that talks to the devices: ATEM switcher, PTZ cameras (VISCA and CGI), the AMX master, the Matrox Monarch HDX encoder (`/api/v1/encoder`, env `PIGATEWAY_ENCODER_*`), the YouTube live status that pitube reports (`PUT /api/v1/youtube/status`, `GET /api/v1/youtube`, event `youtube`; expires to "unknown" after its ttlMs) and, next, the tally light. Other services call its HTTP API and listen to its events (`GET /api/v1/events`, Server-Sent Events). Video processing stays in [pimatrix](https://github.com/jsilvanus/pimatrix); YouTube is [pitube](https://github.com/jsilvanus/pitube). Plan and phases: [docs/plan.md](docs/plan.md).
 
 ## Run
 
