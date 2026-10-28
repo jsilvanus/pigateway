@@ -1,6 +1,6 @@
 # pigateway
 
-The one process on the Raspberry Pi that talks to the devices: ATEM switcher, PTZ cameras (VISCA and CGI), the AMX master, the Matrox Monarch HDX encoder (`/api/v1/encoder`, env `PIGATEWAY_ENCODER_*`), the YouTube live status that pitube reports (`PUT /api/v1/youtube/status`, `GET /api/v1/youtube`, event `youtube`; expires to "unknown" after its ttlMs) and, next, the tally light. Other services call its HTTP API and listen to its events (`GET /api/v1/events`, Server-Sent Events). Video processing stays in [pimatrix](https://github.com/jsilvanus/pimatrix); YouTube is [pitube](https://github.com/jsilvanus/pitube). Plan and phases: [docs/plan.md](docs/plan.md).
+The one process on the Raspberry Pi that talks to the devices: ATEM switcher, PTZ cameras (VISCA and CGI), the AMX master, the Matrox Monarch HDX encoder (`/api/v1/encoder`, env `PIGATEWAY_ENCODER_*`), YouTube live status from pitube, and PiVoice audio telemetry. Other services call its HTTP API and listen to its events (`GET /api/v1/events`, Server-Sent Events). Video processing stays in [pimatrix](https://github.com/jsilvanus/pimatrix); YouTube is [pitube](https://github.com/jsilvanus/pitube). Plan and phases: [docs/plan.md](docs/plan.md).
 
 ## Run
 
@@ -12,20 +12,21 @@ npm test
 
 Needs Node 22 or newer (Node 24 on the Pi). `PIGATEWAY_MODE=simulation` (default) fakes the cameras; `production` talks to the hardware and requires `PIGATEWAY_API_KEY`.
 
-## Endpoints (same as pimatrix had)
+## PiVoice telemetry
 
-`GET /health`, `GET /api/v1/status`, `GET /api/v1/events`, `/api/v1/atem/*` (program, preview, cut, auto, ftb, DSK tie and on-air), `/api/v1/cameras/*` (move, zoom, presets, smartframe, focus, power, FreeD, privacy blur, stream start and stop).
+PiGateway listens for the binary PiVoice telemetry protocol on UDP `PIGATEWAY_PIVOICE_UDP_HOST` / `PIGATEWAY_PIVOICE_UDP_PORT` (defaults `0.0.0.0:3101`), separately from the HTTP API on port 3100. Set `PIGATEWAY_PIVOICE_ALLOWED_HOSTS` to a comma-separated list of sender IPs to restrict who can update telemetry.
+
+The v1 packet is 42 bytes: a 20-byte header and a 22-byte fixed snapshot payload. It uses big-endian integers, magic `PV`, version 1 and type `0x01`. Every packet includes meter levels, the current classification, capture state and publisher state. No audio is sent to PiGateway. A valid packet refreshes the telemetry heartbeat; state becomes stale after 6 seconds without one. Invalid packets and packets from disallowed IPs do not update state.
+
+Latest state is included in `GET /api/v1/status` under `pivoice`; the same state is emitted as the `pivoice` event on `GET /api/v1/events`. State is held in memory. The sample format is `unknown` until PiVoice can report the negotiated ALSA input format rather than assuming it.
+
+## Endpoints
+
+`GET /health`, `GET /api/v1/status`, `GET /api/v1/events`, `/api/v1/atem/*`, `/api/v1/cameras/*`.
 
 ## API description and CLI
 
-[openapi/openapi.json](openapi/openapi.json) describes every endpoint; a test fails when it and the served routes differ. `bin/pigateway.mjs` (also installed as `pigateway`) builds one command per operation from that file at run time, with no dependencies:
-
-```sh
-pigateway help                                  # all commands
-pigateway help set-atem-dsk-on-air
-PIGATEWAY_URL=http://kirkonpi.local:3100 PIGATEWAY_API_KEY=... pigateway move-camera --cameraId cam1 --direction left
-pigateway upload-atem-still --slot 1 --file slide.rgba
-```
+[openapi/openapi.json](openapi/openapi.json) describes the HTTP endpoints; a test fails when it and the served routes differ. `bin/pigateway.mjs` (also installed as `pigateway`) builds one command per operation from that file at run time, with no dependencies.
 
 ## AMX
 
