@@ -14,6 +14,10 @@ export interface AppConfig {
   pivoiceUdpHost: string;
   pivoiceUdpPort: number;
   pivoiceAllowedHosts?: string[] | undefined;
+  /** PiVoice control API; audio never passes through the gateway. */
+  pivoiceApiUrl?: string | undefined;
+  pivoiceApiToken?: string | undefined;
+  pivoiceIdleCloseSeconds: number;
   atemHost?: string | undefined;
   atemPort: number;
   /** Matrox Monarch HDX encoder (PIGATEWAY_ENCODER_HOST, _HTTPS, _USER, _PASSWORD; user and password together). */
@@ -58,6 +62,12 @@ function validPort(value: string | undefined, fallback: number, name: string, al
   if (!Number.isInteger(result) || result < (allowZero ? 0 : 1) || result > 65535) {
     throw new Error(`${name} must be an integer between ${allowZero ? 0 : 1} and 65535`);
   }
+  return result;
+}
+
+function validInteger(value: string | undefined, fallback: number, min: number, max: number, name: string): number {
+  const result = Number(value ?? fallback);
+  if (!Number.isInteger(result) || result < min || result > max) throw new Error(`${name} must be an integer between ${min} and ${max}`);
   return result;
 }
 
@@ -115,6 +125,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     pivoiceUdpHost: env.PIGATEWAY_PIVOICE_UDP_HOST?.trim() || "0.0.0.0",
     pivoiceUdpPort: validPort(env.PIGATEWAY_PIVOICE_UDP_PORT, 3101, "PIGATEWAY_PIVOICE_UDP_PORT"),
     pivoiceAllowedHosts: list(env.PIGATEWAY_PIVOICE_ALLOWED_HOSTS),
+    pivoiceApiUrl: env.PIGATEWAY_PIVOICE_API_URL?.trim() || undefined,
+    pivoiceApiToken: env.PIGATEWAY_PIVOICE_API_TOKEN?.trim() || undefined,
+    pivoiceIdleCloseSeconds: validInteger(env.PIGATEWAY_PIVOICE_IDLE_CLOSE_SECONDS, 15, 0, 3600, "PIGATEWAY_PIVOICE_IDLE_CLOSE_SECONDS"),
     atemHost: env.PIGATEWAY_ATEM_HOST?.trim() || undefined,
     atemPort: validPort(env.PIGATEWAY_ATEM_PORT, 9910, "PIGATEWAY_ATEM_PORT"),
     encoderHost: env.PIGATEWAY_ENCODER_HOST?.trim() || undefined,
