@@ -1,5 +1,4 @@
 import dgram from "node:dgram";
-import type { Logger } from "fastify";
 
 export const PIVOICE_HEADER_BYTES = 20;
 export const PIVOICE_PAYLOAD_BYTES = 22;
@@ -101,7 +100,7 @@ export interface PiVoiceUdpReceiverOptions {
   allowedIps?: string[];
   staleMs?: number;
   now?: () => number;
-  logger?: Pick<Logger, "info" | "warn" | "error">;
+  logger?: { info: (...args: any[]) => void; error: (...args: any[]) => void };
   onChange?: (state: PiVoiceTelemetry) => void;
 }
 
