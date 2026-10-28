@@ -22,6 +22,19 @@ export interface AppConfig {
   radioRelayStreamName: string;
   pivoiceIdleCloseSeconds: number;
   pivoiceStartWhen: "speech" | "speech_or_music";
+  /**
+   * How transcripts reach the gateway (PIGATEWAY_TRANSCRIPT_DELIVERY):
+   * "sse" = the gateway follows the live session's SSE on the Auditor (needs PIGATEWAY_AUDITOR_URL),
+   * "push" = the Auditor POSTs to PIGATEWAY_TRANSCRIPT_PUSH_URL (the address the Auditor uses to reach this gateway).
+   */
+  transcriptDelivery: "sse" | "push";
+  auditorUrl?: string | undefined;
+  auditorApiKey?: string | undefined;
+  transcriptPushUrl?: string | undefined;
+  /** Bearer token the Auditor presents when pushing; defaults to the gateway API key. */
+  transcriptPushToken?: string | undefined;
+  /** Transcripts kept for SSE replay (PIGATEWAY_TRANSCRIPT_BUFFER). */
+  transcriptBuffer: number;
   atemHost?: string | undefined;
   atemPort: number;
   /** Matrox Monarch HDX encoder (PIGATEWAY_ENCODER_HOST, _HTTPS, _USER, _PASSWORD; user and password together). */
@@ -72,6 +85,12 @@ function validPort(value: string | undefined, fallback: number, name: string, al
 function activityTrigger(value: string | undefined): "speech" | "speech_or_music" {
   const result = value ?? "speech_or_music";
   if (result !== "speech" && result !== "speech_or_music") throw new Error("PIGATEWAY_PIVOICE_START_WHEN must be speech or speech_or_music");
+  return result;
+}
+
+function transcriptDelivery(value: string | undefined): "sse" | "push" {
+  const result = value?.trim() || "sse";
+  if (result !== "sse" && result !== "push") throw new Error("PIGATEWAY_TRANSCRIPT_DELIVERY must be sse or push");
   return result;
 }
 
@@ -150,6 +169,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     radioRelayStreamName: env.PIGATEWAY_RADIO_RELAY_STREAM_NAME?.trim() || "stream",
     pivoiceIdleCloseSeconds: validInteger(env.PIGATEWAY_PIVOICE_IDLE_CLOSE_SECONDS, 15, 0, 3600, "PIGATEWAY_PIVOICE_IDLE_CLOSE_SECONDS"),
     pivoiceStartWhen: activityTrigger(env.PIGATEWAY_PIVOICE_START_WHEN),
+    transcriptDelivery: transcriptDelivery(env.PIGATEWAY_TRANSCRIPT_DELIVERY),
+    auditorUrl: urlWithScheme(env.PIGATEWAY_AUDITOR_URL, "PIGATEWAY_AUDITOR_URL", ["http:", "https:"]),
+    auditorApiKey: env.PIGATEWAY_AUDITOR_API_KEY?.trim() || undefined,
+    transcriptPushUrl: urlWithScheme(env.PIGATEWAY_TRANSCRIPT_PUSH_URL, "PIGATEWAY_TRANSCRIPT_PUSH_URL", ["http:", "https:"]),
+    transcriptPushToken: env.PIGATEWAY_TRANSCRIPT_PUSH_TOKEN?.trim() || env.PIGATEWAY_API_KEY?.trim() || undefined,
+    transcriptBuffer: validInteger(env.PIGATEWAY_TRANSCRIPT_BUFFER, 500, 10, 10000, "PIGATEWAY_TRANSCRIPT_BUFFER"),
     atemHost: env.PIGATEWAY_ATEM_HOST?.trim() || undefined,
     atemPort: validPort(env.PIGATEWAY_ATEM_PORT, 9910, "PIGATEWAY_ATEM_PORT"),
     encoderHost: env.PIGATEWAY_ENCODER_HOST?.trim() || undefined,

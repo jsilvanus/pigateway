@@ -1,5 +1,6 @@
 import { EventEmitter } from "node:events";
 import type { PiVoiceTelemetry } from "./pivoice/telemetry.js";
+import type { TranscriptEvent } from "./transcripts/transcript-hub.js";
 
 export interface CameraEventPayload {
   id: string;
@@ -27,6 +28,7 @@ export type GatewayEvent =
   | { type: "youtube"; data: unknown }
   | { type: "pivoice"; data: PiVoiceTelemetry }
   | { type: "pivoice-activity"; data: unknown }
+  | { type: "transcript"; data: TranscriptEvent }
   | { type: "ready"; data: { status: string; time: string } };
 
 export class GatewayEventBroker {

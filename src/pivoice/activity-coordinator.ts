@@ -9,6 +9,10 @@ export interface PiVoiceActivityOptions {
   fetchFn?: typeof fetch;
   logger?: FastifyBaseLogger;
   onChange?: (state: PiVoiceActivityState) => void;
+  /** Transcript delivery requested for sessions this coordinator opens, forwarded to the Auditor by PiVoice. */
+  delivery?: { mode: "sse" } | { mode: "push"; url: string; token?: string | undefined } | undefined;
+  /** Called with the Auditor session id once PiVoice opened a session, and with null when it closed. */
+  onSession?: (sessionId: string | null) => void;
 }
 
 export interface PiVoiceActivityState {
@@ -99,7 +103,7 @@ export class PiVoiceActivityCoordinator {
     return { ...extra, ...(this.#options.token ? { authorization: `Bearer ${this.#options.token}` } : {}) };
   }
 
-  async #request(path: string, body: Record<string, unknown>): Promise<void> {
+  async #request(path: string, body: Record<string, unknown>): Promise<Record<string, unknown>> {
     if (!this.#options.baseUrl) throw new Error("PiVoice API URL is not configured");
     const response = await this.#fetch(`${this.#options.baseUrl.replace(/\/$/, "")}${path}`, {
       method: "POST",
@@ -111,6 +115,8 @@ export class PiVoiceActivityCoordinator {
       const detail = await response.text().catch(() => "");
       throw new Error(`PiVoice control failed (HTTP ${response.status})${detail ? `: ${detail.slice(0, 160)}` : ""}`);
     }
+    const parsed: unknown = await response.json().catch(() => ({}));
+    return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
   }
 
   async #start(trigger: "speech" | "music"): Promise<void> {
@@ -121,9 +127,11 @@ export class PiVoiceActivityCoordinator {
     this.#state.session = "starting";
     this.#state.trigger = trigger;
     this.#publish();
-    this.#operation = this.#request("/api/v1/activity/session/start", { trigger });
+    this.#operation = this.#request("/api/v1/activity/session/start", { trigger, ...(this.#options.delivery ? { delivery: this.#options.delivery } : {}) });
     try {
-      await this.#operation;
+      const started = (await this.#operation) as Record<string, unknown>;
+      const sessionId = started.sessionId ?? started.session_id ?? started.id;
+      if (typeof sessionId === "string" && sessionId) this.#options.onSession?.(sessionId);
       this.#state.session = "open";
       this.#state.lastError = null;
       this.#publish();
@@ -152,6 +160,7 @@ export class PiVoiceActivityCoordinator {
     this.#operation = this.#request("/api/v1/activity/session/stop", { reason });
     try {
       await this.#operation;
+      this.#options.onSession?.(null);
       this.#state.session = "closed";
       this.#state.trigger = null;
       this.#state.lastError = null;

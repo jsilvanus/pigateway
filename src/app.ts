@@ -12,11 +12,13 @@ import type { PanTiltDirection, ZoomAction } from "./camera/visca-protocol.js";
 import { registerCameraRoutes } from "./camera/camera-routes.js";
 import { CameraService } from "./camera/camera-service.js";
 import type { AppConfig } from "./config.js";
-import { GatewayEventBroker } from "./events.js";
+import { GatewayEventBroker, type GatewayEvent } from "./events.js";
 import { isIpWhitelisted } from "./ip-whitelist.js";
 import { PiVoiceUdpReceiver } from "./pivoice/telemetry.js";
 import { PiVoiceActivityCoordinator } from "./pivoice/activity-coordinator.js";
 import { RadioRelayClient } from "./radio-relay/radio-relay-client.js";
+import { AuditorSseSource } from "./transcripts/auditor-sse-source.js";
+import { TranscriptHub, transcriptId } from "./transcripts/transcript-hub.js";
 
 export function buildApp(config: AppConfig): FastifyInstance {
   const app = Fastify({
@@ -37,12 +39,25 @@ export function buildApp(config: AppConfig): FastifyInstance {
   (app as unknown as { routeTable: Set<string> }).routeTable = routeTable;
 
   const eventBroker = new GatewayEventBroker();
+  const transcripts = new TranscriptHub({
+    capacity: config.transcriptBuffer,
+    onTranscript: (event) => eventBroker.emit({ type: "transcript", data: event })
+  });
+  const auditorSse = new AuditorSseSource({ baseUrl: config.auditorUrl, apiKey: config.auditorApiKey, hub: transcripts, logger: app.log });
+  const transcriptDelivery =
+    config.transcriptDelivery === "push" && config.transcriptPushUrl
+      ? ({ mode: "push", url: config.transcriptPushUrl, token: config.transcriptPushToken } as const)
+      : config.transcriptDelivery === "sse" && auditorSse.configured()
+        ? ({ mode: "sse" } as const)
+        : undefined;
   const pivoiceActivity = new PiVoiceActivityCoordinator({
     baseUrl: config.pivoiceApiUrl,
     token: config.pivoiceApiToken,
     idleCloseSeconds: config.pivoiceIdleCloseSeconds,
     startWhen: config.pivoiceStartWhen,
     logger: app.log,
+    delivery: transcriptDelivery,
+    onSession: (sessionId) => (sessionId && transcriptDelivery?.mode === "sse" ? auditorSse.start(sessionId) : auditorSse.stop()),
     onChange: (state) => eventBroker.emit({ type: "pivoice-activity", data: state })
   });
   const radioRelay = new RadioRelayClient({ baseUrl: config.radioRelayApiUrl, token: config.radioRelayApiToken, streamName: config.radioRelayStreamName, logger: app.log });
@@ -149,6 +164,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
     }
   });
   app.addHook("onClose", async () => {
+    auditorSse.stop();
     matrix.stopPolling();
     encoder.stop();
     youtube.stop();
@@ -218,6 +234,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
     encoder: { configured: encoder.getState().configured, connected: encoder.getState().connected },
     pivoice: pivoice.getState(),
     pivoiceActivity: pivoiceActivity.getState(),
+    transcripts: { delivery: transcriptDelivery?.mode ?? null, ...transcripts.status(), source: auditorSse.status() },
     radioRelay: await radioRelay.safeLifecycle(),
     cameras: cameraService.list().map((cam) => ({ id: cam.id, connection: cam.connection }))
   }));
@@ -236,7 +253,31 @@ export function buildApp(config: AppConfig): FastifyInstance {
     return pivoiceActivity.setIdleCloseSeconds(body.idleCloseSeconds as number);
   });
 
+  app.post("/api/v1/transcripts", async (request, reply) => {
+    const body = request.body as { session_id?: unknown; events?: unknown } | undefined;
+    const session = typeof body?.session_id === "string" ? body.session_id.trim().slice(0, 64) : "";
+    if (!session || !Array.isArray(body?.events) || body.events.length === 0 || body.events.length > 100) {
+      return reply.code(400).send({ error: { code: "invalid_request", message: "body must be { session_id, events: [1-100 transcripts] }" } });
+    }
+    const result = transcripts.ingest(session, body.events as unknown[]);
+    // A batch with nothing usable is a client error; duplicates alone are fine (a retried push).
+    if (result.accepted.length === 0 && result.duplicates === 0) {
+      return reply.code(422).send({ error: { code: "invalid_transcripts", message: "no transcript in the batch was acceptable" }, rejected: result.rejected });
+    }
+    return reply.code(202).send({ accepted: result.accepted.length, duplicates: result.duplicates, rejected: result.rejected });
+  });
+
+  app.get("/api/v1/transcripts", async (request, reply) => {
+    const query = request.query as { after?: string; limit?: string };
+    const limit = Math.min(500, Math.max(1, Number.parseInt(query.limit ?? "200", 10) || 200));
+    return reply.send({ epoch: transcripts.epoch, transcripts: transcripts.since(query.after, limit) });
+  });
+
   app.get("/api/v1/events", async (request, reply) => {
+    // ?types=transcript,pivoice limits the stream to those event types; "ready" is always sent.
+    const typesParam = (request.query as { types?: string }).types;
+    const wanted = typesParam ? new Set(typesParam.split(",").map((s) => s.trim()).filter(Boolean)) : null;
+    const lastEventId = request.headers["last-event-id"];
     reply.raw.setHeader("Content-Type", "text/event-stream");
     reply.raw.setHeader("Cache-Control", "no-cache, no-transform");
     reply.raw.setHeader("Connection", "keep-alive");
@@ -244,13 +285,20 @@ export function buildApp(config: AppConfig): FastifyInstance {
     reply.raw.write(
       `event: ready\ndata: ${JSON.stringify({ status: "connected", time: new Date().toISOString() })}\n\n`
     );
-    const unsubscribe = eventBroker.subscribe((event) => {
+    const send = (event: GatewayEvent) => {
+      if (wanted && !wanted.has(event.type)) return;
+      const id = event.type === "transcript" ? `id: ${transcriptId(event.data)}\n` : "";
       try {
-        reply.raw.write(`event: ${event.type}\ndata: ${JSON.stringify(event.data)}\n\n`);
+        reply.raw.write(`${id}event: ${event.type}\ndata: ${JSON.stringify(event.data)}\n\n`);
       } catch {
         // socket closed
       }
-    });
+    };
+    // Replay and subscribe in the same tick, so nothing falls in between.
+    if (typeof lastEventId === "string") {
+      for (const missed of transcripts.since(lastEventId, 500)) send({ type: "transcript", data: missed });
+    }
+    const unsubscribe = eventBroker.subscribe(send);
     const heartbeat = setInterval(() => {
       try {
         reply.raw.write(": keep-alive\n\n");
