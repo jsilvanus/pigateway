@@ -13,6 +13,7 @@ export interface PiVoiceTelemetry {
   connected: boolean;
   stale: boolean;
   lastSeenAt: string | null;
+  lastPollAt: string | null;
   sequence: number | null;
   timestampMs: number | null;
   rmsDbfs: number | null;
@@ -32,6 +33,7 @@ const EMPTY_STATE: PiVoiceTelemetry = {
   connected: false,
   stale: true,
   lastSeenAt: null,
+  lastPollAt: null,
   sequence: null,
   timestampMs: null,
   rmsDbfs: null,
@@ -50,7 +52,9 @@ const PUBLISHER_STATES: PiVoicePublisherState[] = ["stopped", "publishing", "rec
 /** Decode and strictly validate the v1, 42-byte PiVoice telemetry snapshot. */
 export function decodePiVoicePacket(packet: Buffer): DecodedPiVoicePacket | null {
   if (packet.length !== PIVOICE_PACKET_BYTES) return null;
-  if (packet.toString("ascii", 0, 2) !== "PV" || packet.readUInt8(2) !== 1 || packet.readUInt8(3) !== 1) return null;
+  if (packet.toString("ascii", 0, 2) !== "PV" || packet.readUInt8(2) !== 1) return null;
+  const messageType = packet.readUInt8(3);
+  if (messageType !== 1 && messageType !== 2) return null;
   if (packet.readUInt16BE(4) !== 0 || packet.readUInt16BE(6) !== PIVOICE_PAYLOAD_BYTES) return null;
   if (packet.readUInt8(39) !== 0 || packet.readUInt8(40) !== 0 || packet.readUInt8(41) !== 0) return null;
 
@@ -72,6 +76,7 @@ export function decodePiVoicePacket(packet: Buffer): DecodedPiVoicePacket | null
   if (timestampBig > BigInt(Number.MAX_SAFE_INTEGER)) return null;
 
   return {
+    messageType: messageType === 1 ? "snapshot" : "poll",
     sequence: packet.readUInt32BE(8),
     timestampMs: Number(timestampBig),
     rmsDbfs: rmsRaw === unavailable ? null : rmsRaw / 1000,
@@ -84,6 +89,7 @@ export function decodePiVoicePacket(packet: Buffer): DecodedPiVoicePacket | null
 }
 
 export interface DecodedPiVoicePacket {
+  messageType: "snapshot" | "poll";
   sequence: number;
   timestampMs: number;
   rmsDbfs: number | null;
@@ -148,6 +154,7 @@ export class PiVoiceUdpReceiver {
         connected: true,
         stale: false,
         lastSeenAt: new Date(receivedAtMs).toISOString(),
+        lastPollAt: decoded.messageType === "poll" ? new Date(receivedAtMs).toISOString() : this.#state.lastPollAt,
         sequence: decoded.sequence,
         timestampMs: decoded.timestampMs,
         rmsDbfs: decoded.rmsDbfs,
