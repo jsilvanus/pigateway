@@ -15,6 +15,7 @@ import type { AppConfig } from "./config.js";
 import { GatewayEventBroker } from "./events.js";
 import { isIpWhitelisted } from "./ip-whitelist.js";
 import { PiVoiceUdpReceiver } from "./pivoice/telemetry.js";
+import { PiVoiceActivityCoordinator } from "./pivoice/activity-coordinator.js";
 
 export function buildApp(config: AppConfig): FastifyInstance {
   const app = Fastify({
@@ -35,12 +36,22 @@ export function buildApp(config: AppConfig): FastifyInstance {
   (app as unknown as { routeTable: Set<string> }).routeTable = routeTable;
 
   const eventBroker = new GatewayEventBroker();
+  const pivoiceActivity = new PiVoiceActivityCoordinator({
+    baseUrl: config.pivoiceApiUrl,
+    token: config.pivoiceApiToken,
+    idleCloseSeconds: config.pivoiceIdleCloseSeconds,
+    logger: app.log,
+    onChange: (state) => eventBroker.emit({ type: "pivoice-activity", data: state })
+  });
   const pivoice = new PiVoiceUdpReceiver({
     host: config.pivoiceUdpHost ?? "0.0.0.0",
     port: config.pivoiceUdpPort ?? 3101,
     allowedIps: config.pivoiceAllowedHosts,
     logger: app.log,
-    onChange: (state) => eventBroker.emit({ type: "pivoice", data: state })
+    onChange: (state) => {
+      eventBroker.emit({ type: "pivoice", data: state });
+      pivoiceActivity.observe(state);
+    }
   });
 
   const atem = new AtemAdapter({ logger: app.log });
@@ -140,6 +151,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
     youtube.stop();
     await Promise.allSettled([
       pivoice.stop(),
+      pivoiceActivity.close(),
       atem.disconnect(),
       cameraService.close(),
       amxListener ? amxListener.stop() : Promise.resolve(),
@@ -204,6 +216,15 @@ export function buildApp(config: AppConfig): FastifyInstance {
     pivoice: pivoice.getState(),
     cameras: cameraService.list().map((cam) => ({ id: cam.id, connection: cam.connection }))
   }));
+
+  app.get("/api/v1/activity/idle-close", async () => pivoiceActivity.getState());
+  app.put("/api/v1/activity/idle-close", async (request, reply) => {
+    const body = request.body as { idleCloseSeconds?: unknown } | undefined;
+    if (!body || Object.keys(body).length !== 1 || !Number.isInteger(body.idleCloseSeconds) || (body.idleCloseSeconds as number) < 0 || (body.idleCloseSeconds as number) > 3600) {
+      return reply.code(400).send({ error: { code: "invalid_request", message: "idleCloseSeconds must be an integer from 0 to 3600" } });
+    }
+    return pivoiceActivity.setIdleCloseSeconds(body.idleCloseSeconds as number);
+  });
 
   app.get("/api/v1/events", async (request, reply) => {
     reply.raw.setHeader("Content-Type", "text/event-stream");
