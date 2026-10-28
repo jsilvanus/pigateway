@@ -10,6 +10,20 @@ pigateway is the one process on the Pi that holds the connections to the devices
 - FreeD: the gateway owns the on/off and target setting; packets go straight from the camera to the consumer.
 - No deploy and no live device contact from this repo's threads while Pi work is on hold.
 
+## PiVoice activity-session coordination (implemented; integration verification pending)
+
+PiGateway also owns the lifecycle for activity-triggered Auditor sessions. PiVoice remains the audio owner and sends pre-roll directly to Auditor; audio bytes must never transit this gateway.
+
+- Receive PiVoice's existing binary UDP telemetry and use its speech/music classification.
+- Select triggers using `PIGATEWAY_PIVOICE_START_WHEN=speech|speech_or_music` (default `speech_or_music`).
+- Call PiVoice's authenticated control API using `PIGATEWAY_PIVOICE_API_URL` and `PIGATEWAY_PIVOICE_API_TOKEN`.
+- Own the idle-close timer through `PIGATEWAY_PIVOICE_IDLE_CLOSE_SECONDS` (default 15; zero disables automatic close).
+- Publish coordinator state in `GET /api/v1/status` and the `pivoice-activity` SSE event.
+- Expose the timeout at `GET/PUT /api/v1/activity/idle-close`; keep the OpenAPI specification and runtime-generated CLI in sync.
+- Do not deploy or contact live devices as part of implementation.
+
+**Acceptance checks:** build and tests pass; a simulated speech/music → open → silence → close cycle works; repeated activity resets the timer; zero disables auto-close; shutdown stops an open session; a PiVoice/Auditor failure is visible in coordinator state. Real hardware and church-audio validation remain separate.
+
 ## Phases
 
 1. **Scaffold, ATEM, cameras** (done): config, auth, CORS, SSE events, `/health`, `/api/v1/status`, ATEM adapter and routes, camera service and routes, ported with their tests.
