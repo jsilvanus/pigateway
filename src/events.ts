@@ -1,4 +1,5 @@
 import { EventEmitter } from "node:events";
+import type { PiVoiceTelemetry } from "./pivoice/telemetry.js";
 
 export interface CameraEventPayload {
   id: string;
@@ -24,6 +25,7 @@ export type GatewayEvent =
   | { type: "matrix"; data: MatrixEventPayload }
   | { type: "encoder"; data: unknown }
   | { type: "youtube"; data: unknown }
+  | { type: "pivoice"; data: PiVoiceTelemetry }
   | { type: "ready"; data: { status: string; time: string } };
 
 export class GatewayEventBroker {
