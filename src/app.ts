@@ -45,6 +45,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
     logger: app.log,
     onChange: (state) => eventBroker.emit({ type: "pivoice-activity", data: state })
   });
+  const radioRelay = new RadioRelayClient({ baseUrl: config.radioRelayApiUrl, token: config.radioRelayApiToken, streamName: config.radioRelayStreamName, logger: app.log });
   const pivoice = new PiVoiceUdpReceiver({
     host: config.pivoiceUdpHost ?? "0.0.0.0",
     port: config.pivoiceUdpPort ?? 3101,
@@ -217,8 +218,14 @@ export function buildApp(config: AppConfig): FastifyInstance {
     encoder: { configured: encoder.getState().configured, connected: encoder.getState().connected },
     pivoice: pivoice.getState(),
     pivoiceActivity: pivoiceActivity.getState(),
+    radioRelay: await radioRelay.safeLifecycle(),
     cameras: cameraService.list().map((cam) => ({ id: cam.id, connection: cam.connection }))
   }));
+
+  app.get("/api/v1/radio-relay", async () => radioRelay.safeLifecycle());
+  app.get("/api/v1/radio-relay/stream", async (_request, reply) => { try { return await radioRelay.lifecycle(); } catch { return reply.code(502).send({ error: { code: "radio_relay_unavailable", message: "Unable to query radio relay lifecycle" } }); } });
+  app.post("/api/v1/radio-relay/start", async (_request, reply) => { try { return await radioRelay.start(); } catch { return reply.code(502).send({ error: { code: "radio_relay_unavailable", message: "Unable to start radio relay stream" } }); } });
+  app.post("/api/v1/radio-relay/stop", async (_request, reply) => { try { return await radioRelay.stop(); } catch { return reply.code(502).send({ error: { code: "radio_relay_unavailable", message: "Unable to stop radio relay stream" } }); } });
 
   app.get("/api/v1/activity/idle-close", async () => pivoiceActivity.getState());
   app.put("/api/v1/activity/idle-close", async (request, reply) => {
