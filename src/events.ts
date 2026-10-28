@@ -26,6 +26,7 @@ export type GatewayEvent =
   | { type: "encoder"; data: unknown }
   | { type: "youtube"; data: unknown }
   | { type: "pivoice"; data: PiVoiceTelemetry }
+  | { type: "pivoice-activity"; data: unknown }
   | { type: "ready"; data: { status: string; time: string } };
 
 export class GatewayEventBroker {
