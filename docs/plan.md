@@ -40,3 +40,10 @@ The integration depends on web-radio-relay implementing authenticated lifecycle 
 - Relay start/stop/query commands work with a mocked relay; timeout, auth failure, relay outage and malformed responses are visible as errors.
 - Integration tests prove no audio payload is sent through PiGateway.
 - Real Pi/church-audio validation and deployment are separate tasks.
+
+
+## Implementation update (2026-10-28)
+
+- The activity coordinator now tracks capture availability while a start request is in flight. If capture becomes unavailable before the request completes, it closes the newly opened session instead of leaving an orphaned Auditor session until the idle timeout.
+- Added a focused coordinator test for capture loss during session startup.
+- Verification has deliberately not been run; the verification agent owns the test/build/OpenAPI checks.
