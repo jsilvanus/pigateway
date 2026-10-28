@@ -17,6 +17,9 @@ export interface AppConfig {
   /** PiVoice control API; audio never passes through the gateway. */
   pivoiceApiUrl?: string | undefined;
   pivoiceApiToken?: string | undefined;
+  radioRelayApiUrl?: string | undefined;
+  radioRelayApiToken?: string | undefined;
+  radioRelayStreamName: string;
   pivoiceIdleCloseSeconds: number;
   pivoiceStartWhen: "speech" | "speech_or_music";
   atemHost?: string | undefined;
@@ -124,6 +127,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const cam2Login = cameraLogin(env, "PIGATEWAY_CAM2");
   const pivoiceApiUrl = urlWithScheme(env.PIGATEWAY_PIVOICE_API_URL, "PIGATEWAY_PIVOICE_API_URL", ["http:", "https:"]);
   const pivoiceApiToken = env.PIGATEWAY_PIVOICE_API_TOKEN?.trim() || undefined;
+  const radioRelayApiUrl = urlWithScheme(env.PIGATEWAY_RADIO_RELAY_API_URL, "PIGATEWAY_RADIO_RELAY_API_URL", ["http:", "https:"]);
+  const radioRelayApiToken = env.PIGATEWAY_RADIO_RELAY_API_TOKEN?.trim() || undefined;
+  if (Boolean(radioRelayApiUrl) !== Boolean(radioRelayApiToken)) throw new Error("PIGATEWAY_RADIO_RELAY_API_URL and PIGATEWAY_RADIO_RELAY_API_TOKEN must be set together");
   if (Boolean(pivoiceApiUrl) !== Boolean(pivoiceApiToken)) {
     throw new Error("PIGATEWAY_PIVOICE_API_URL and PIGATEWAY_PIVOICE_API_TOKEN must be set together");
   }
