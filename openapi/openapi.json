@@ -2504,6 +2504,188 @@
           }
         }
       }
+    },
+    "/api/v1/projectors/{target}": {
+      "get": {
+        "operationId": "getProjectorStatus",
+        "summary": "Get projector power status and current input source",
+        "parameters": [
+          {
+            "name": "target",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "proj1",
+                "proj2"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current status"
+          },
+          "422": {
+            "description": "Invalid target"
+          },
+          "502": {
+            "description": "AMX unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/projectors/{target}/raw": {
+      "post": {
+        "operationId": "sendProjectorRaw",
+        "summary": "Send raw ESC/VP21 command string to projector",
+        "parameters": [
+          {
+            "name": "target",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "proj1",
+                "proj2"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Command sent"
+          },
+          "422": {
+            "description": "Invalid input"
+          },
+          "502": {
+            "description": "Command failed"
+          }
+        }
+      }
+    },
+    "/api/v1/projectors/{target}/power": {
+      "post": {
+        "operationId": "setProjectorPower",
+        "summary": "Power on or off projector",
+        "parameters": [
+          {
+            "name": "target",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "proj1",
+                "proj2"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "power": {
+                    "type": "string",
+                    "enum": [
+                      "on",
+                      "off"
+                    ]
+                  }
+                },
+                "required": [
+                  "power"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Power state updated"
+          },
+          "422": {
+            "description": "Invalid power"
+          },
+          "502": {
+            "description": "Command failed"
+          }
+        }
+      }
+    },
+    "/api/v1/projectors/{target}/source": {
+      "post": {
+        "operationId": "setProjectorSource",
+        "summary": "Set projector video source",
+        "parameters": [
+          {
+            "name": "target",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "proj1",
+                "proj2"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "source": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "source"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Source updated"
+          },
+          "422": {
+            "description": "Invalid source"
+          },
+          "502": {
+            "description": "Command failed"
+          }
+        }
+      }
     }
   },
   "components": {

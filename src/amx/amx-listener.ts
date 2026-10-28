@@ -10,6 +10,25 @@ export interface AmxControl {
   cameraZoom(id: string, action: string): Promise<void>;
   /** Atlona output 1..5 -> input (null = unknown). */
   atlonaRoutes(): Record<number, number | null>;
+  atemState?(): {
+    connected: boolean;
+    programInput: number | null;
+    previewInput: number | null;
+    fadeToBlack?: { isFullyBlack: boolean; inTransition: boolean };
+    downstreamKeyers?: Array<{ dsk: number; onAir: boolean; tie: boolean }>;
+  } | undefined;
+  encoderState?(): {
+    connected: boolean;
+    encoder1?: { state: string };
+    encoder2?: { state: string };
+  } | undefined;
+  atemPreview?(input: number): Promise<void>;
+  atemCut?(): Promise<void>;
+  atemAuto?(): Promise<void>;
+  atemFtb?(): Promise<void>;
+  atemDskTie?(dsk: number, tie: boolean): Promise<void>;
+  atemDskOnAir?(dsk: number, onAir: boolean): Promise<void>;
+  encoderAction?(target: 1 | 2 | "both", action: "start" | "stop"): Promise<void>;
 }
 
 /** Sends one raw protocol line (without the `;`) to the video service and returns its reply, or null if it cannot answer. */
@@ -26,7 +45,7 @@ export interface AmxListenerOptions {
   allowedIps?: string[] | undefined;
 }
 
-const KNOWN_COMMANDS = new Set(["DEV", "PING", "STATUS", "SOURCE", "OUTPUT", "CAM", "QUICK", "PROGRAM", "HELP"]);
+const KNOWN_COMMANDS = new Set(["DEV", "PING", "STATUS", "SOURCE", "OUTPUT", "CAM", "QUICK", "PROGRAM", "ATEM", "ENCODER", "HELP"]);
 const FORWARDED = new Set(["SOURCE", "OUTPUT", "QUICK", "PROGRAM"]);
 const MOVE_DIRECTIONS = new Set(["up", "down", "left", "right", "upleft", "upright", "downleft", "downright", "stop", "home"]);
 const ZOOM_ACTIONS = new Set(["in", "out", "stop"]);
@@ -137,6 +156,8 @@ export class AmxTcpListener {
     if (cmd === "DEV" && args[0]?.toUpperCase() === "VERSION") return wrap("DEV:VERSION:1");
     if (cmd === "PING") return wrap("PONG");
     if (cmd === "CAM") return wrap(await this.dispatchCamera(args));
+    if (cmd === "ATEM") return wrap(await this.dispatchAtem(args));
+    if (cmd === "ENCODER") return wrap(await this.dispatchEncoder(args));
     if (cmd === "STATUS" && args[0]?.toUpperCase() === "ALL") return wrap(`STATUS:ALL:${await this.statusAll()}`);
     if (cmd === "STATUS") return wrap(`STATUS:OK:mode=${this.options.mode}`);
     if (FORWARDED.has(cmd)) return wrap(await this.forwardVideo([cmd, ...args].join(":")));
@@ -178,7 +199,86 @@ export class AmxTcpListener {
     }
     const routes = this.options.control.atlonaRoutes();
     fields.set("atlona", [1, 2, 3, 4, 5].map((out) => routes[out] ?? 0).join("/"));
+
+    const atem = this.options.control.atemState?.();
+    if (atem) {
+      fields.set("atem_conn", atem.connected ? "1" : "0");
+      if (atem.previewInput !== null && atem.previewInput !== undefined) fields.set("atem_pvw", String(atem.previewInput));
+      if (atem.programInput !== null && atem.programInput !== undefined) fields.set("atem_pgm", String(atem.programInput));
+      if (atem.fadeToBlack) fields.set("atem_ftb", atem.fadeToBlack.isFullyBlack ? "on" : "off");
+      if (atem.downstreamKeyers) {
+        for (const d of atem.downstreamKeyers) {
+          fields.set(`dsk${d.dsk}_air`, d.onAir ? "on" : "off");
+          fields.set(`dsk${d.dsk}_tie`, d.tie ? "on" : "off");
+        }
+      }
+    }
+
+    const enc = this.options.control.encoderState?.();
+    if (enc) {
+      fields.set("enc_conn", enc.connected ? "1" : "0");
+      if (enc.encoder1) fields.set("enc1", enc.encoder1.state);
+      if (enc.encoder2) fields.set("enc2", enc.encoder2.state);
+    }
+
     return [...fields].map(([k, v]) => `${k}=${v}`).join(",");
+  }
+
+  private async dispatchAtem(args: string[]): Promise<string> {
+    const sub = args[0]?.toUpperCase();
+    if (sub === "PVW") {
+      const input = Number(args[1]);
+      if (!Number.isInteger(input) || input < 1) return "ERR:INVALID_INPUT";
+      if (!this.options.control.atemPreview) return "ERR:ATEM_UNAVAILABLE";
+      await this.options.control.atemPreview(input);
+      return `ATEM:OK:PVW:${input}`;
+    }
+    if (sub === "CUT") {
+      if (!this.options.control.atemCut) return "ERR:ATEM_UNAVAILABLE";
+      await this.options.control.atemCut();
+      return "ATEM:OK:CUT";
+    }
+    if (sub === "AUTO") {
+      if (!this.options.control.atemAuto) return "ERR:ATEM_UNAVAILABLE";
+      await this.options.control.atemAuto();
+      return "ATEM:OK:AUTO";
+    }
+    if (sub === "FTB") {
+      if (!this.options.control.atemFtb) return "ERR:ATEM_UNAVAILABLE";
+      await this.options.control.atemFtb();
+      return "ATEM:OK:FTB";
+    }
+    if (sub?.startsWith("DSK")) {
+      const dskNum = Number(sub.replace("DSK", ""));
+      const action = args[1]?.toUpperCase();
+      const val = args[2]?.toUpperCase() === "ON";
+      if (action === "TIE") {
+        if (!this.options.control.atemDskTie) return "ERR:ATEM_UNAVAILABLE";
+        await this.options.control.atemDskTie(dskNum, val);
+        return `ATEM:OK:DSK${dskNum}:TIE:${val ? "ON" : "OFF"}`;
+      }
+      if (action === "ONAIR") {
+        if (!this.options.control.atemDskOnAir) return "ERR:ATEM_UNAVAILABLE";
+        await this.options.control.atemDskOnAir(dskNum, val);
+        return `ATEM:OK:DSK${dskNum}:ONAIR:${val ? "ON" : "OFF"}`;
+      }
+    }
+    return `ERR:UNKNOWN_ATEM_ACTION:${sub ?? "missing"}`;
+  }
+
+  private async dispatchEncoder(args: string[]): Promise<string> {
+    const targetStr = args[0]?.toLowerCase();
+    const actionStr = args[1]?.toLowerCase();
+    if (actionStr !== "start" && actionStr !== "stop") return "ERR:INVALID_ACTION";
+    let target: 1 | 2 | "both" = "both";
+    if (targetStr === "enc1" || targetStr === "1") target = 1;
+    else if (targetStr === "enc2" || targetStr === "2") target = 2;
+    else if (targetStr === "all" || targetStr === "both") target = "both";
+    else return "ERR:INVALID_TARGET";
+
+    if (!this.options.control.encoderAction) return "ERR:ENCODER_UNAVAILABLE";
+    await this.options.control.encoderAction(target, actionStr);
+    return `ENCODER:OK:${targetStr.toUpperCase()}:${actionStr.toUpperCase()}`;
   }
 
   private async dispatchCamera(args: string[]): Promise<string> {

@@ -2,6 +2,7 @@ import Fastify, { type FastifyInstance } from "fastify";
 import { createAmxClient } from "./amx/amx-client.js";
 import { AmxTcpListener, tcpVideoForward, type AmxControl } from "./amx/amx-listener.js";
 import { AtlonaMatrix } from "./amx/atlona.js";
+import { registerProjectorRoutes } from "./amx/projector-routes.js";
 import { AtemAdapter } from "./atem/atem-adapter.js";
 import { registerAtemRoutes } from "./atem/atem-routes.js";
 import { registerEncoderRoutes } from "./encoder/encoder-routes.js";
@@ -118,6 +119,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
   const amxClient = createAmxClient(config.amxSimulated, config.amxMasterHost, config.amxMasterPort, app.log);
   const matrix = new AtlonaMatrix(amxClient, eventBroker, app.log);
   matrix.register(app, config.mode);
+  registerProjectorRoutes(app, amxClient);
 
   const amxControl: AmxControl = {
     cameras: () =>
@@ -135,7 +137,19 @@ export function buildApp(config: AppConfig): FastifyInstance {
     cameraZoom: async (id, action) => {
       await cameraService.zoom(id, action as ZoomAction);
     },
-    atlonaRoutes: () => ({ ...matrix.state.routes })
+    atlonaRoutes: () => ({ ...matrix.state.routes }),
+    atemState: () => atem.getState(),
+    encoderState: () => encoder.getState(),
+    atemPreview: async (input) => { await atem.setPreview(input); },
+    atemCut: async () => { await atem.cut(); },
+    atemAuto: async () => { await atem.autoTransition(); },
+    atemFtb: async () => { await atem.fadeToBlack(); },
+    atemDskTie: async (dsk, tie) => { await atem.setDownstreamKeyTie(dsk - 1, tie); },
+    atemDskOnAir: async (dsk, onAir) => { await atem.setDownstreamKeyOnAir(dsk - 1, onAir); },
+    encoderAction: async (target, action) => {
+      if (action === "start") await encoder.startEncoder(target);
+      else await encoder.stopEncoder(target);
+    }
   };
   const amxListener = config.amxTcpEnabled
     ? new AmxTcpListener({

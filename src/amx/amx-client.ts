@@ -22,6 +22,8 @@ export interface AmxClient {
   getStatus(): Promise<AmxClientStatus>;
   /** Atlona output (1-5) -> input (null = unknown), read from AMX; null when AMX cannot answer. */
   atlonaRoutes(timeoutMs?: number): Promise<Record<number, number | null> | null>;
+  epsonCommand(target: "proj1" | "proj2", action: "RAW" | "POWER" | "SOURCE", value: string, timeoutMs?: number): Promise<{ success: boolean; message: string }>;
+  epsonStatus(target: "proj1" | "proj2", timeoutMs?: number): Promise<{ status: number; source: string } | null>;
   close(): Promise<void>;
 }
 
@@ -47,12 +49,57 @@ export class SimulatedAmxClient implements AmxClient {
     };
   }
 
+  async epsonCommand(
+    target: "proj1" | "proj2",
+    action: "RAW" | "POWER" | "SOURCE",
+    value: string,
+    timeoutMs = 3000
+  ): Promise<{ success: boolean; message: string }> {
+    const socket = await this.getConnectedSocket();
+    this.reqCount += 1;
+    const requestId = `ep-${Date.now()}-${this.reqCount}`;
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        this.epsonRequests.delete(requestId);
+        resolve({ success: false, message: `Timeout waiting for Epson response (${requestId})` });
+      }, timeoutMs);
+      this.epsonRequests.set(requestId, { resolve, timer });
+      socket.write(`EPSON:${requestId}:${target}:${action}:${value};\r\n`);
+    });
+  }
+
+  async epsonStatus(target: "proj1" | "proj2", timeoutMs = 2000): Promise<{ status: number; source: string } | null> {
+    try {
+      const socket = await this.getConnectedSocket();
+      this.reqCount += 1;
+      const requestId = `eps-${Date.now()}-${this.reqCount}`;
+      return await new Promise((resolve) => {
+        const timer = setTimeout(() => {
+          this.epsonRequests.delete(requestId);
+          resolve(null);
+        }, timeoutMs);
+        this.epsonRequests.set(requestId, { resolve, timer });
+        socket.write(`EPSON:${requestId}:${target}:STATUS;\r\n`);
+      });
+    } catch {
+      return null;
+    }
+  }
+
   async getStatus(): Promise<AmxClientStatus> {
     return "simulated";
   }
 
   async atlonaRoutes(): Promise<null> {
     return null;
+  }
+
+  async epsonCommand(target: "proj1" | "proj2", action: "RAW" | "POWER" | "SOURCE", value: string): Promise<{ success: boolean; message: string }> {
+    return { success: true, message: `Simulated ${target} ${action} ${value}` };
+  }
+
+  async epsonStatus(target: "proj1" | "proj2"): Promise<{ status: number; source: string } | null> {
+    return { status: 1, source: "80" };
   }
 
   async close(): Promise<void> {
@@ -72,11 +119,56 @@ export class DisabledAmxClient implements AmxClient {
     };
   }
 
+  async epsonCommand(
+    target: "proj1" | "proj2",
+    action: "RAW" | "POWER" | "SOURCE",
+    value: string,
+    timeoutMs = 3000
+  ): Promise<{ success: boolean; message: string }> {
+    const socket = await this.getConnectedSocket();
+    this.reqCount += 1;
+    const requestId = `ep-${Date.now()}-${this.reqCount}`;
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        this.epsonRequests.delete(requestId);
+        resolve({ success: false, message: `Timeout waiting for Epson response (${requestId})` });
+      }, timeoutMs);
+      this.epsonRequests.set(requestId, { resolve, timer });
+      socket.write(`EPSON:${requestId}:${target}:${action}:${value};\r\n`);
+    });
+  }
+
+  async epsonStatus(target: "proj1" | "proj2", timeoutMs = 2000): Promise<{ status: number; source: string } | null> {
+    try {
+      const socket = await this.getConnectedSocket();
+      this.reqCount += 1;
+      const requestId = `eps-${Date.now()}-${this.reqCount}`;
+      return await new Promise((resolve) => {
+        const timer = setTimeout(() => {
+          this.epsonRequests.delete(requestId);
+          resolve(null);
+        }, timeoutMs);
+        this.epsonRequests.set(requestId, { resolve, timer });
+        socket.write(`EPSON:${requestId}:${target}:STATUS;\r\n`);
+      });
+    } catch {
+      return null;
+    }
+  }
+
   async getStatus(): Promise<AmxClientStatus> {
     return "not-configured";
   }
 
   async atlonaRoutes(): Promise<null> {
+    return null;
+  }
+
+  async epsonCommand(): Promise<{ success: boolean; message: string }> {
+    return { success: false, message: "AMX client is not configured" };
+  }
+
+  async epsonStatus(): Promise<null> {
     return null;
   }
 
@@ -95,6 +187,10 @@ export class TcpAmxClient implements AmxClient {
   private statusRequests = new Map<
     string,
     { resolve: (routes: Record<number, number | null>) => void; timer: NodeJS.Timeout }
+  >();
+  private epsonRequests = new Map<
+    string,
+    { resolve: (res: any) => void; timer: NodeJS.Timeout }
   >();
   private pendingRequests = new Map<
     string,
@@ -158,6 +254,20 @@ export class TcpAmxClient implements AmxClient {
       if (!line) continue;
 
       const parts = line.split(":").map((p) => p.trim());
+      if (parts[0] === "EPSON") {
+        const reqId = parts[1];
+        if (reqId && this.epsonRequests.has(reqId)) {
+          const req = this.epsonRequests.get(reqId)!;
+          clearTimeout(req.timer);
+          this.epsonRequests.delete(reqId);
+          if (parts[3] === "STATUS") {
+            req.resolve({ status: Number(parts[4] ?? 0), source: parts[5] ?? "" });
+          } else {
+            req.resolve({ success: parts[3] === "OK", message: line });
+          }
+          continue;
+        }
+      }
       // e.g. ATLONA:CONFIRMED:<reqId>:<in>:<out> or <reqId>:ATLONA:CONFIRMED:<in>:<out>
       let reqId: string | null = null;
       let status = "";
@@ -248,6 +358,43 @@ export class TcpAmxClient implements AmxClient {
         }, timeoutMs);
         this.statusRequests.set(requestId, { resolve, timer });
         socket.write(`ATLONA:STATUS:${requestId};\r\n`);
+      });
+    } catch {
+      return null;
+    }
+  }
+
+  async epsonCommand(
+    target: "proj1" | "proj2",
+    action: "RAW" | "POWER" | "SOURCE",
+    value: string,
+    timeoutMs = 3000
+  ): Promise<{ success: boolean; message: string }> {
+    const socket = await this.getConnectedSocket();
+    this.reqCount += 1;
+    const requestId = `ep-${Date.now()}-${this.reqCount}`;
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        this.epsonRequests.delete(requestId);
+        resolve({ success: false, message: `Timeout waiting for Epson response (${requestId})` });
+      }, timeoutMs);
+      this.epsonRequests.set(requestId, { resolve, timer });
+      socket.write(`EPSON:${requestId}:${target}:${action}:${value};\r\n`);
+    });
+  }
+
+  async epsonStatus(target: "proj1" | "proj2", timeoutMs = 2000): Promise<{ status: number; source: string } | null> {
+    try {
+      const socket = await this.getConnectedSocket();
+      this.reqCount += 1;
+      const requestId = `eps-${Date.now()}-${this.reqCount}`;
+      return await new Promise((resolve) => {
+        const timer = setTimeout(() => {
+          this.epsonRequests.delete(requestId);
+          resolve(null);
+        }, timeoutMs);
+        this.epsonRequests.set(requestId, { resolve, timer });
+        socket.write(`EPSON:${requestId}:${target}:STATUS;\r\n`);
       });
     } catch {
       return null;
