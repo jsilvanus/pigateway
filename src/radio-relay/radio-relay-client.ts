@@ -12,7 +12,7 @@ export class RadioRelayClient {
     this.logger = logger;
   }
   configured() { return Boolean(this.baseUrl && this.token); }
-  async request(action, method = "GET") {
+  async request(action: "start" | "stop" | "lifecycle", method: "GET" | "POST" = "GET"): Promise<unknown> {
     if (!this.configured()) throw Object.assign(new Error("Radio relay is not configured"), { statusCode: 503 });
     const response = await fetch(`${this.baseUrl}/api/v1/streams/${encodeURIComponent(this.streamName)}/${action}`, {
       method, headers: { Authorization: `Bearer ${this.token}` }, signal: AbortSignal.timeout(4000)
@@ -26,6 +26,6 @@ export class RadioRelayClient {
   async safeLifecycle() {
     if (!this.configured()) return { configured: false, reachable: false, streamName: this.streamName };
     try { return { configured: true, reachable: true, streamName: this.streamName, state: await this.lifecycle() }; }
-    catch (error) { this.logger.warn({ err: error }, "Radio relay status request failed"); return { configured: true, reachable: false, streamName: this.streamName, error: "Radio relay is unreachable or rejected the request" }; }
+    catch (error: unknown) { this.logger.warn({ err: error }, "Radio relay status request failed"); return { configured: true, reachable: false, streamName: this.streamName, error: "Radio relay is unreachable or rejected the request" }; }
   }
 }
