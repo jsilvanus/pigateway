@@ -84,3 +84,20 @@ test("receiver stores valid telemetry, rejects other senders, and marks state st
     await receiver.stop();
   }
 });
+
+
+test("gateway status exposes initial PiVoice telemetry state for UI clients", async () => {
+  const { buildApp } = await import("../src/app.js");
+  const { loadConfig } = await import("../src/config.js");
+  const app = buildApp({ ...loadConfig({}), pivoiceUdpPort: 0 });
+  try {
+    await app.ready();
+    const response = await app.inject({ url: "/api/v1/status" });
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.json().pivoice.connected, false);
+    assert.equal(response.json().pivoice.stale, true);
+    assert.equal(response.json().pivoice.classification, "unknown");
+  } finally {
+    await app.close();
+  }
+});
