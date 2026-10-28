@@ -40,6 +40,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
     baseUrl: config.pivoiceApiUrl,
     token: config.pivoiceApiToken,
     idleCloseSeconds: config.pivoiceIdleCloseSeconds,
+    startWhen: config.pivoiceStartWhen,
     logger: app.log,
     onChange: (state) => eventBroker.emit({ type: "pivoice-activity", data: state })
   });
