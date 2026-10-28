@@ -115,6 +115,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const encoderLogin = cameraLogin(env, "PIGATEWAY_ENCODER");
   const cam1Login = cameraLogin(env, "PIGATEWAY_CAM1");
   const cam2Login = cameraLogin(env, "PIGATEWAY_CAM2");
+  const pivoiceApiUrl = urlWithScheme(env.PIGATEWAY_PIVOICE_API_URL, "PIGATEWAY_PIVOICE_API_URL", ["http:", "https:"]);
+  const pivoiceApiToken = env.PIGATEWAY_PIVOICE_API_TOKEN?.trim() || undefined;
+  if (Boolean(pivoiceApiUrl) !== Boolean(pivoiceApiToken)) {
+    throw new Error("PIGATEWAY_PIVOICE_API_URL and PIGATEWAY_PIVOICE_API_TOKEN must be set together");
+  }
   return {
     host,
     port: validPort(env.PIGATEWAY_PORT, 3100, "PIGATEWAY_PORT"),
@@ -125,8 +130,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     pivoiceUdpHost: env.PIGATEWAY_PIVOICE_UDP_HOST?.trim() || "0.0.0.0",
     pivoiceUdpPort: validPort(env.PIGATEWAY_PIVOICE_UDP_PORT, 3101, "PIGATEWAY_PIVOICE_UDP_PORT"),
     pivoiceAllowedHosts: list(env.PIGATEWAY_PIVOICE_ALLOWED_HOSTS),
-    pivoiceApiUrl: env.PIGATEWAY_PIVOICE_API_URL?.trim() || undefined,
-    pivoiceApiToken: env.PIGATEWAY_PIVOICE_API_TOKEN?.trim() || undefined,
+    pivoiceApiUrl,
+    pivoiceApiToken,
     pivoiceIdleCloseSeconds: validInteger(env.PIGATEWAY_PIVOICE_IDLE_CLOSE_SECONDS, 15, 0, 3600, "PIGATEWAY_PIVOICE_IDLE_CLOSE_SECONDS"),
     atemHost: env.PIGATEWAY_ATEM_HOST?.trim() || undefined,
     atemPort: validPort(env.PIGATEWAY_ATEM_PORT, 9910, "PIGATEWAY_ATEM_PORT"),
