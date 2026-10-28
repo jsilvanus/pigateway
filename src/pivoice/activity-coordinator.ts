@@ -5,6 +5,7 @@ export interface PiVoiceActivityOptions {
   baseUrl?: string | undefined;
   token?: string | undefined;
   idleCloseSeconds: number;
+  startWhen?: "speech" | "speech_or_music";
   fetchFn?: typeof fetch;
   logger?: FastifyBaseLogger;
   onChange?: (state: PiVoiceActivityState) => void;
@@ -64,7 +65,8 @@ export class PiVoiceActivityCoordinator {
     const activity = telemetry.connected && !telemetry.stale && telemetry.capture.state === "running"
       ? telemetry.classification
       : "silence";
-    if (activity === "speech" || activity === "music") {
+    const matchesTrigger = activity === "speech" || (activity === "music" && (this.#options.startWhen ?? "speech_or_music") === "speech_or_music");
+    if (matchesTrigger) {
       this.#active = true;
       this.#state.lastActivityAt = new Date().toISOString();
       this.#state.lastError = null;
