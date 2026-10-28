@@ -37,3 +37,12 @@ PiGateway also owns the lifecycle for activity-triggered Auditor sessions. PiVoi
 
 - Whether pimatrix keeps proxying `/api/v1/atem` and `/api/v1/cameras` for a transition period (proposal: yes, one release).
 - Port: 3100 by default; pimatrix keeps 3000.
+
+
+## Cross-repository integration status (reviewed 2026-10-28)
+
+The PiVoice activity-session coordinator is implemented in `src/pivoice/activity-coordinator.ts`; the OpenAPI document describes the integration and idle-close API. PiGateway uses speech/music telemetry to open an authenticated PiVoice session, owns the idle-close timer (15 seconds by default; zero disables it), publishes state, and stops the session on shutdown. Audio and pre-roll do not transit PiGateway.
+
+**Remaining:** run current default-branch CI and coordinator tests; specifically verify activity arriving during a start/stop request, repeated activity resetting idle close, capture loss, API failure/retry, and shutdown while a request is in flight. Validate the PiVoice and Auditor contract together. Real Pi/church-audio validation and deployment are intentionally deferred.
+
+This status supersedes any interpretation that the code is still unimplemented; only the listed verification/deployment work remains.
