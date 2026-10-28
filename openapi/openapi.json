@@ -3,7 +3,7 @@
   "info": {
     "title": "pigateway API",
     "version": "0.1.0",
-    "description": "The Pi device gateway: ATEM, cameras, the Atlona matrix (through the AMX master) and the Matrox Monarch HDX encoder. Writes under /api/v1 need X-Api-Key or a Bearer token unless the client is on PIGATEWAY_AUTH_ALLOWED_HOSTS."
+    "description": "The Pi device gateway: ATEM, cameras, the Atlona matrix (through the AMX master) and the Matrox Monarch HDX encoder. Writes under /api/v1 need X-Api-Key or a Bearer token unless the client is on PIGATEWAY_AUTH_ALLOWED_HOSTS. PiVoice activity-triggered Auditor sessions are coordinated by PiGateway; configure PIGATEWAY_PIVOICE_API_URL and PIGATEWAY_PIVOICE_API_TOKEN. Idle-close is controlled at /api/v1/activity/idle-close."
   },
   "servers": [
     {
@@ -2129,6 +2129,120 @@
         "responses": {
           "200": {
             "description": "Alive"
+          }
+        }
+      }
+    },
+    "/api/v1/activity/idle-close": {
+      "get": {
+        "operationId": "getPiVoiceActivityIdleClose",
+        "tags": [
+          "PiVoice activity"
+        ],
+        "summary": "Read gateway-owned speech/music idle-close setting and session state",
+        "responses": {
+          "200": {
+            "description": "Current activity coordinator state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "configured",
+                    "session",
+                    "idleCloseSeconds"
+                  ],
+                  "properties": {
+                    "configured": {
+                      "type": "boolean"
+                    },
+                    "session": {
+                      "type": "string",
+                      "enum": [
+                        "closed",
+                        "starting",
+                        "open",
+                        "stopping",
+                        "error"
+                      ]
+                    },
+                    "trigger": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "speech",
+                        "music",
+                        null
+                      ]
+                    },
+                    "idleCloseSeconds": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 3600
+                    },
+                    "lastActivityAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "lastError": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "setPiVoiceActivityIdleClose",
+        "tags": [
+          "PiVoice activity"
+        ],
+        "summary": "Set gateway-owned speech/music idle-close timeout",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "idleCloseSeconds"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "idleCloseSeconds": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3600,
+                    "description": "Seconds without speech/music before PiGateway closes the session; 0 disables automatic close."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated activity coordinator state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid timeout"
           }
         }
       }
