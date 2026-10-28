@@ -3,7 +3,7 @@
   "info": {
     "title": "pigateway API",
     "version": "0.1.0",
-    "description": "The Pi device gateway: ATEM, cameras, the Atlona matrix (through the AMX master) and the Matrox Monarch HDX encoder. Writes under /api/v1 need X-Api-Key or a Bearer token unless the client is on PIGATEWAY_AUTH_ALLOWED_HOSTS. PiVoice activity-triggered Auditor sessions are coordinated by PiGateway; configure PIGATEWAY_PIVOICE_API_URL and PIGATEWAY_PIVOICE_API_TOKEN. Idle-close is controlled at /api/v1/activity/idle-close."
+    "description": "The Pi device gateway: ATEM, cameras, the Atlona matrix (through the AMX master) and the Matrox Monarch HDX encoder. Writes under /api/v1 need X-Api-Key or a Bearer token unless the client is on PIGATEWAY_AUTH_ALLOWED_HOSTS. PiVoice activity-triggered Auditor sessions are coordinated by PiGateway; configure PIGATEWAY_PIVOICE_API_URL and PIGATEWAY_PIVOICE_API_TOKEN. Idle-close is controlled at /api/v1/activity/idle-close. Radio lifecycle controls are exposed through /api/v1/radio-relay/* and forwarded to the configured web-radio-relay service."
   },
   "servers": [
     {
@@ -2295,6 +2295,71 @@
           },
           "400": {
             "description": "Invalid timeout"
+          }
+        }
+      }
+    },
+    "/api/v1/radio-relay": {
+      "get": {
+        "operationId": "getRadioRelayConnection",
+        "tags": [
+          "Radio relay"
+        ],
+        "summary": "Relay configuration and reachability",
+        "responses": {
+          "200": {
+            "description": "Relay connectivity and lifecycle summary"
+          }
+        }
+      }
+    },
+    "/api/v1/radio-relay/stream": {
+      "get": {
+        "operationId": "getRadioRelayStream",
+        "tags": [
+          "Radio relay"
+        ],
+        "summary": "Get lifecycle state for the configured stream",
+        "responses": {
+          "200": {
+            "description": "Stream lifecycle state"
+          },
+          "502": {
+            "description": "Relay unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/radio-relay/start": {
+      "post": {
+        "operationId": "startRadioRelayStream",
+        "tags": [
+          "Radio relay"
+        ],
+        "summary": "Start the configured relay stream",
+        "responses": {
+          "200": {
+            "description": "Relay response"
+          },
+          "502": {
+            "description": "Relay unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/radio-relay/stop": {
+      "post": {
+        "operationId": "stopRadioRelayStream",
+        "tags": [
+          "Radio relay"
+        ],
+        "summary": "Stop the configured relay stream",
+        "responses": {
+          "200": {
+            "description": "Relay response"
+          },
+          "502": {
+            "description": "Relay unavailable"
           }
         }
       }
