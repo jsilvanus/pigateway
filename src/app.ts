@@ -16,6 +16,7 @@ import { GatewayEventBroker } from "./events.js";
 import { isIpWhitelisted } from "./ip-whitelist.js";
 import { PiVoiceUdpReceiver } from "./pivoice/telemetry.js";
 import { PiVoiceActivityCoordinator } from "./pivoice/activity-coordinator.js";
+import { RadioRelayClient } from "./radio-relay/radio-relay-client.js";
 
 export function buildApp(config: AppConfig): FastifyInstance {
   const app = Fastify({
