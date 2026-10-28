@@ -18,16 +18,16 @@ PiGateway owns the lifecycle for activity-triggered Auditor sessions. PiVoice re
 - Own the idle-close timer through `PIGATEWAY_PIVOICE_IDLE_CLOSE_SECONDS` (default 15; zero disables automatic close).
 - Publish coordinator state in `GET /api/v1/status` and the `pivoice-activity` SSE event.
 
-## Web radio relay integration (planned; implementation required)
+## Web radio relay integration (implemented; verification pending)
 
 PiGateway will be a control-plane client for web-radio-relay. It does not ingest, buffer or proxy audio. PiVoice/MediaMTX sends audio directly to the relay's configured input; the relay alone owns its FFmpeg process and HLS/archive lifecycle.
 
-- Configure `PIGATEWAY_RADIO_RELAY_API_URL` and `PIGATEWAY_RADIO_RELAY_API_TOKEN` together; reject configuration where only one is supplied.
-- Add authenticated gateway routes to start, stop and query the lifecycle of a configured stream name. Do not allow callers to submit arbitrary source URLs through PiGateway.
-- Call relay `/api/v1/streams/{name}/start`, `/stop` and `/lifecycle` with bearer auth, strict timeout, and sanitized errors.
-- Include relay configuration/connectivity and last known response in `GET /api/v1/status`; do not report a relay stream as running unless the relay says so.
+- Configure `PIGATEWAY_RADIO_RELAY_API_URL` and `PIGATEWAY_RADIO_RELAY_API_TOKEN` together; configuration rejects one without the other.
+- Gateway routes now start, stop and query the configured stream; callers cannot submit source URLs.
+- The client calls relay lifecycle endpoints with bearer auth, a 4-second timeout and sanitized errors.
+- `GET /api/v1/status` includes relay connectivity and lifecycle response.
 - Keep the gateway API's own authentication policy in force; the relay token is only used server-to-server.
-- Keep the PiGateway OpenAPI document and runtime-generated CLI in sync.
+- PiGateway OpenAPI documents the new routes; runtime CLI generation consistency still needs verification.
 
 ## Relay lifecycle contract dependency
 
