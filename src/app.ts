@@ -14,6 +14,7 @@ import { CameraService } from "./camera/camera-service.js";
 import type { AppConfig } from "./config.js";
 import { GatewayEventBroker } from "./events.js";
 import { isIpWhitelisted } from "./ip-whitelist.js";
+import { PiVoiceUdpReceiver } from "./pivoice/telemetry.js";
 
 export function buildApp(config: AppConfig): FastifyInstance {
   const app = Fastify({
@@ -34,6 +35,13 @@ export function buildApp(config: AppConfig): FastifyInstance {
   (app as unknown as { routeTable: Set<string> }).routeTable = routeTable;
 
   const eventBroker = new GatewayEventBroker();
+  const pivoice = new PiVoiceUdpReceiver({
+    host: config.pivoiceUdpHost ?? "0.0.0.0",
+    port: config.pivoiceUdpPort ?? 3101,
+    allowedIps: config.pivoiceAllowedHosts,
+    logger: app.log,
+    onChange: (state) => eventBroker.emit({ type: "pivoice", data: state })
+  });
 
   const atem = new AtemAdapter({ logger: app.log });
   atem.onStateChange((state) => eventBroker.emit({ type: "atem", data: state }));
@@ -114,6 +122,9 @@ export function buildApp(config: AppConfig): FastifyInstance {
   (app as unknown as { amxListener?: AmxTcpListener | null }).amxListener = amxListener;
 
   app.addHook("onReady", async () => {
+    await pivoice.start().catch((error: unknown) => {
+      app.log.error({ err: error, port: config.pivoiceUdpPort }, "Unable to start PiVoice UDP telemetry receiver");
+    });
     if (amxListener) await amxListener.start();
     if (config.amxMasterHost) matrix.startPolling();
     encoder.start();
@@ -128,6 +139,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
     encoder.stop();
     youtube.stop();
     await Promise.allSettled([
+      pivoice.stop(),
       atem.disconnect(),
       cameraService.close(),
       amxListener ? amxListener.stop() : Promise.resolve(),
@@ -189,6 +201,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
     atem: { configured: Boolean(config.atemHost), connected: atem.getState().connected },
     youtube: { state: youtube.get().state },
     encoder: { configured: encoder.getState().configured, connected: encoder.getState().connected },
+    pivoice: pivoice.getState(),
     cameras: cameraService.list().map((cam) => ({ id: cam.id, connection: cam.connection }))
   }));
 
