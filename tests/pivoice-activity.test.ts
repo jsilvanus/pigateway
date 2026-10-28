@@ -49,3 +49,35 @@ test("zero idle timeout leaves an activity session open", async () => {
   assert.equal(coordinator.getState().session, "open");
   await coordinator.close();
 });
+
+
+test("session opened after capture loss is immediately closed", async () => {
+  let finishStart: ((response: Response) => void) | undefined;
+  const calls: string[] = [];
+  const coordinator = new PiVoiceActivityCoordinator({
+    baseUrl: "http://pivoice:8095",
+    idleCloseSeconds: 15,
+    fetchFn: async (url) => {
+      calls.push(String(url));
+      if (String(url).endsWith("/start")) {
+        return await new Promise<Response>((resolve) => { finishStart = resolve; });
+      }
+      return new Response("{}", { status: 200 });
+    }
+  });
+  coordinator.observe(telemetry("speech"));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  coordinator.observe({
+    ...telemetry("silence"),
+    connected: false,
+    stale: true,
+    capture: { state: "stopped", sampleFormat: "S16LE", channels: 1, sampleRateHz: 16000 }
+  });
+  finishStart?.(new Response("{}", { status: 200 }));
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  assert.equal(coordinator.getState().session, "closed");
+  assert.deepEqual(calls, [
+    "http://pivoice:8095/api/v1/activity/session/start",
+    "http://pivoice:8095/api/v1/activity/session/stop"
+  ]);
+});
