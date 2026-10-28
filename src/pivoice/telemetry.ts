@@ -129,6 +129,11 @@ export class PiVoiceUdpReceiver {
     return { ...this.#state, connected: true, stale: false };
   }
 
+  getBoundPort(): number {
+    const address = this.#socket?.address();
+    return address && typeof address === "object" ? address.port : this.#options.port;
+  }
+
   start(): Promise<void> {
     if (this.#socket) return Promise.resolve();
     const socket = dgram.createSocket("udp4");
