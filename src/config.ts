@@ -18,6 +18,7 @@ export interface AppConfig {
   pivoiceApiUrl?: string | undefined;
   pivoiceApiToken?: string | undefined;
   pivoiceIdleCloseSeconds: number;
+  pivoiceStartWhen: "speech" | "speech_or_music";
   atemHost?: string | undefined;
   atemPort: number;
   /** Matrox Monarch HDX encoder (PIGATEWAY_ENCODER_HOST, _HTTPS, _USER, _PASSWORD; user and password together). */
@@ -62,6 +63,12 @@ function validPort(value: string | undefined, fallback: number, name: string, al
   if (!Number.isInteger(result) || result < (allowZero ? 0 : 1) || result > 65535) {
     throw new Error(`${name} must be an integer between ${allowZero ? 0 : 1} and 65535`);
   }
+  return result;
+}
+
+function activityTrigger(value: string | undefined): "speech" | "speech_or_music" {
+  const result = value ?? "speech_or_music";
+  if (result !== "speech" && result !== "speech_or_music") throw new Error("PIGATEWAY_PIVOICE_START_WHEN must be speech or speech_or_music");
   return result;
 }
 
@@ -133,6 +140,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     pivoiceApiUrl,
     pivoiceApiToken,
     pivoiceIdleCloseSeconds: validInteger(env.PIGATEWAY_PIVOICE_IDLE_CLOSE_SECONDS, 15, 0, 3600, "PIGATEWAY_PIVOICE_IDLE_CLOSE_SECONDS"),
+    pivoiceStartWhen: activityTrigger(env.PIGATEWAY_PIVOICE_START_WHEN),
     atemHost: env.PIGATEWAY_ATEM_HOST?.trim() || undefined,
     atemPort: validPort(env.PIGATEWAY_ATEM_PORT, 9910, "PIGATEWAY_ATEM_PORT"),
     encoderHost: env.PIGATEWAY_ENCODER_HOST?.trim() || undefined,
