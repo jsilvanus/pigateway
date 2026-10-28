@@ -10,6 +10,10 @@ export interface AppConfig {
   authAllowedHosts?: string[] | undefined;
   /** Browser origins allowed to call /api/v1 cross-origin (PIGATEWAY_CORS_ORIGINS). */
   corsOrigins?: string[] | undefined;
+  /** PiVoice binary telemetry listener. */
+  pivoiceUdpHost: string;
+  pivoiceUdpPort: number;
+  pivoiceAllowedHosts?: string[] | undefined;
   atemHost?: string | undefined;
   atemPort: number;
   /** Matrox Monarch HDX encoder (PIGATEWAY_ENCODER_HOST, _HTTPS, _USER, _PASSWORD; user and password together). */
@@ -108,6 +112,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     apiKey: env.PIGATEWAY_API_KEY?.trim() || undefined,
     authAllowedHosts: list(env.PIGATEWAY_AUTH_ALLOWED_HOSTS),
     corsOrigins: list(env.PIGATEWAY_CORS_ORIGINS),
+    pivoiceUdpHost: env.PIGATEWAY_PIVOICE_UDP_HOST?.trim() || "0.0.0.0",
+    pivoiceUdpPort: validPort(env.PIGATEWAY_PIVOICE_UDP_PORT, 3101, "PIGATEWAY_PIVOICE_UDP_PORT"),
+    pivoiceAllowedHosts: list(env.PIGATEWAY_PIVOICE_ALLOWED_HOSTS),
     atemHost: env.PIGATEWAY_ATEM_HOST?.trim() || undefined,
     atemPort: validPort(env.PIGATEWAY_ATEM_PORT, 9910, "PIGATEWAY_ATEM_PORT"),
     encoderHost: env.PIGATEWAY_ENCODER_HOST?.trim() || undefined,
