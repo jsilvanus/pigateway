@@ -142,11 +142,12 @@ export class PiVoiceUdpReceiver {
       const decoded = decodePiVoicePacket(packet);
       if (!decoded) return;
 
-      this.#lastSeenAtMs = this.#now();
+      const receivedAtMs = this.#now();
+      this.#lastSeenAtMs = receivedAtMs;
       this.#state = {
         connected: true,
         stale: false,
-        lastSeenAt: new Date(this.#lastSeenAtMs).toISOString(),
+        lastSeenAt: new Date(receivedAtMs).toISOString(),
         sequence: decoded.sequence,
         timestampMs: decoded.timestampMs,
         rmsDbfs: decoded.rmsDbfs,
