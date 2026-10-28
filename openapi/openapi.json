@@ -1891,12 +1891,135 @@
         "tags": [
           "Gateway"
         ],
-        "summary": "Mode, ATEM connection and camera links",
+        "summary": "Gateway mode, device health, and latest PiVoice telemetry",
         "responses": {
           "200": {
-            "description": "Status"
+            "description": "Gateway status including latest PiVoice telemetry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "pivoice": {
+                      "type": "object",
+                      "required": [
+                        "connected",
+                        "stale",
+                        "lastSeenAt",
+                        "classification",
+                        "capture",
+                        "publisher"
+                      ],
+                      "properties": {
+                        "connected": {
+                          "type": "boolean"
+                        },
+                        "stale": {
+                          "type": "boolean"
+                        },
+                        "lastSeenAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "sequence": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "timestampMs": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "rmsDbfs": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        },
+                        "peakDbfs": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        },
+                        "classification": {
+                          "type": "string",
+                          "enum": [
+                            "unknown",
+                            "silence",
+                            "speech",
+                            "music"
+                          ]
+                        },
+                        "confidence": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "minimum": 0,
+                          "maximum": 100
+                        },
+                        "capture": {
+                          "type": "object",
+                          "properties": {
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "unknown",
+                                "stopped",
+                                "running",
+                                "error"
+                              ]
+                            },
+                            "sampleFormat": {
+                              "type": "string",
+                              "enum": [
+                                "unknown",
+                                "S16LE",
+                                "S24LE",
+                                "S32LE",
+                                "FLOAT32"
+                              ]
+                            },
+                            "channels": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            },
+                            "sampleRateHz": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            }
+                          }
+                        },
+                        "publisher": {
+                          "type": "string",
+                          "enum": [
+                            "unknown",
+                            "stopped",
+                            "publishing",
+                            "reconnecting",
+                            "error"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "description": "Returns current gateway state. The pivoice object is the latest validated UDP telemetry snapshot, with connected/stale liveness flags."
       }
     },
     "/api/v1/youtube": {
