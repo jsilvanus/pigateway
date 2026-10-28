@@ -16,7 +16,7 @@ Needs Node 22 or newer (Node 24 on the Pi). `PIGATEWAY_MODE=simulation` (default
 
 PiGateway listens for the binary PiVoice telemetry protocol on UDP `PIGATEWAY_PIVOICE_UDP_HOST` / `PIGATEWAY_PIVOICE_UDP_PORT` (defaults `0.0.0.0:3101`), separately from the HTTP API on port 3100. Set `PIGATEWAY_PIVOICE_ALLOWED_HOSTS` to a comma-separated list of sender IPs to restrict who can update telemetry.
 
-The v1 packet is 42 bytes: a 20-byte header and a 22-byte fixed snapshot payload. It uses big-endian integers, magic `PV`, version 1 and type `0x01`. Every packet includes meter levels, the current classification, capture state and publisher state. No audio is sent to PiGateway. A valid packet refreshes the telemetry heartbeat; state becomes stale after 6 seconds without one. Invalid packets and packets from disallowed IPs do not update state.
+The shared [protocol specification](docs/pivoice-telemetry.md) defines the packet. The v1 packet is 42 bytes: a 20-byte header and a 22-byte fixed snapshot payload. It uses big-endian integers, magic `PV`, version 1 and type `0x01`. Every packet includes meter levels, the current classification, capture state and publisher state. No audio is sent to PiGateway. A valid packet refreshes the telemetry heartbeat; state becomes stale after 6 seconds without one. Invalid packets and packets from disallowed IPs do not update state.
 
 Latest state is included in `GET /api/v1/status` under `pivoice`; the same state is emitted as the `pivoice` event on `GET /api/v1/events`. State is held in memory. The sample format is `unknown` until PiVoice can report the negotiated ALSA input format rather than assuming it.
 
