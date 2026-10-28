@@ -31,6 +31,7 @@ export class PiVoiceActivityCoordinator {
   #active = false;
   #operation: Promise<unknown> | null = null;
   #lastStartAttemptMs = 0;
+  #latestTrigger: "speech" | "music" = "speech";
 
   constructor(options: PiVoiceActivityOptions) {
     this.#options = options;
@@ -54,8 +55,9 @@ export class PiVoiceActivityCoordinator {
       throw new RangeError("idleCloseSeconds must be an integer from 0 to 3600");
     }
     this.#state.idleCloseSeconds = seconds;
+    this.#clearTimer();
     this.#publish();
-    if (this.#active) this.#scheduleClose();
+    if (!this.#active) this.#scheduleClose();
     return this.getState();
   }
 
@@ -67,6 +69,7 @@ export class PiVoiceActivityCoordinator {
       : "silence";
     const matchesTrigger = activity === "speech" || (activity === "music" && (this.#options.startWhen ?? "speech_or_music") === "speech_or_music");
     if (matchesTrigger) {
+      this.#latestTrigger = activity;
       this.#active = true;
       this.#state.lastActivityAt = new Date().toISOString();
       this.#state.lastError = null;
@@ -88,7 +91,8 @@ export class PiVoiceActivityCoordinator {
   async close(): Promise<void> {
     this.#clearTimer();
     this.#active = false;
-    if (this.#state.session === "open" || this.#state.session === "starting") await this.#stop("gateway-shutdown");
+    if (this.#operation) await this.#operation.catch(() => undefined);
+    if (this.#state.session === "open") await this.#stop("gateway-shutdown");
   }
 
   #headers(extra: Record<string, string> = {}): Record<string, string> {
@@ -131,6 +135,7 @@ export class PiVoiceActivityCoordinator {
       this.#publish();
     } finally {
       this.#operation = null;
+      if (this.#state.session === "open" && !this.#active) this.#scheduleClose();
     }
   }
 
@@ -153,6 +158,7 @@ export class PiVoiceActivityCoordinator {
       this.#publish();
     } finally {
       this.#operation = null;
+      if (this.#state.session === "closed" && this.#active) void this.#start(this.#latestTrigger);
     }
   }
 
