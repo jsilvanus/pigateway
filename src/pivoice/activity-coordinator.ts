@@ -29,6 +29,7 @@ export class PiVoiceActivityCoordinator {
   #idleTimer: NodeJS.Timeout | null = null;
   #active = false;
   #operation: Promise<unknown> | null = null;
+  #lastStartAttemptMs = 0;
 
   constructor(options: PiVoiceActivityOptions) {
     this.#options = options;
@@ -58,6 +59,8 @@ export class PiVoiceActivityCoordinator {
   }
 
   observe(telemetry: PiVoiceTelemetry): void {
+    if (!this.#options.baseUrl) return;
+    const wasActive = this.#active;
     const activity = telemetry.connected && !telemetry.stale && telemetry.capture.state === "running"
       ? telemetry.classification
       : "silence";
@@ -74,7 +77,7 @@ export class PiVoiceActivityCoordinator {
       return;
     }
     this.#active = false;
-    if (this.#state.session === "open" && this.#state.idleCloseSeconds > 0) this.#scheduleClose();
+    if (wasActive && this.#state.session === "open" && this.#state.idleCloseSeconds > 0) this.#scheduleClose();
     if (!telemetry.connected || telemetry.capture.state === "stopped" || telemetry.capture.state === "error") {
       if (this.#state.session === "open") void this.#stop("capture-stopped");
     }
@@ -106,6 +109,9 @@ export class PiVoiceActivityCoordinator {
 
   async #start(trigger: "speech" | "music"): Promise<void> {
     if (this.#operation || this.#state.session === "open") return;
+    const now = Date.now();
+    if (now - this.#lastStartAttemptMs < 5000) return;
+    this.#lastStartAttemptMs = now;
     this.#state.session = "starting";
     this.#state.trigger = trigger;
     this.#publish();
