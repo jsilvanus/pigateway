@@ -3,11 +3,11 @@ import dgram from "node:dgram";
 import test from "node:test";
 import { decodePiVoicePacket, PiVoiceUdpReceiver, PIVOICE_PACKET_BYTES } from "../src/pivoice/telemetry.js";
 
-function packet(): Buffer {
+function packet(messageType = 1): Buffer {
   const out = Buffer.alloc(PIVOICE_PACKET_BYTES);
   out.write("PV", 0, "ascii");
   out.writeUInt8(1, 2);
-  out.writeUInt8(1, 3);
+  out.writeUInt8(messageType, 3);
   out.writeUInt16BE(0, 4);
   out.writeUInt16BE(22, 6);
   out.writeUInt32BE(123, 8);
@@ -27,6 +27,7 @@ function packet(): Buffer {
 test("decodes the fixed binary snapshot", () => {
   const decoded = decodePiVoicePacket(packet());
   assert.deepEqual(decoded, {
+    messageType: "snapshot",
     sequence: 123,
     timestampMs: 1_761_600_000_123,
     rmsDbfs: -42.125,
@@ -99,5 +100,33 @@ test("gateway status exposes initial PiVoice telemetry state for UI clients", as
     assert.equal(response.json().pivoice.classification, "unknown");
   } finally {
     await app.close();
+  }
+});
+
+
+test("health-poll packet updates lastPollAt while retaining latest snapshot", async () => {
+  const decoded = decodePiVoicePacket(packet(2));
+  assert.equal(decoded?.messageType, "poll");
+  let now = 1_761_600_000_000;
+  const receiver = new PiVoiceUdpReceiver({
+    host: "127.0.0.1",
+    port: 0,
+    now: () => now,
+    onChange: () => {}
+  });
+  const sender = dgram.createSocket("udp4");
+  try {
+    await receiver.start();
+    await new Promise<void>((resolve, reject) => {
+      sender.send(packet(2), receiver.getBoundPort(), "127.0.0.1", (error) => error ? reject(error) : resolve());
+    });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    const state = receiver.getState();
+    assert.equal(state.classification, "speech");
+    assert.equal(state.lastPollAt, new Date(now).toISOString());
+    assert.equal(state.stale, false);
+  } finally {
+    sender.close();
+    await receiver.stop();
   }
 });
