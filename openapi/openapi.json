@@ -2019,6 +2019,58 @@
                           "format": "date-time"
                         }
                       }
+                    },
+                    "pivoiceActivity": {
+                      "type": "object",
+                      "required": [
+                        "configured",
+                        "session",
+                        "idleCloseSeconds"
+                      ],
+                      "properties": {
+                        "configured": {
+                          "type": "boolean"
+                        },
+                        "session": {
+                          "type": "string",
+                          "enum": [
+                            "closed",
+                            "starting",
+                            "open",
+                            "stopping",
+                            "error"
+                          ]
+                        },
+                        "trigger": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "enum": [
+                            "speech",
+                            "music",
+                            null
+                          ]
+                        },
+                        "idleCloseSeconds": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 3600
+                        },
+                        "lastActivityAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "lastError": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
                     }
                   }
                 }
