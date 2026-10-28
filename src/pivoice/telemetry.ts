@@ -97,7 +97,7 @@ export interface DecodedPiVoicePacket {
 export interface PiVoiceUdpReceiverOptions {
   host: string;
   port: number;
-  allowedIps?: string[];
+  allowedIps?: string[] | undefined;
   staleMs?: number;
   now?: () => number;
   logger?: { info: (...args: any[]) => void; error: (...args: any[]) => void };
