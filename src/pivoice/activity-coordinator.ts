@@ -29,6 +29,7 @@ export class PiVoiceActivityCoordinator {
   #state: PiVoiceActivityState;
   #idleTimer: NodeJS.Timeout | null = null;
   #active = false;
+  #captureAvailable = false;
   #operation: Promise<unknown> | null = null;
   #lastStartAttemptMs = 0;
   #latestTrigger: "speech" | "music" = "speech";
@@ -64,9 +65,8 @@ export class PiVoiceActivityCoordinator {
   observe(telemetry: PiVoiceTelemetry): void {
     if (!this.#options.baseUrl) return;
     const wasActive = this.#active;
-    const activity = telemetry.connected && !telemetry.stale && telemetry.capture.state === "running"
-      ? telemetry.classification
-      : "silence";
+    this.#captureAvailable = telemetry.connected && !telemetry.stale && telemetry.capture.state === "running";
+    const activity = this.#captureAvailable ? telemetry.classification : "silence";
     const matchesTrigger = activity === "speech" || (activity === "music" && (this.#options.startWhen ?? "speech_or_music") === "speech_or_music");
     if (matchesTrigger) {
       this.#latestTrigger = activity;
@@ -127,7 +127,11 @@ export class PiVoiceActivityCoordinator {
       this.#state.session = "open";
       this.#state.lastError = null;
       this.#publish();
-      if (!this.#active) this.#scheduleClose();
+      if (!this.#captureAvailable) {
+        await this.#stop("capture-unavailable-during-start");
+      } else if (!this.#active) {
+        this.#scheduleClose();
+      }
     } catch (error) {
       this.#state.session = "error";
       this.#state.lastError = error instanceof Error ? error.message : String(error);
