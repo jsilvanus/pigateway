@@ -44,20 +44,9 @@ const EMPTY_STATE: PiVoiceTelemetry = {
 };
 
 const CLASSIFICATIONS: PiVoiceClassification[] = ["unknown", "silence", "speech", "music"];
-const CAPTURE_STATES: Array<PiVoiceTelemetry["capture"]["state"]> = ["stopped", "running", "error"];
+const CAPTURE_STATES: PiVoiceCaptureState[] = ["stopped", "running", "error"];
 const SAMPLE_FORMATS: PiVoiceTelemetry["capture"]["sampleFormat"][] = ["unknown", "S16LE", "S24LE", "S32LE", "FLOAT32"];
-const PUBLISHER_STATES: Array<NonNullable<PiVoiceTelemetry["publisher"]>> = ["stopped", "publishing", "reconnecting", "error", "unknown"];
-
-export interface DecodedPiVoicePacket {
-  sequence: number;
-  timestampMs: number;
-  rmsDbfs: number | null;
-  peakDbfs: number | null;
-  classification: PiVoiceClassification;
-  confidence: number | null;
-  capture: PiVoiceTelemetry["capture"];
-  publisher: PiVoiceTelemetry["publisher"];
-}
+const PUBLISHER_STATES: PiVoicePublisherState[] = ["stopped", "publishing", "reconnecting", "error"];
 
 /** Decode and strictly validate the v1, 42-byte PiVoice telemetry snapshot. */
 export function decodePiVoicePacket(packet: Buffer): DecodedPiVoicePacket | null {
@@ -70,7 +59,7 @@ export function decodePiVoicePacket(packet: Buffer): DecodedPiVoicePacket | null
   const confidenceRaw = packet.readUInt8(29);
   const captureState = CAPTURE_STATES[packet.readUInt8(30)];
   const sampleFormat = SAMPLE_FORMATS[packet.readUInt8(31)];
-  const publisher = PUBLISHER_STATES[packet.readUInt8(36)];
+  const publisher = PUBLISHER_STATES[packet.readUInt8(38)];
   const channels = packet.readUInt16BE(32);
   const sampleRateHz = packet.readUInt32BE(34);
   if (!classification || !captureState || !sampleFormat || !publisher) return null;
@@ -93,6 +82,17 @@ export function decodePiVoicePacket(packet: Buffer): DecodedPiVoicePacket | null
     capture: { state: captureState, sampleFormat, channels: channels || null, sampleRateHz: sampleRateHz || null },
     publisher
   };
+}
+
+export interface DecodedPiVoicePacket {
+  sequence: number;
+  timestampMs: number;
+  rmsDbfs: number | null;
+  peakDbfs: number | null;
+  classification: PiVoiceClassification;
+  confidence: number | null;
+  capture: PiVoiceTelemetry["capture"];
+  publisher: PiVoiceTelemetry["publisher"];
 }
 
 export interface PiVoiceUdpReceiverOptions {
@@ -164,6 +164,12 @@ export class PiVoiceUdpReceiver {
       const onListening = () => {
         socket.off("error", onError);
         this.#options.logger?.info({ host: this.#options.host, port: this.#options.port }, "PiVoice UDP telemetry receiver listening");
+        this.#staleTimer = setInterval(() => {
+          if (this.#lastSeenAtMs === null || this.#now() - this.#lastSeenAtMs < this.#staleMs || this.#state.stale) return;
+          this.#state = { ...this.#state, connected: false, stale: true };
+          this.#options.onChange?.(this.getState());
+        }, Math.min(1000, this.#staleMs));
+        this.#staleTimer.unref?.();
         resolve();
       };
       socket.once("error", onError);
