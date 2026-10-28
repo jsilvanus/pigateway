@@ -1,6 +1,6 @@
 # pigateway
 
-The one process on the Raspberry Pi that talks to the devices: ATEM switcher, PTZ cameras (VISCA and CGI), the AMX master, the Matrox Monarch HDX encoder (`/api/v1/encoder`, env `PIGATEWAY_ENCODER_*`), YouTube live status from pitube, and PiVoice audio telemetry. Other services call its HTTP API and listen to its events (`GET /api/v1/events`, Server-Sent Events). Video processing stays in [pimatrix](https://github.com/jsilvanus/pimatrix); YouTube is [pitube](https://github.com/jsilvanus/pitube). Plan and phases: [docs/plan.md](docs/plan.md).
+The one process on the Raspberry Pi that talks to the devices: ATEM switcher, PTZ cameras (VISCA and CGI), the AMX master, the Matrox Monarch HDX encoder (`/api/v1/encoder`, env `PIGATEWAY_ENCODER_*`), YouTube live status from pitube, PiVoice audio telemetry and activity-session lifecycle. Other services call its HTTP API and listen to its events (`GET /api/v1/events`, Server-Sent Events). Video processing stays in [pimatrix](https://github.com/jsilvanus/pimatrix); YouTube is [pitube](https://github.com/jsilvanus/pitube). Plan and phases: [docs/plan.md](docs/plan.md).
 
 ## Run
 
@@ -20,9 +20,13 @@ The shared [protocol specification](docs/pivoice-telemetry.md) defines the packe
 
 Latest state is included in `GET /api/v1/status` under `pivoice`; the same state is emitted as the `pivoice` event on `GET /api/v1/events`. State is held in memory. The sample format is `unknown` until PiVoice can report the negotiated ALSA input format rather than assuming it.
 
+## PiVoice activity sessions
+
+Set `PIGATEWAY_PIVOICE_API_URL` (for example `http://127.0.0.1:8095`) and `PIGATEWAY_PIVOICE_API_TOKEN` to the PiVoice control API and its bearer token. PiGateway observes speech/music classifications over UDP, asks PiVoice to open a live Auditor session, and owns the idle-close timer. PiVoice sends its rolling PCM pre-roll to Auditor; neither audio nor PCM passes through PiGateway. `PIGATEWAY_PIVOICE_IDLE_CLOSE_SECONDS` defaults to 15 seconds; `0` disables automatic close. Read or change the setting with `GET /api/v1/activity/idle-close` and `PUT /api/v1/activity/idle-close` using `{"idleCloseSeconds":30}`. Current coordinator state is included in `/api/v1/status` and emitted as `pivoice-activity` events.
+
 ## Endpoints
 
-`GET /health`, `GET /api/v1/status`, `GET /api/v1/events`, `/api/v1/atem/*`, `/api/v1/cameras/*`.
+`GET /health`, `GET /api/v1/status`, `GET /api/v1/events`, `/api/v1/atem/*`, `/api/v1/cameras/*`, `/api/v1/activity/idle-close`.
 
 ## API description and CLI
 
