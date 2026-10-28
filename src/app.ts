@@ -215,6 +215,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
     youtube: { state: youtube.get().state },
     encoder: { configured: encoder.getState().configured, connected: encoder.getState().connected },
     pivoice: pivoice.getState(),
+    pivoiceActivity: pivoiceActivity.getState(),
     cameras: cameraService.list().map((cam) => ({ id: cam.id, connection: cam.connection }))
   }));
 
