@@ -128,7 +128,7 @@ export class PiVoiceActivityCoordinator {
       this.#state.lastError = null;
       this.#publish();
       if (!this.#captureAvailable) {
-        await this.#stop("capture-unavailable-during-start");
+        // The finally block closes the just-opened session after releasing #operation.
       } else if (!this.#active) {
         this.#scheduleClose();
       }
@@ -139,7 +139,8 @@ export class PiVoiceActivityCoordinator {
       this.#publish();
     } finally {
       this.#operation = null;
-      if (this.#state.session === "open" && !this.#active) this.#scheduleClose();
+      if (this.#state.session === "open" && !this.#captureAvailable) void this.#stop("capture-unavailable-during-start");
+      else if (this.#state.session === "open" && !this.#active) this.#scheduleClose();
     }
   }
 
