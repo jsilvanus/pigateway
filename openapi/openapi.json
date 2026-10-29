@@ -1302,6 +1302,68 @@
         }
       }
     },
+    "/api/v1/actions": {
+      "get": {
+        "operationId": "getActions",
+        "tags": [
+          "Actions"
+        ],
+        "summary": "Action catalog with dynamic availability based on established ecosystem services and hardware",
+        "parameters": [
+          {
+            "name": "available",
+            "in": "query",
+            "required": false,
+            "description": "Filter to only available actions",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of action definitions with availability status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/actions/execute": {
+      "post": {
+        "operationId": "executeAction",
+        "tags": [
+          "Actions"
+        ],
+        "summary": "Execute a device or ecosystem action",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Action executed successfully"
+          },
+          "422": {
+            "description": "Unrecognized action or invalid parameters"
+          },
+          "503": {
+            "description": "Target device or service is not connected or unavailable"
+          }
+        }
+      }
+    },
     "/api/v1/encoder": {
       "get": {
         "operationId": "getEncoder",

@@ -23,6 +23,8 @@ import { RadioRelayClient } from "./radio-relay/radio-relay-client.js";
 import { AuditorSseSource } from "./transcripts/auditor-sse-source.js";
 import { TranscriptHub, transcriptId } from "./transcripts/transcript-hub.js";
 import { EcosystemTracker } from "./ecosystem/ecosystem-tracker.js";
+import { ActionRegistry } from "./actions/action-registry.js";
+import { registerActionRoutes } from "./actions/action-routes.js";
 
 export function buildApp(config: AppConfig): FastifyInstance {
   const app = Fastify({
@@ -162,6 +164,17 @@ export function buildApp(config: AppConfig): FastifyInstance {
       ecosystemTracker.markPisoundReceiverStarted();
     }
   });
+
+  const actionRegistry = new ActionRegistry({
+    config,
+    atem,
+    cameraService,
+    encoder,
+    matrix,
+    ecosystemTracker,
+    eventBroker,
+  });
+  registerActionRoutes(app, actionRegistry);
 
   const amxControl: AmxControl = {
     cameras: () =>

@@ -56,6 +56,19 @@ export class AtlonaMatrix {
     });
   }
 
+  async route(input: number, output: number, mode = "simulation"): Promise<{ success: boolean; message?: string | undefined }> {
+    const status = await this.client.getStatus();
+    const result =
+      mode === "simulation" && status === "not-configured"
+        ? { requestId: `sim-${Date.now()}`, success: true, input, output, confirmed: true, message: "Simulated Atlona route confirmed" }
+        : await this.client.routeMatrix(input, output);
+    if (result.success) {
+      this.state.routes[output] = input;
+      this.emit({ input, output });
+    }
+    return result;
+  }
+
   register(app: FastifyInstance, mode: string): void {
     app.get("/api/v1/matrix", async () => this.state);
 

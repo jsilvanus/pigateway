@@ -35,6 +35,7 @@ export type GatewayEvent =
   | { type: "pivoice-activity"; data: unknown }
   | { type: "transcript"; data: TranscriptEvent }
   | { type: "ecosystem"; data: EcosystemStatus }
+  | { type: "action"; data: unknown }
   | { type: "ready"; data: { status: string; time: string } };
 
 export class GatewayEventBroker {
