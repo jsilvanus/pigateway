@@ -23,6 +23,16 @@ export interface MatrixEventPayload {
   lastChange?: { input: number; output: number };
 }
 
+export interface ActionEventPayload {
+  actor: string;
+  action: string;
+  params: Record<string, unknown>;
+  ok: boolean;
+  target?: string | undefined;
+  error?: string | undefined;
+  timestamp: string;
+}
+
 export type GatewayEvent =
   | { type: "camera"; data: CameraEventPayload }
   | { type: "freed"; data: FreedTelemetry }
@@ -35,7 +45,7 @@ export type GatewayEvent =
   | { type: "pivoice-activity"; data: unknown }
   | { type: "transcript"; data: TranscriptEvent }
   | { type: "ecosystem"; data: EcosystemStatus }
-  | { type: "action"; data: unknown }
+  | { type: "action"; data: ActionEventPayload }
   | { type: "ready"; data: { status: string; time: string } };
 
 export class GatewayEventBroker {

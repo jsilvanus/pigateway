@@ -26,12 +26,14 @@ export interface ActionDefinition {
 
 export interface ActionExecutionRequest {
   action: string;
+  actor?: string | undefined;
   params?: Record<string, unknown> | undefined;
 }
 
 export interface ActionExecutionResult {
   ok: boolean;
   action: string;
+  actor: string;
   target?: string | undefined;
   result?: unknown | undefined;
   error?: string | undefined;
@@ -301,37 +303,50 @@ export class ActionRegistry {
   /**
    * Executes a requested action across the established hardware or peer services.
    */
-  async execute(request: ActionExecutionRequest | string): Promise<ActionExecutionResult> {
+  async execute(request: ActionExecutionRequest | string, defaultActor = "unknown"): Promise<ActionExecutionResult> {
     let actionId: string;
     let params: Record<string, unknown>;
+    let actor: string;
 
     if (typeof request === "string") {
       const parsed = this.parseStringAction(request);
       actionId = parsed.action;
       params = parsed.params ?? {};
+      actor = defaultActor;
     } else if (typeof request.action === "string" && request.action.includes(":") && (!request.params || Object.keys(request.params).length === 0)) {
       const parsed = this.parseStringAction(request.action);
       actionId = parsed.action;
       params = parsed.params ?? {};
+      actor = request.actor?.trim() || defaultActor;
     } else {
       actionId = request.action;
       params = request.params ?? {};
+      actor = request.actor?.trim() || defaultActor;
     }
 
-    let result: ActionExecutionResult;
+    let routeResult: { ok: boolean; target?: string | undefined; result?: unknown | undefined; error?: string | undefined };
     try {
-      result = await this.routeAction(actionId, params);
+      routeResult = await this.routeAction(actionId, params);
     } catch (err) {
-      result = {
+      routeResult = {
         ok: false,
-        action: actionId,
         error: err instanceof Error ? err.message : String(err),
       };
     }
 
+    const result: ActionExecutionResult = {
+      ok: routeResult.ok,
+      action: actionId,
+      actor,
+      target: routeResult.target,
+      result: routeResult.result,
+      error: routeResult.error,
+    };
+
     this.eventBroker.emit({
       type: "action",
       data: {
+        actor,
         action: actionId,
         params,
         ok: result.ok,
@@ -344,7 +359,10 @@ export class ActionRegistry {
     return result;
   }
 
-  private async routeAction(actionId: string, params: Record<string, unknown>): Promise<ActionExecutionResult> {
+  private async routeAction(
+    actionId: string,
+    params: Record<string, unknown>
+  ): Promise<{ ok: boolean; action?: string; target?: string | undefined; result?: unknown | undefined; error?: string | undefined }> {
     const parts = actionId.split(":");
     const domain = parts[0]?.toLowerCase();
     const op = parts[1]?.toLowerCase();

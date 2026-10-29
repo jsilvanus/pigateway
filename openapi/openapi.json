@@ -1346,7 +1346,24 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "required": [
+                  "action"
+                ],
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "description": "Action identifier (e.g. atem:cut, cam:preset)"
+                  },
+                  "actor": {
+                    "type": "string",
+                    "description": "Identifier of who or what called the action (e.g. rundown, operator, pidirector, picontrol)"
+                  },
+                  "params": {
+                    "type": "object",
+                    "description": "Optional parameters specific to the action"
+                  }
+                }
               }
             }
           }

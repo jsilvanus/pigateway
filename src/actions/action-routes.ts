@@ -15,7 +15,7 @@ export function registerActionRoutes(app: FastifyInstance, registry: ActionRegis
   });
 
   // 2. POST /api/v1/actions/execute - Action Dispatcher
-  app.post<{ Body: ActionExecutionRequest | { action: string; params?: Record<string, unknown> } }>(
+  app.post<{ Body: ActionExecutionRequest | { action: string; actor?: string; params?: Record<string, unknown> } }>(
     "/api/v1/actions/execute",
     async (req, reply) => {
       const body = req.body;
@@ -23,7 +23,10 @@ export function registerActionRoutes(app: FastifyInstance, registry: ActionRegis
         return reply.status(400).send({ ok: false, error: "Missing 'action' in JSON body" });
       }
 
-      const result = await registry.execute(body);
+      const headerActor = req.headers["x-actor"];
+      const defaultActor = typeof headerActor === "string" && headerActor.trim() ? headerActor.trim() : "unknown";
+
+      const result = await registry.execute(body, defaultActor);
       if (!result.ok) {
         const status = result.error?.includes("not connected") || result.error?.includes("not available") ? 503 : 422;
         return reply.status(status).send(result);

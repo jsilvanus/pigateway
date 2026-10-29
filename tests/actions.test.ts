@@ -41,16 +41,24 @@ test("actions endpoint returns catalog of actions with dynamic availability", as
   await app.close();
 });
 
-test("action execution runs camera preset and emits event", async () => {
+test("action execution runs camera preset and emits event with actor", async () => {
   const app = buildApp(loadConfig({ PIGATEWAY_MODE: "simulation" }));
   await app.ready();
 
-  // 1. Structured action execution
+  const actionEvents: any[] = [];
+  (app as any).eventBroker.subscribe((e: any) => {
+    if (e.type === "action") {
+      actionEvents.push(e.data);
+    }
+  });
+
+  // 1. Structured action execution with explicit actor
   const res = await app.inject({
     method: "POST",
     url: "/api/v1/actions/execute",
     payload: {
       action: "cam:preset",
+      actor: "rundown",
       params: { id: "cam1", preset: "altar" },
     },
   });
@@ -59,19 +67,31 @@ test("action execution runs camera preset and emits event", async () => {
   const json = JSON.parse(res.payload);
   assert.equal(json.ok, true);
   assert.equal(json.action, "cam:preset");
+  assert.equal(json.actor, "rundown");
 
-  // 2. Shorthand string action in JSON payload
+  // Verify event payload includes actor
+  assert.equal(actionEvents.length, 1);
+  assert.equal(actionEvents[0].actor, "rundown");
+  assert.equal(actionEvents[0].action, "cam:preset");
+
+  // 2. Shorthand string action in JSON payload with header actor
   const strRes = await app.inject({
     method: "POST",
     url: "/api/v1/actions/execute",
+    headers: {
+      "x-actor": "picontrol",
+    },
     payload: { action: "cam:cam1:preset:pulpit" },
   });
 
   assert.equal(strRes.statusCode, 200);
   const strJson = JSON.parse(strRes.payload);
   assert.equal(strJson.ok, true);
+  assert.equal(strJson.actor, "picontrol");
+  assert.equal(actionEvents.length, 2);
+  assert.equal(actionEvents[1].actor, "picontrol");
 
-  // 3. Matrix route execution
+  // 3. Matrix route execution without actor (defaults to unknown)
   const matrixRes = await app.inject({
     method: "POST",
     url: "/api/v1/actions/execute",
@@ -84,14 +104,17 @@ test("action execution runs camera preset and emits event", async () => {
   assert.equal(matrixRes.statusCode, 200);
   const matrixJson = JSON.parse(matrixRes.payload);
   assert.equal(matrixJson.ok, true);
+  assert.equal(matrixJson.actor, "unknown");
 
-  // 4. Invalid action gives 422
+  // 4. Invalid action gives 422 with actor preserved
   const badRes = await app.inject({
     method: "POST",
     url: "/api/v1/actions/execute",
-    payload: { action: "unknown:thing" },
+    payload: { action: "unknown:thing", actor: "operator" },
   });
   assert.equal(badRes.statusCode, 422);
+  const badJson = JSON.parse(badRes.payload);
+  assert.equal(badJson.actor, "operator");
 
   await app.close();
 });

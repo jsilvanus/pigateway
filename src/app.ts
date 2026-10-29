@@ -45,6 +45,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
   (app as unknown as { routeTable: Set<string> }).routeTable = routeTable;
 
   const eventBroker = new GatewayEventBroker();
+  (app as unknown as { eventBroker: GatewayEventBroker }).eventBroker = eventBroker;
   const transcripts = new TranscriptHub({
     capacity: config.transcriptBuffer,
     onTranscript: (event) => eventBroker.emit({ type: "transcript", data: event })
