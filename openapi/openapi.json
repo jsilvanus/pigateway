@@ -1260,6 +1260,48 @@
         }
       }
     },
+    "/api/v1/ecosystem": {
+      "get": {
+        "operationId": "getEcosystem",
+        "tags": [
+          "Ecosystem"
+        ],
+        "summary": "Status of all Pi ecosystem components and in-use tabs",
+        "responses": {
+          "200": {
+            "description": "Current ecosystem availability, in-use components, and active tabs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EcosystemStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ecosystem/probe": {
+      "post": {
+        "operationId": "probeEcosystem",
+        "tags": [
+          "Ecosystem"
+        ],
+        "summary": "Actively probe all Pi ecosystem services and return updated status",
+        "responses": {
+          "200": {
+            "description": "Updated ecosystem availability after active probing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EcosystemStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/encoder": {
       "get": {
         "operationId": "getEncoder",
@@ -2083,6 +2125,21 @@
                           ]
                         }
                       }
+                    },
+                    "ecosystem": {
+                      "$ref": "#/components/schemas/EcosystemStatus"
+                    },
+                    "activePlugins": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "inUseTabs": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     }
                   }
                 }
@@ -2711,6 +2768,105 @@
   },
   "components": {
     "schemas": {
+      "EcosystemComponent": {
+        "type": "object",
+        "required": [
+          "id",
+          "tab",
+          "name",
+          "description",
+          "active",
+          "inUse",
+          "available",
+          "configured",
+          "connecting"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tab": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "inUse": {
+            "type": "boolean"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "configured": {
+            "type": "boolean"
+          },
+          "connecting": {
+            "type": "boolean"
+          },
+          "lastSeenAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "details": {
+            "type": "object"
+          }
+        }
+      },
+      "EcosystemStatus": {
+        "type": "object",
+        "required": [
+          "service",
+          "updatedAt",
+          "inUseTabs",
+          "activePlugins",
+          "components"
+        ],
+        "properties": {
+          "service": {
+            "type": "string",
+            "enum": [
+              "pigateway"
+            ]
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "inUseTabs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "activePlugins": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "components": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/EcosystemComponent"
+            }
+          }
+        }
+      },
       "CameraZoomRequest": {
         "type": "object",
         "required": [

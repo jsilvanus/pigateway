@@ -1,11 +1,11 @@
 import type { FastifyBaseLogger } from "fastify";
 
 export class RadioRelayClient {
-  private readonly baseUrl?: string;
-  private readonly token?: string;
+  private readonly baseUrl?: string | undefined;
+  private readonly token?: string | undefined;
   readonly streamName: string;
   private readonly logger: FastifyBaseLogger;
-  constructor({ baseUrl, token, streamName, logger }: { baseUrl?: string; token?: string; streamName: string; logger: FastifyBaseLogger }) {
+  constructor({ baseUrl, token, streamName, logger }: { baseUrl?: string | undefined; token?: string | undefined; streamName: string; logger: FastifyBaseLogger }) {
     this.baseUrl = baseUrl?.replace(/\/+$/, "");
     this.token = token;
     this.streamName = streamName;

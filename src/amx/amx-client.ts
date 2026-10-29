@@ -49,43 +49,6 @@ export class SimulatedAmxClient implements AmxClient {
     };
   }
 
-  async epsonCommand(
-    target: "proj1" | "proj2",
-    action: "RAW" | "POWER" | "SOURCE",
-    value: string,
-    timeoutMs = 3000
-  ): Promise<{ success: boolean; message: string }> {
-    const socket = await this.getConnectedSocket();
-    this.reqCount += 1;
-    const requestId = `ep-${Date.now()}-${this.reqCount}`;
-    return new Promise((resolve) => {
-      const timer = setTimeout(() => {
-        this.epsonRequests.delete(requestId);
-        resolve({ success: false, message: `Timeout waiting for Epson response (${requestId})` });
-      }, timeoutMs);
-      this.epsonRequests.set(requestId, { resolve, timer });
-      socket.write(`EPSON:${requestId}:${target}:${action}:${value};\r\n`);
-    });
-  }
-
-  async epsonStatus(target: "proj1" | "proj2", timeoutMs = 2000): Promise<{ status: number; source: string } | null> {
-    try {
-      const socket = await this.getConnectedSocket();
-      this.reqCount += 1;
-      const requestId = `eps-${Date.now()}-${this.reqCount}`;
-      return await new Promise((resolve) => {
-        const timer = setTimeout(() => {
-          this.epsonRequests.delete(requestId);
-          resolve(null);
-        }, timeoutMs);
-        this.epsonRequests.set(requestId, { resolve, timer });
-        socket.write(`EPSON:${requestId}:${target}:STATUS;\r\n`);
-      });
-    } catch {
-      return null;
-    }
-  }
-
   async getStatus(): Promise<AmxClientStatus> {
     return "simulated";
   }
@@ -117,43 +80,6 @@ export class DisabledAmxClient implements AmxClient {
       confirmed: false,
       message: "AMX client is not configured"
     };
-  }
-
-  async epsonCommand(
-    target: "proj1" | "proj2",
-    action: "RAW" | "POWER" | "SOURCE",
-    value: string,
-    timeoutMs = 3000
-  ): Promise<{ success: boolean; message: string }> {
-    const socket = await this.getConnectedSocket();
-    this.reqCount += 1;
-    const requestId = `ep-${Date.now()}-${this.reqCount}`;
-    return new Promise((resolve) => {
-      const timer = setTimeout(() => {
-        this.epsonRequests.delete(requestId);
-        resolve({ success: false, message: `Timeout waiting for Epson response (${requestId})` });
-      }, timeoutMs);
-      this.epsonRequests.set(requestId, { resolve, timer });
-      socket.write(`EPSON:${requestId}:${target}:${action}:${value};\r\n`);
-    });
-  }
-
-  async epsonStatus(target: "proj1" | "proj2", timeoutMs = 2000): Promise<{ status: number; source: string } | null> {
-    try {
-      const socket = await this.getConnectedSocket();
-      this.reqCount += 1;
-      const requestId = `eps-${Date.now()}-${this.reqCount}`;
-      return await new Promise((resolve) => {
-        const timer = setTimeout(() => {
-          this.epsonRequests.delete(requestId);
-          resolve(null);
-        }, timeoutMs);
-        this.epsonRequests.set(requestId, { resolve, timer });
-        socket.write(`EPSON:${requestId}:${target}:STATUS;\r\n`);
-      });
-    } catch {
-      return null;
-    }
   }
 
   async getStatus(): Promise<AmxClientStatus> {
