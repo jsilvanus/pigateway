@@ -287,6 +287,25 @@ export class EcosystemTracker {
       url: this.#config.auditorUrl ?? "http://127.0.0.1:8090"
     };
 
+    // 8.5. PiRundown
+    const pirundownAvailable = this.#availableMap.get("pirundown") ?? false;
+    const pirundownConfigured = Boolean(this.#config.pirundownApiUrl);
+    const pirundownConnecting = this.#sseClients.has("pirundown");
+    const pirundownInUse = pirundownConnecting || pirundownAvailable || pirundownConfigured;
+    components.pirundown = {
+      id: "pirundown",
+      tab: "rundown",
+      name: "PiRundown Cue Engine",
+      description: "Service rundown, cue matching, and pure human control",
+      active: pirundownInUse,
+      inUse: pirundownInUse,
+      available: pirundownAvailable,
+      configured: pirundownConfigured,
+      connecting: pirundownConnecting,
+      lastSeenAt: this.#lastSeenMap.get("pirundown") ?? null,
+      url: this.#config.pirundownApiUrl ?? "http://127.0.0.1:3400"
+    };
+
     // 9. Radio Relay
     const relayConfigured = Boolean(this.#config.radioRelayApiUrl);
     components.radioRelay = {
@@ -412,7 +431,8 @@ export class EcosystemTracker {
         { id: "pimatrix", url: `${this.#config.pimatrixApiUrl ?? "http://127.0.0.1:3000"}/health` },
         { id: "piprogram", url: `${this.#config.piprogramApiUrl ?? "http://127.0.0.1:3104"}/health` },
         { id: "picanva", url: `${this.#config.picanvaApiUrl ?? "http://127.0.0.1:3103"}/health` },
-        { id: "auditor", url: `${this.#config.auditorUrl ?? "http://127.0.0.1:8090"}/health` }
+        { id: "auditor", url: `${this.#config.auditorUrl ?? "http://127.0.0.1:8090"}/health` },
+        { id: "pirundown", url: `${this.#config.pirundownApiUrl ?? "http://127.0.0.1:3400"}/health` }
       ];
 
       const results = await Promise.allSettled(

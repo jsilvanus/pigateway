@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { buildApp } from "../src/app.js";
 import { loadConfig } from "../src/config.js";
+import { ActionRegistry } from "../src/actions/action-registry.js";
 
 test("actions endpoint returns catalog of actions with dynamic availability", async () => {
   const app = buildApp(loadConfig({ PIGATEWAY_MODE: "simulation" }));
@@ -26,6 +27,11 @@ test("actions endpoint returns catalog of actions with dynamic availability", as
   assert.ok(camAction);
   assert.equal(camAction.domain, "camera");
   assert.equal(camAction.available, true); // Cam is simulated and available
+
+  const rundownAction = json.actions.find((a: any) => a.id === "rundown:cues");
+  assert.ok(rundownAction);
+  assert.equal(rundownAction.domain, "rundown");
+  assert.equal(rundownAction.available, true);
 
   // Test available-only filter
   const availRes = await app.inject({
@@ -115,6 +121,50 @@ test("action execution runs camera preset and emits event with actor", async () 
   assert.equal(badRes.statusCode, 422);
   const badJson = JSON.parse(badRes.payload);
   assert.equal(badJson.actor, "operator");
+
+  await app.close();
+});
+
+test("ActionRegistry - routes rundown:cues to pirundown service with actor", async () => {
+  const fetchCalls: Array<{ url: string; body: any }> = [];
+  const mockFetch: typeof fetch = async (url, init) => {
+    fetchCalls.push({ url: String(url), body: init?.body ? JSON.parse(String(init.body)) : {} });
+    return new Response(JSON.stringify({ ok: true, cueEngineEnabled: false }), { status: 200 });
+  };
+
+  const app = buildApp(loadConfig({ PIGATEWAY_MODE: "simulation" }));
+  await app.ready();
+
+  const registry = new ActionRegistry({
+    config: loadConfig({}),
+    atem: {} as any,
+    cameraService: {} as any,
+    encoder: {} as any,
+    matrix: {} as any,
+    ecosystemTracker: { getSummary: () => ({ components: {} }) } as any,
+    eventBroker: (app as any).eventBroker,
+    fetchFn: mockFetch,
+  });
+
+  // 1. Toggle off via state param
+  const res = await registry.execute({
+    action: "rundown:cues",
+    actor: "operator",
+    params: { state: "off" },
+  });
+
+  assert.equal(res.ok, true);
+  assert.equal(res.actor, "operator");
+  assert.equal(res.target, "rundown:cues");
+  assert.equal(fetchCalls.length, 1);
+  assert.equal(fetchCalls[0]?.url, "http://127.0.0.1:3400/api/v1/cues/disable");
+
+  // 2. String shorthand toggle
+  const strRes = await registry.execute("rundown:cues:toggle", "operator");
+  assert.equal(strRes.ok, true);
+  assert.equal(strRes.actor, "operator");
+  assert.equal(fetchCalls.length, 2);
+  assert.equal(fetchCalls[1]?.url, "http://127.0.0.1:3400/api/v1/cues/toggle");
 
   await app.close();
 });

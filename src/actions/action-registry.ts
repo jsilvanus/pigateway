@@ -293,6 +293,24 @@ export class ActionRegistry {
       },
     });
 
+    // 7. Rundown Actions (forwarded to PiRundown)
+    const pirundownComponent = ecosystem.components.pirundown;
+    const pirundownAvailable = Boolean(pirundownComponent?.available || pirundownComponent?.active || this.config.pirundownApiUrl || this.config.mode === "simulation");
+    const pirundownReason = pirundownAvailable ? undefined : "PiRundown cue engine service is not available";
+
+    actions.push({
+      id: "rundown:cues",
+      domain: "rundown",
+      name: "Toggle / Set Cue Engine",
+      description: "Toggle, enable, or disable automatic cue matching (pure human control mode)",
+      available: pirundownAvailable,
+      unavailableReason: pirundownReason,
+      params: {
+        state: { type: "string", required: false, enum: ["on", "off", "toggle"], description: "Desired state (on, off, toggle)" },
+        enabled: { type: "boolean", required: false, description: "Direct boolean flag" },
+      },
+    });
+
     if (availableOnly) {
       return actions.filter((a) => a.available);
     }
@@ -501,6 +519,32 @@ export class ActionRegistry {
       }
     }
 
+    // 7. Rundown Domain (forward to PiRundown)
+    if (domain === "rundown") {
+      const baseUrl = this.config.pirundownApiUrl ?? "http://127.0.0.1:3400";
+
+      if (op === "cues" || op === "cue") {
+        let targetEnabled: boolean | undefined;
+        if (typeof params.enabled === "boolean") {
+          targetEnabled = params.enabled;
+        } else if (params.state === "on" || params.state === "enable") {
+          targetEnabled = true;
+        } else if (params.state === "off" || params.state === "disable") {
+          targetEnabled = false;
+        }
+
+        const endpoint =
+          targetEnabled === true
+            ? "/api/v1/cues/enable"
+            : targetEnabled === false
+              ? "/api/v1/cues/disable"
+              : "/api/v1/cues/toggle";
+
+        const res = await this.postJson(`${baseUrl}${endpoint}`, {});
+        return { ok: res.ok, action: actionId, target: "rundown:cues", result: res.data, error: res.error };
+      }
+    }
+
     return { ok: false, action: actionId, error: `Unrecognized action '${actionId}'` };
   }
 
@@ -546,6 +590,14 @@ export class ActionRegistry {
       }
       if (parts[1] === "slide") {
         return { action: "pipgm:slide", params: { slide: parts[2] } };
+      }
+    }
+
+    if (domain === "rundown") {
+      // E.g. rundown:cues:toggle or rundown:cues:off or rundown:cues:on
+      if (parts[1] === "cues" || parts[1] === "cue") {
+        const state = parts[2] ?? "toggle";
+        return { action: "rundown:cues", params: { state } };
       }
     }
 
