@@ -6,6 +6,7 @@ import type { EcosystemTracker } from "../ecosystem/ecosystem-tracker.js";
 import type { GatewayEventBroker } from "../events.js";
 import type { AppConfig } from "../config.js";
 import type { PanTiltDirection, ZoomAction } from "../camera/visca-protocol.js";
+import type { RundownStore } from "../rundown/rundown-store.js";
 
 export interface ActionParamDef {
   type: "string" | "number" | "boolean";
@@ -48,6 +49,7 @@ export interface ActionRegistryOptions {
   ecosystemTracker: EcosystemTracker;
   eventBroker: GatewayEventBroker;
   fetchFn?: typeof fetch | undefined;
+  rundownStore?: RundownStore | undefined;
 }
 
 export class ActionRegistry {
@@ -59,6 +61,7 @@ export class ActionRegistry {
   private readonly ecosystemTracker: EcosystemTracker;
   private readonly eventBroker: GatewayEventBroker;
   private readonly fetchFn: typeof fetch;
+  private rundownStore?: RundownStore | undefined;
 
   constructor(options: ActionRegistryOptions) {
     this.config = options.config;
@@ -69,6 +72,11 @@ export class ActionRegistry {
     this.ecosystemTracker = options.ecosystemTracker;
     this.eventBroker = options.eventBroker;
     this.fetchFn = options.fetchFn ?? fetch;
+    this.rundownStore = options.rundownStore;
+  }
+
+  setRundownStore(store: RundownStore): void {
+    this.rundownStore = store;
   }
 
   /**
@@ -311,6 +319,51 @@ export class ActionRegistry {
       },
     });
 
+    const rundownLoaded = Boolean(this.rundownStore?.getStatus().loaded);
+    const rundownReason = rundownLoaded ? undefined : "No rundown document loaded";
+
+    actions.push({
+      id: "rundown:next",
+      domain: "rundown",
+      name: "Advance Rundown",
+      description: "Step rundown to next item",
+      available: rundownLoaded,
+      unavailableReason: rundownReason,
+      params: {},
+    });
+
+    actions.push({
+      id: "rundown:prev",
+      domain: "rundown",
+      name: "Previous Rundown Item",
+      description: "Step rundown back to previous item",
+      available: rundownLoaded,
+      unavailableReason: rundownReason,
+      params: {},
+    });
+
+    actions.push({
+      id: "rundown:fire",
+      domain: "rundown",
+      name: "Fire Rundown Item",
+      description: "Execute actions for current or specified item and advance",
+      available: rundownLoaded,
+      unavailableReason: rundownReason,
+      params: {
+        id: { type: "string", required: false, description: "Item ID (omits for current item)" },
+      },
+    });
+
+    actions.push({
+      id: "rundown:reset",
+      domain: "rundown",
+      name: "Reset Rundown",
+      description: "Reset rundown to beginning",
+      available: rundownLoaded,
+      unavailableReason: rundownReason,
+      params: {},
+    });
+
     if (availableOnly) {
       return actions.filter((a) => a.available);
     }
@@ -543,6 +596,36 @@ export class ActionRegistry {
         const res = await this.postJson(`${baseUrl}${endpoint}`, {});
         return { ok: res.ok, action: actionId, target: "rundown:cues", result: res.data, error: res.error };
       }
+
+      if (this.rundownStore) {
+        if (op === "next") {
+          const res = await this.rundownStore.next(String(params.actor ?? "action"));
+          return { ok: res.advanced, action: actionId, target: "rundown:next", result: res.rundown };
+        }
+        if (op === "prev" || op === "previous") {
+          const res = this.rundownStore.previous(String(params.actor ?? "action"));
+          return { ok: res.moved, action: actionId, target: "rundown:previous", result: res.rundown };
+        }
+        if (op === "goto") {
+          const id = String(params.id ?? "");
+          const res = this.rundownStore.goto(id, String(params.actor ?? "action"));
+          return { ok: res.moved, action: actionId, target: `rundown:goto:${id}`, result: res.rundown };
+        }
+        if (op === "skip") {
+          const id = params.id ? String(params.id) : undefined;
+          const res = this.rundownStore.skip(id, String(params.actor ?? "action"));
+          return { ok: res.skipped, action: actionId, target: "rundown:skip", result: res.rundown };
+        }
+        if (op === "fire") {
+          const id = params.id ? String(params.id) : undefined;
+          const res = await this.rundownStore.fire(id, String(params.actor ?? "action"));
+          return { ok: res.ok, action: actionId, target: `rundown:fire:${id ?? "current"}`, result: res.executed };
+        }
+        if (op === "reset") {
+          const res = this.rundownStore.reset(String(params.actor ?? "action"));
+          return { ok: true, action: actionId, target: "rundown:reset", result: res };
+        }
+      }
     }
 
     return { ok: false, action: actionId, error: `Unrecognized action '${actionId}'` };
@@ -599,6 +682,12 @@ export class ActionRegistry {
         const state = parts[2] ?? "toggle";
         return { action: "rundown:cues", params: { state } };
       }
+      if (parts[1] === "next") return { action: "rundown:next" };
+      if (parts[1] === "prev" || parts[1] === "previous") return { action: "rundown:prev" };
+      if (parts[1] === "reset") return { action: "rundown:reset" };
+      if (parts[1] === "fire") return { action: "rundown:fire", params: { id: parts[2] } };
+      if (parts[1] === "goto") return { action: "rundown:goto", params: { id: parts[2] } };
+      if (parts[1] === "skip") return { action: "rundown:skip", params: { id: parts[2] } };
     }
 
     return { action: str, params: {} };

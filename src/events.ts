@@ -4,6 +4,7 @@ import type { PiSoundTelemetry } from "./pisound/telemetry.js";
 import type { TranscriptEvent } from "./transcripts/transcript-hub.js";
 import type { EcosystemStatus } from "./ecosystem/ecosystem-tracker.js";
 import type { FreedTelemetry } from "./camera/freed-receiver.js";
+import type { RundownStatusSnapshot } from "./rundown/rundown-store.js";
 
 export interface CameraEventPayload {
   id: string;
@@ -46,6 +47,7 @@ export type GatewayEvent =
   | { type: "transcript"; data: TranscriptEvent }
   | { type: "ecosystem"; data: EcosystemStatus }
   | { type: "action"; data: ActionEventPayload }
+  | { type: "rundown"; data: RundownStatusSnapshot }
   | { type: "ready"; data: { status: string; time: string } };
 
 export class GatewayEventBroker {

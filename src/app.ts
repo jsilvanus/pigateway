@@ -25,6 +25,8 @@ import { TranscriptHub, transcriptId } from "./transcripts/transcript-hub.js";
 import { EcosystemTracker } from "./ecosystem/ecosystem-tracker.js";
 import { ActionRegistry } from "./actions/action-registry.js";
 import { registerActionRoutes } from "./actions/action-routes.js";
+import { RundownStore } from "./rundown/rundown-store.js";
+import { registerRundownRoutes } from "./rundown/rundown-routes.js";
 
 export function buildApp(config: AppConfig): FastifyInstance {
   const app = Fastify({
@@ -166,6 +168,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
     }
   });
 
+  const rundownStore = new RundownStore({ eventBroker });
   const actionRegistry = new ActionRegistry({
     config,
     atem,
@@ -174,8 +177,12 @@ export function buildApp(config: AppConfig): FastifyInstance {
     matrix,
     ecosystemTracker,
     eventBroker,
+    rundownStore,
   });
+  rundownStore.setActionRegistry(actionRegistry);
   registerActionRoutes(app, actionRegistry);
+  registerRundownRoutes(app, rundownStore);
+  (app as unknown as { rundownStore: RundownStore }).rundownStore = rundownStore;
 
   const amxControl: AmxControl = {
     cameras: () =>
@@ -393,6 +400,10 @@ export function buildApp(config: AppConfig): FastifyInstance {
     reply.raw.setHeader("Cache-Control", "no-cache, no-transform");
     reply.raw.setHeader("Connection", "keep-alive");
     reply.raw.setHeader("X-Accel-Buffering", "no");
+    const currentRundown = rundownStore.getStatus();
+    if (currentRundown.loaded && (!wanted || wanted.has("rundown"))) {
+      reply.raw.write(`event: rundown\ndata: ${JSON.stringify(currentRundown)}\n\n`);
+    }
     reply.raw.write(
       `event: ready\ndata: ${JSON.stringify({ status: "connected", time: new Date().toISOString() })}\n\n`
     );

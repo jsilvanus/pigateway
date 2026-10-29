@@ -1381,6 +1381,214 @@
         }
       }
     },
+    "/api/v1/rundown": {
+      "get": {
+        "operationId": "getRundown",
+        "tags": [
+          "Rundown"
+        ],
+        "summary": "Current rundown status snapshot",
+        "responses": {
+          "200": {
+            "description": "Rundown status"
+          }
+        }
+      }
+    },
+    "/api/v1/rundown/load": {
+      "post": {
+        "operationId": "loadRundown",
+        "tags": [
+          "Rundown"
+        ],
+        "summary": "Load a new rundown document",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rundown loaded"
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "422": {
+            "description": "Invalid document"
+          }
+        }
+      }
+    },
+    "/api/v1/rundown/reset": {
+      "post": {
+        "operationId": "resetRundown",
+        "tags": [
+          "Rundown"
+        ],
+        "summary": "Reset rundown to start",
+        "responses": {
+          "200": {
+            "description": "Rundown reset"
+          }
+        }
+      }
+    },
+    "/api/v1/rundown/next": {
+      "post": {
+        "operationId": "nextRundown",
+        "tags": [
+          "Rundown"
+        ],
+        "summary": "Step to next rundown item",
+        "responses": {
+          "200": {
+            "description": "Rundown advanced"
+          }
+        }
+      }
+    },
+    "/api/v1/rundown/previous": {
+      "post": {
+        "operationId": "previousRundown",
+        "tags": [
+          "Rundown"
+        ],
+        "summary": "Step to previous rundown item",
+        "responses": {
+          "200": {
+            "description": "Rundown moved back"
+          }
+        }
+      }
+    },
+    "/api/v1/rundown/goto/{id}": {
+      "post": {
+        "operationId": "gotoRundownItem",
+        "tags": [
+          "Rundown"
+        ],
+        "summary": "Jump to a specific rundown item",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Jumped to item"
+          },
+          "404": {
+            "description": "Item not found"
+          }
+        }
+      }
+    },
+    "/api/v1/rundown/skip": {
+      "post": {
+        "operationId": "skipRundownItem",
+        "tags": [
+          "Rundown"
+        ],
+        "summary": "Skip current or specified rundown item",
+        "responses": {
+          "200": {
+            "description": "Item skipped"
+          },
+          "404": {
+            "description": "Item not found"
+          }
+        }
+      }
+    },
+    "/api/v1/rundown/fire/{id}": {
+      "post": {
+        "operationId": "fireRundownItem",
+        "tags": [
+          "Rundown"
+        ],
+        "summary": "Execute actions for item and advance",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Actions executed and item advanced"
+          },
+          "404": {
+            "description": "Item not found"
+          }
+        }
+      }
+    },
+    "/api/v1/rundown/variables": {
+      "get": {
+        "operationId": "getRundownVariables",
+        "tags": [
+          "Rundown"
+        ],
+        "summary": "List rundown variables",
+        "responses": {
+          "200": {
+            "description": "Variables list"
+          }
+        }
+      },
+      "post": {
+        "operationId": "setRundownVariables",
+        "tags": [
+          "Rundown"
+        ],
+        "summary": "Set a rundown variable",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "value"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Variable set"
+          },
+          "400": {
+            "description": "Bad request"
+          }
+        }
+      }
+    },
     "/api/v1/encoder": {
       "get": {
         "operationId": "getEncoder",
