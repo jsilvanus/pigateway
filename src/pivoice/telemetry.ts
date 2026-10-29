@@ -118,6 +118,8 @@ export class PiVoiceUdpReceiver {
   #socket: ReturnType<typeof dgram.createSocket> | null = null;
   #staleTimer: NodeJS.Timeout | null = null;
   #lastSeenAtMs: number | null = null;
+  #lastSeenAtIso: string | null = null;
+  #lastPayload: Buffer | null = null;
   #state: PiVoiceTelemetry = structuredClone(EMPTY_STATE);
 
   constructor(options: PiVoiceUdpReceiverOptions) {
@@ -131,7 +133,10 @@ export class PiVoiceUdpReceiver {
     if (this.#lastSeenAtMs === null || this.#now() - this.#lastSeenAtMs >= this.#staleMs) {
       return { ...this.#state, connected: false, stale: true };
     }
-    return { ...this.#state, connected: true, stale: false };
+    if (!this.#lastSeenAtIso && this.#lastSeenAtMs !== null) {
+      this.#lastSeenAtIso = new Date(this.#lastSeenAtMs).toISOString();
+    }
+    return { ...this.#state, connected: true, stale: false, lastSeenAt: this.#lastSeenAtIso ?? this.#state.lastSeenAt };
   }
 
   getBoundPort(): number {
@@ -145,16 +150,30 @@ export class PiVoiceUdpReceiver {
     this.#socket = socket;
     socket.on("message", (packet, remote) => {
       if (this.#allowedIps && !this.#allowedIps.has(normalizeIp(remote.address))) return;
+      if (packet.length !== PIVOICE_PACKET_BYTES) return;
+
+      const payload = packet.subarray(PIVOICE_HEADER_BYTES, PIVOICE_PACKET_BYTES);
+      const isSnapshot = packet.readUInt8(3) === 1;
+
+      // Drop identical status snapshots early to save decoding, allocations, SSE fanout, and coordinator evaluations.
+      if (isSnapshot && !this.#state.stale && this.#lastPayload && payload.equals(this.#lastPayload)) {
+        this.#lastSeenAtMs = this.#now();
+        this.#lastSeenAtIso = null;
+        return;
+      }
+
       const decoded = decodePiVoicePacket(packet);
       if (!decoded) return;
 
+      this.#lastPayload = Buffer.from(payload);
       const receivedAtMs = this.#now();
       this.#lastSeenAtMs = receivedAtMs;
+      this.#lastSeenAtIso = new Date(receivedAtMs).toISOString();
       this.#state = {
         connected: true,
         stale: false,
-        lastSeenAt: new Date(receivedAtMs).toISOString(),
-        lastPollAt: decoded.messageType === "poll" ? new Date(receivedAtMs).toISOString() : this.#state.lastPollAt,
+        lastSeenAt: this.#lastSeenAtIso,
+        lastPollAt: decoded.messageType === "poll" ? this.#lastSeenAtIso : this.#state.lastPollAt,
         sequence: decoded.sequence,
         timestampMs: decoded.timestampMs,
         rmsDbfs: decoded.rmsDbfs,
@@ -178,6 +197,7 @@ export class PiVoiceUdpReceiver {
         this.#options.logger?.info({ host: this.#options.host, port: this.#options.port }, "PiVoice UDP telemetry receiver listening");
         this.#staleTimer = setInterval(() => {
           if (this.#lastSeenAtMs === null || this.#now() - this.#lastSeenAtMs < this.#staleMs || this.#state.stale) return;
+          this.#lastPayload = null;
           this.#state = { ...this.#state, connected: false, stale: true };
           this.#options.onChange?.(this.getState());
         }, Math.min(1000, this.#staleMs));
@@ -193,6 +213,8 @@ export class PiVoiceUdpReceiver {
   stop(): Promise<void> {
     if (this.#staleTimer) clearInterval(this.#staleTimer);
     this.#staleTimer = null;
+    this.#lastPayload = null;
+    this.#lastSeenAtIso = null;
     const socket = this.#socket;
     this.#socket = null;
     if (!socket) return Promise.resolve();

@@ -17,6 +17,12 @@ export interface AppConfig {
   /** PiVoice control API; audio never passes through the gateway. */
   pivoiceApiUrl?: string | undefined;
   pivoiceApiToken?: string | undefined;
+  /** PiSound audio mixer binary telemetry listener and control API. */
+  pisoundUdpHost: string;
+  pisoundUdpPort: number;
+  pisoundAllowedHosts?: string[] | undefined;
+  pisoundApiUrl?: string | undefined;
+  pisoundApiToken?: string | undefined;
   radioRelayApiUrl?: string | undefined;
   radioRelayApiToken?: string | undefined;
   radioRelayStreamName: string;
@@ -146,6 +152,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const cam2Login = cameraLogin(env, "PIGATEWAY_CAM2");
   const pivoiceApiUrl = urlWithScheme(env.PIGATEWAY_PIVOICE_API_URL, "PIGATEWAY_PIVOICE_API_URL", ["http:", "https:"]);
   const pivoiceApiToken = env.PIGATEWAY_PIVOICE_API_TOKEN?.trim() || undefined;
+  const pisoundApiUrl = urlWithScheme(env.PIGATEWAY_PISOUND_API_URL, "PIGATEWAY_PISOUND_API_URL", ["http:", "https:"]);
+  const pisoundApiToken = env.PIGATEWAY_PISOUND_API_TOKEN?.trim() || undefined;
   const radioRelayApiUrl = urlWithScheme(env.PIGATEWAY_RADIO_RELAY_API_URL, "PIGATEWAY_RADIO_RELAY_API_URL", ["http:", "https:"]);
   const radioRelayApiToken = env.PIGATEWAY_RADIO_RELAY_API_TOKEN?.trim() || undefined;
   if (Boolean(radioRelayApiUrl) !== Boolean(radioRelayApiToken)) throw new Error("PIGATEWAY_RADIO_RELAY_API_URL and PIGATEWAY_RADIO_RELAY_API_TOKEN must be set together");
@@ -160,10 +168,15 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     authAllowedHosts: list(env.PIGATEWAY_AUTH_ALLOWED_HOSTS),
     corsOrigins: list(env.PIGATEWAY_CORS_ORIGINS),
     pivoiceUdpHost: env.PIGATEWAY_PIVOICE_UDP_HOST?.trim() || "0.0.0.0",
-    pivoiceUdpPort: validPort(env.PIGATEWAY_PIVOICE_UDP_PORT, 3101, "PIGATEWAY_PIVOICE_UDP_PORT"),
+    pivoiceUdpPort: validPort(env.PIGATEWAY_PIVOICE_UDP_PORT, 3101, "PIGATEWAY_PIVOICE_UDP_PORT", true),
     pivoiceAllowedHosts: list(env.PIGATEWAY_PIVOICE_ALLOWED_HOSTS),
     pivoiceApiUrl,
     pivoiceApiToken,
+    pisoundUdpHost: env.PIGATEWAY_PISOUND_UDP_HOST?.trim() || "0.0.0.0",
+    pisoundUdpPort: validPort(env.PIGATEWAY_PISOUND_UDP_PORT, 3102, "PIGATEWAY_PISOUND_UDP_PORT", true),
+    pisoundAllowedHosts: list(env.PIGATEWAY_PISOUND_ALLOWED_HOSTS),
+    pisoundApiUrl,
+    pisoundApiToken,
     radioRelayApiUrl,
     radioRelayApiToken,
     radioRelayStreamName: env.PIGATEWAY_RADIO_RELAY_STREAM_NAME?.trim() || "stream",

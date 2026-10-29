@@ -16,6 +16,7 @@ import type { AppConfig } from "./config.js";
 import { GatewayEventBroker, type GatewayEvent } from "./events.js";
 import { isIpWhitelisted } from "./ip-whitelist.js";
 import { PiVoiceUdpReceiver } from "./pivoice/telemetry.js";
+import { PiSoundUdpReceiver } from "./pisound/telemetry.js";
 import { PiVoiceActivityCoordinator } from "./pivoice/activity-coordinator.js";
 import { RadioRelayClient } from "./radio-relay/radio-relay-client.js";
 import { AuditorSseSource } from "./transcripts/auditor-sse-source.js";
@@ -70,6 +71,16 @@ export function buildApp(config: AppConfig): FastifyInstance {
     onChange: (state) => {
       eventBroker.emit({ type: "pivoice", data: state });
       pivoiceActivity.observe(state);
+    }
+  });
+
+  const pisound = new PiSoundUdpReceiver({
+    host: config.pisoundUdpHost ?? "0.0.0.0",
+    port: config.pisoundUdpPort ?? 3102,
+    allowedIps: config.pisoundAllowedHosts,
+    logger: app.log,
+    onChange: (state) => {
+      eventBroker.emit({ type: "pisound", data: state });
     }
   });
 
@@ -165,6 +176,9 @@ export function buildApp(config: AppConfig): FastifyInstance {
   (app as unknown as { amxListener?: AmxTcpListener | null }).amxListener = amxListener;
 
   app.addHook("onReady", async () => {
+    await pisound.start().catch((error: unknown) => {
+      app.log.error({ err: error, port: config.pisoundUdpPort }, "Unable to start PiSound UDP telemetry receiver");
+    });
     await pivoice.start().catch((error: unknown) => {
       app.log.error({ err: error, port: config.pivoiceUdpPort }, "Unable to start PiVoice UDP telemetry receiver");
     });
@@ -184,6 +198,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
     youtube.stop();
     await Promise.allSettled([
       pivoice.stop(),
+      pisound.stop(),
       pivoiceActivity.close(),
       atem.disconnect(),
       cameraService.close(),
@@ -238,6 +253,8 @@ export function buildApp(config: AppConfig): FastifyInstance {
     }
   });
 
+  app.get("/api/v1/sound", async () => pisound.getState());
+
   app.get("/health", async () => ({ status: "ok", service: "pigateway" }));
 
   app.get("/api/v1/status", async () => ({
@@ -247,6 +264,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
     youtube: { state: youtube.get().state },
     encoder: { configured: encoder.getState().configured, connected: encoder.getState().connected },
     pivoice: pivoice.getState(),
+    pisound: pisound.getState(),
     pivoiceActivity: pivoiceActivity.getState(),
     transcripts: { delivery: transcriptDelivery?.mode ?? null, ...transcripts.status(), source: auditorSse.status() },
     radioRelay: await radioRelay.safeLifecycle(),

@@ -2686,6 +2686,27 @@
           }
         }
       }
+    },
+    "/api/v1/sound": {
+      "get": {
+        "operationId": "getSoundState",
+        "tags": [
+          "Sound"
+        ],
+        "summary": "Sound mixer connection and telemetry state",
+        "responses": {
+          "200": {
+            "description": "Current PiSound telemetry state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SoundState"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3346,6 +3367,134 @@
             "enum": [
               "auditor"
             ]
+          }
+        }
+      },
+      "SoundState": {
+        "type": "object",
+        "required": [
+          "connected",
+          "stale",
+          "lastSeenAt",
+          "activeTalkersMask",
+          "mixes",
+          "channels"
+        ],
+        "properties": {
+          "connected": {
+            "type": "boolean"
+          },
+          "stale": {
+            "type": "boolean"
+          },
+          "lastSeenAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "sequence": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "timestampMs": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "activeTalkersMask": {
+            "type": "integer"
+          },
+          "mixes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "controlType",
+                "masterVolume",
+                "masterMuted"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "controlType": {
+                  "type": "string",
+                  "enum": [
+                    "gain",
+                    "toggle"
+                  ]
+                },
+                "masterVolume": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100
+                },
+                "masterMuted": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "channels": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "channelIndex",
+                "peakMilliDbfs",
+                "profile",
+                "signalPresent",
+                "agcActive",
+                "isOn",
+                "mixSends"
+              ],
+              "properties": {
+                "channelIndex": {
+                  "type": "integer"
+                },
+                "peakMilliDbfs": {
+                  "type": "integer"
+                },
+                "profile": {
+                  "type": "string"
+                },
+                "signalPresent": {
+                  "type": "boolean"
+                },
+                "agcActive": {
+                  "type": "boolean"
+                },
+                "isOn": {
+                  "type": "boolean"
+                },
+                "mixSends": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object",
+                    "required": [
+                      "enabled",
+                      "volumePercent"
+                    ],
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "volumePercent": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }

@@ -130,3 +130,57 @@ test("health-poll packet updates lastPollAt while retaining latest snapshot", as
     await receiver.stop();
   }
 });
+
+test("drops identical status payload snapshots early to optimize processing", async () => {
+  let now = 1_761_600_000_000;
+  let changeCount = 0;
+  const receiver = new PiVoiceUdpReceiver({
+    host: "127.0.0.1",
+    port: 0,
+    staleMs: 500,
+    now: () => now,
+    onChange: () => {
+      changeCount++;
+    }
+  });
+  const sender = dgram.createSocket("udp4");
+  try {
+    await receiver.start();
+    const sendCustom = (seq: number, timeMs: number, classification = 2) =>
+      new Promise<void>((resolve, reject) => {
+        const p = packet(1);
+        p.writeUInt32BE(seq, 8);
+        p.writeBigUInt64BE(BigInt(timeMs), 12);
+        p.writeUInt8(classification, 28);
+        sender.send(p, receiver.getBoundPort(), "127.0.0.1", (err) => (err ? reject(err) : resolve()));
+      });
+
+    // First packet: payload processed, triggers onChange
+    await sendCustom(1, now);
+    await new Promise((resolve) => setTimeout(resolve, 15));
+    assert.equal(changeCount, 1);
+    assert.equal(receiver.getState().connected, true);
+    assert.equal(receiver.getState().lastSeenAt, new Date(now).toISOString());
+
+    // Subsequent packets with incremented sequence/timestamp but identical status payload:
+    // onChange must NOT be called, but heartbeat must be refreshed
+    now += 100;
+    await sendCustom(2, now);
+    now += 100;
+    await sendCustom(3, now);
+    await new Promise((resolve) => setTimeout(resolve, 15));
+    assert.equal(changeCount, 1, "Duplicate payloads must not fire onChange");
+    assert.equal(receiver.getState().connected, true);
+    assert.equal(receiver.getState().lastSeenAt, new Date(now).toISOString());
+
+    // Changed payload: triggers onChange
+    now += 100;
+    await sendCustom(4, now, 1); // classification changed to 1 (silence)
+    await new Promise((resolve) => setTimeout(resolve, 15));
+    assert.equal(changeCount, 2, "Changed payload must fire onChange");
+    assert.equal(receiver.getState().classification, "silence");
+  } finally {
+    sender.close();
+    await receiver.stop();
+  }
+});
