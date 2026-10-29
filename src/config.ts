@@ -11,6 +11,7 @@ export interface AppConfig {
   /** Browser origins allowed to call /api/v1 cross-origin (PIGATEWAY_CORS_ORIGINS). */
   corsOrigins?: string[] | undefined;
   /** PiVoice binary telemetry listener. */
+  pivoiceEnabled?: boolean | undefined;
   pivoiceUdpHost: string;
   pivoiceUdpPort: number;
   pivoiceAllowedHosts?: string[] | undefined;
@@ -18,11 +19,18 @@ export interface AppConfig {
   pivoiceApiUrl?: string | undefined;
   pivoiceApiToken?: string | undefined;
   /** PiSound audio mixer binary telemetry listener and control API. */
+  pisoundEnabled?: boolean | undefined;
   pisoundUdpHost: string;
   pisoundUdpPort: number;
   pisoundAllowedHosts?: string[] | undefined;
   pisoundApiUrl?: string | undefined;
   pisoundApiToken?: string | undefined;
+  pitubeApiUrl?: string | undefined;
+  pilightApiUrl?: string | undefined;
+  pimatrixApiUrl?: string | undefined;
+  piprogramApiUrl?: string | undefined;
+  picanvaApiUrl?: string | undefined;
+  ecosystemPollIntervalMs: number;
   radioRelayApiUrl?: string | undefined;
   radioRelayApiToken?: string | undefined;
   radioRelayStreamName: string;
@@ -62,6 +70,13 @@ export interface AppConfig {
   cam2CgiPort: number;
   cam2CgiUser?: string | undefined;
   cam2CgiPassword?: string | undefined;
+  /** FreeD camera tracking UDP receiver. */
+  freedUdpEnabled: boolean;
+  freedUdpHost: string;
+  freedUdpPort: number;
+  freedAllowedHosts?: string[] | undefined;
+  /** picam standalone controller service URL (PIGATEWAY_PICAM_API_URL). */
+  picamApiUrl?: string | undefined;
   /** AMX master (NetLinx) that owns the Atlona matrix (PIGATEWAY_AMX_MASTER_HOST/_PORT). */
   amxMasterHost?: string | undefined;
   amxMasterPort: number;
@@ -160,6 +175,22 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   if (Boolean(pivoiceApiUrl) !== Boolean(pivoiceApiToken)) {
     throw new Error("PIGATEWAY_PIVOICE_API_URL and PIGATEWAY_PIVOICE_API_TOKEN must be set together");
   }
+  const pisoundEnabled =
+    env.PIGATEWAY_PISOUND_ENABLED === "true"
+      ? true
+      : env.PIGATEWAY_PISOUND_ENABLED === "false"
+        ? false
+        : env.PIGATEWAY_PISOUND_UDP_PORT === "0"
+          ? true
+          : undefined;
+  const pivoiceEnabled = env.PIGATEWAY_PIVOICE_ENABLED === "false" ? false : true;
+  const pitubeApiUrl = urlWithScheme(env.PIGATEWAY_PITUBE_API_URL, "PIGATEWAY_PITUBE_API_URL", ["http:", "https:"]);
+  const pilightApiUrl = urlWithScheme(env.PIGATEWAY_PILIGHT_API_URL, "PIGATEWAY_PILIGHT_API_URL", ["http:", "https:"]);
+  const pimatrixApiUrl = urlWithScheme(env.PIGATEWAY_PIMATRIX_API_URL, "PIGATEWAY_PIMATRIX_API_URL", ["http:", "https:"]);
+  const piprogramApiUrl = urlWithScheme(env.PIGATEWAY_PIPROGRAM_API_URL, "PIGATEWAY_PIPROGRAM_API_URL", ["http:", "https:"]);
+  const picanvaApiUrl = urlWithScheme(env.PIGATEWAY_PICANVA_API_URL, "PIGATEWAY_PICANVA_API_URL", ["http:", "https:"]);
+  const ecosystemPollIntervalMs = validInteger(env.PIGATEWAY_ECOSYSTEM_POLL_INTERVAL_MS, 15000, 0, 3600000, "PIGATEWAY_ECOSYSTEM_POLL_INTERVAL_MS");
+
   return {
     host,
     port: validPort(env.PIGATEWAY_PORT, 3100, "PIGATEWAY_PORT"),
@@ -167,16 +198,24 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     apiKey: env.PIGATEWAY_API_KEY?.trim() || undefined,
     authAllowedHosts: list(env.PIGATEWAY_AUTH_ALLOWED_HOSTS),
     corsOrigins: list(env.PIGATEWAY_CORS_ORIGINS),
+    pivoiceEnabled,
     pivoiceUdpHost: env.PIGATEWAY_PIVOICE_UDP_HOST?.trim() || "0.0.0.0",
     pivoiceUdpPort: validPort(env.PIGATEWAY_PIVOICE_UDP_PORT, 3101, "PIGATEWAY_PIVOICE_UDP_PORT", true),
     pivoiceAllowedHosts: list(env.PIGATEWAY_PIVOICE_ALLOWED_HOSTS),
     pivoiceApiUrl,
     pivoiceApiToken,
+    pisoundEnabled,
     pisoundUdpHost: env.PIGATEWAY_PISOUND_UDP_HOST?.trim() || "0.0.0.0",
     pisoundUdpPort: validPort(env.PIGATEWAY_PISOUND_UDP_PORT, 3102, "PIGATEWAY_PISOUND_UDP_PORT", true),
     pisoundAllowedHosts: list(env.PIGATEWAY_PISOUND_ALLOWED_HOSTS),
     pisoundApiUrl,
     pisoundApiToken,
+    pitubeApiUrl,
+    pilightApiUrl,
+    pimatrixApiUrl,
+    piprogramApiUrl,
+    picanvaApiUrl,
+    ecosystemPollIntervalMs,
     radioRelayApiUrl,
     radioRelayApiToken,
     radioRelayStreamName: env.PIGATEWAY_RADIO_RELAY_STREAM_NAME?.trim() || "stream",
@@ -207,6 +246,16 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     cam2CgiPort: validPort(env.PIGATEWAY_CAM2_CGI_PORT, 80, "PIGATEWAY_CAM2_CGI_PORT"),
     cam2CgiUser: cam2Login?.user,
     cam2CgiPassword: cam2Login?.password,
+        freedUdpEnabled:
+      env.PIGATEWAY_FREED_UDP_ENABLED === "true"
+        ? true
+        : env.PIGATEWAY_FREED_UDP_ENABLED === "false"
+          ? false
+          : mode === "production" || env.PIGATEWAY_FREED_UDP_PORT === "0",
+    freedUdpHost: env.PIGATEWAY_FREED_UDP_HOST?.trim() || "0.0.0.0",
+    freedUdpPort: validPort(env.PIGATEWAY_FREED_UDP_PORT, 40000, "PIGATEWAY_FREED_UDP_PORT", true),
+    freedAllowedHosts: list(env.PIGATEWAY_FREED_ALLOWED_HOSTS),
+    picamApiUrl: urlWithScheme(env.PIGATEWAY_PICAM_API_URL, "PIGATEWAY_PICAM_API_URL", ["http:", "https:"]),
     amxMasterHost: env.PIGATEWAY_AMX_MASTER_HOST?.trim() || undefined,
     amxMasterPort: validPort(env.PIGATEWAY_AMX_MASTER_PORT, 6501, "PIGATEWAY_AMX_MASTER_PORT"),
     amxTcpEnabled: env.PIGATEWAY_AMX_TCP_ENABLED === "true" || env.PIGATEWAY_AMX_TCP_PORT !== undefined,

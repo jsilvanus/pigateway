@@ -12,6 +12,7 @@ import { YoutubeStatusStore } from "./youtube/youtube-status.js";
 import type { PanTiltDirection, ZoomAction } from "./camera/visca-protocol.js";
 import { registerCameraRoutes } from "./camera/camera-routes.js";
 import { CameraService } from "./camera/camera-service.js";
+import { FreedUdpReceiver } from "./camera/freed-receiver.js";
 import type { AppConfig } from "./config.js";
 import { GatewayEventBroker, type GatewayEvent } from "./events.js";
 import { isIpWhitelisted } from "./ip-whitelist.js";
@@ -21,6 +22,7 @@ import { PiVoiceActivityCoordinator } from "./pivoice/activity-coordinator.js";
 import { RadioRelayClient } from "./radio-relay/radio-relay-client.js";
 import { AuditorSseSource } from "./transcripts/auditor-sse-source.js";
 import { TranscriptHub, transcriptId } from "./transcripts/transcript-hub.js";
+import { EcosystemTracker } from "./ecosystem/ecosystem-tracker.js";
 
 export function buildApp(config: AppConfig): FastifyInstance {
   const app = Fastify({
@@ -122,15 +124,44 @@ export function buildApp(config: AppConfig): FastifyInstance {
     mediaMtxRtmpBaseUrl: config.mediaMtxRtmpUrl
   });
 
+  const freedReceiver = config.freedUdpEnabled
+    ? new FreedUdpReceiver({
+        host: config.freedUdpHost,
+        port: config.freedUdpPort,
+        allowedIps: config.freedAllowedHosts,
+        eventBroker,
+        logger: app.log
+      })
+    : undefined;
+
   // VISCA power is not read back, so "unknown" until AMX or the API sets it.
   const cameraPower = new Map<string, "on" | "standby">();
-  registerCameraRoutes(app, cameraService, {
+  registerCameraRoutes(app, cameraService, freedReceiver, {
     onPower: (id, on) => cameraPower.set(id, on ? "on" : "standby")
   });
   const amxClient = createAmxClient(config.amxSimulated, config.amxMasterHost, config.amxMasterPort, app.log);
   const matrix = new AtlonaMatrix(amxClient, eventBroker, app.log);
   matrix.register(app, config.mode);
   registerProjectorRoutes(app, amxClient);
+
+  const ecosystemTracker = new EcosystemTracker({
+    config,
+    logger: app.log,
+    eventBroker,
+    pisoundReceiver: pisound,
+    pivoiceReceiver: pivoice,
+    youtubeStatus: youtube,
+    atemAdapter: atem,
+    encoderService: encoder,
+    cameraService,
+    onPisoundActivate: async () => {
+      app.log.info({ port: config.pisoundUdpPort }, "PiSound detected active; starting UDP telemetry receiver");
+      await pisound.start().catch((error: unknown) => {
+        app.log.error({ err: error, port: config.pisoundUdpPort }, "Unable to start PiSound UDP telemetry receiver");
+      });
+      ecosystemTracker.markPisoundReceiverStarted();
+    }
+  });
 
   const amxControl: AmxControl = {
     cameras: () =>
@@ -149,7 +180,16 @@ export function buildApp(config: AppConfig): FastifyInstance {
       await cameraService.zoom(id, action as ZoomAction);
     },
     atlonaRoutes: () => ({ ...matrix.state.routes }),
-    atemState: () => atem.getState(),
+    atemState: () => {
+      const s = atem.getState();
+      return {
+        connected: s.connected,
+        programInput: s.programInput,
+        previewInput: s.previewInput,
+        ...(s.fadeToBlack ? { fadeToBlack: { isFullyBlack: s.fadeToBlack.fullyBlack, inTransition: s.fadeToBlack.inTransition } } : {}),
+        downstreamKeyers: s.downstreamKeyers?.map((k) => ({ dsk: k.dsk, onAir: k.onAir, tie: k.tie }))
+      };
+    },
     encoderState: () => encoder.getState(),
     atemPreview: async (input) => { await atem.setPreview(input); },
     atemCut: async () => { await atem.cut(); },
@@ -176,15 +216,29 @@ export function buildApp(config: AppConfig): FastifyInstance {
   (app as unknown as { amxListener?: AmxTcpListener | null }).amxListener = amxListener;
 
   app.addHook("onReady", async () => {
-    await pisound.start().catch((error: unknown) => {
-      app.log.error({ err: error, port: config.pisoundUdpPort }, "Unable to start PiSound UDP telemetry receiver");
-    });
-    await pivoice.start().catch((error: unknown) => {
-      app.log.error({ err: error, port: config.pivoiceUdpPort }, "Unable to start PiVoice UDP telemetry receiver");
-    });
+    const pisoundShouldStart = await ecosystemTracker.shouldStartPisoundReceiver();
+    if (pisoundShouldStart) {
+      await pisound.start().catch((error: unknown) => {
+        app.log.error({ err: error, port: config.pisoundUdpPort }, "Unable to start PiSound UDP telemetry receiver");
+      });
+      ecosystemTracker.markPisoundReceiverStarted();
+    } else {
+      app.log.info({ port: config.pisoundUdpPort }, "PiSound is not active; skipping UDP telemetry receiver startup");
+    }
+    if (config.pivoiceEnabled !== false) {
+      await pivoice.start().catch((error: unknown) => {
+        app.log.error({ err: error, port: config.pivoiceUdpPort }, "Unable to start PiVoice UDP telemetry receiver");
+      });
+    }
+    ecosystemTracker.start();
     if (amxListener) await amxListener.start();
     if (config.amxMasterHost) matrix.startPolling();
     encoder.start();
+    if (freedReceiver) {
+      await freedReceiver.start().catch((err: unknown) => {
+        app.log.warn({ err }, "FreeD UDP receiver failed to start; tracking telemetry disabled");
+      });
+    }
     if (config.atemHost) {
       await atem.connect(config.atemHost, config.atemPort).catch((error: unknown) => {
         app.log.warn({ err: error }, "ATEM connect failed; the adapter keeps retrying");
@@ -192,6 +246,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
     }
   });
   app.addHook("onClose", async () => {
+    ecosystemTracker.stop();
     auditorSse.stop();
     matrix.stopPolling();
     encoder.stop();
@@ -202,6 +257,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
       pivoiceActivity.close(),
       atem.disconnect(),
       cameraService.close(),
+      freedReceiver ? freedReceiver.stop() : Promise.resolve(),
       amxListener ? amxListener.stop() : Promise.resolve(),
       amxClient.close()
     ]);
@@ -257,19 +313,28 @@ export function buildApp(config: AppConfig): FastifyInstance {
 
   app.get("/health", async () => ({ status: "ok", service: "pigateway" }));
 
-  app.get("/api/v1/status", async () => ({
-    service: "pigateway",
-    mode: config.mode,
-    atem: { configured: Boolean(config.atemHost), connected: atem.getState().connected },
-    youtube: { state: youtube.get().state },
-    encoder: { configured: encoder.getState().configured, connected: encoder.getState().connected },
-    pivoice: pivoice.getState(),
-    pisound: pisound.getState(),
-    pivoiceActivity: pivoiceActivity.getState(),
-    transcripts: { delivery: transcriptDelivery?.mode ?? null, ...transcripts.status(), source: auditorSse.status() },
-    radioRelay: await radioRelay.safeLifecycle(),
-    cameras: cameraService.list().map((cam) => ({ id: cam.id, connection: cam.connection }))
-  }));
+  app.get("/api/v1/status", async () => {
+    const eco = ecosystemTracker.getSummary();
+    return {
+      service: "pigateway",
+      mode: config.mode,
+      atem: { configured: Boolean(config.atemHost), connected: atem.getState().connected },
+      youtube: { state: youtube.get().state },
+      encoder: { configured: encoder.getState().configured, connected: encoder.getState().connected },
+      pivoice: pivoice.getState(),
+      pisound: pisound.getState(),
+      pivoiceActivity: pivoiceActivity.getState(),
+      transcripts: { delivery: transcriptDelivery?.mode ?? null, ...transcripts.status(), source: auditorSse.status() },
+      radioRelay: await radioRelay.safeLifecycle(),
+      cameras: cameraService.list().map((cam) => ({ id: cam.id, connection: cam.connection })),
+      ecosystem: eco,
+      activePlugins: eco.activePlugins,
+      inUseTabs: eco.inUseTabs
+    };
+  });
+
+  app.get("/api/v1/ecosystem", async () => ecosystemTracker.getSummary());
+  app.post("/api/v1/ecosystem/probe", async () => ecosystemTracker.probeAll());
 
   app.get("/api/v1/radio-relay", async () => radioRelay.safeLifecycle());
   app.get("/api/v1/radio-relay/stream", async (_request, reply) => { try { return await radioRelay.lifecycle(); } catch { return reply.code(502).send({ error: { code: "radio_relay_unavailable", message: "Unable to query radio relay lifecycle" } }); } });
@@ -339,9 +404,12 @@ export function buildApp(config: AppConfig): FastifyInstance {
         unsubscribe();
       }
     }, 15000);
+    const clientParam = (request.query as { client?: string; types?: string }).client;
+    const unregisterClient = clientParam ? ecosystemTracker.registerSseClient(clientParam) : undefined;
     request.raw.on("close", () => {
       clearInterval(heartbeat);
       unsubscribe();
+      unregisterClient?.();
     });
   });
 

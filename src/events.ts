@@ -2,6 +2,8 @@ import { EventEmitter } from "node:events";
 import type { PiVoiceTelemetry } from "./pivoice/telemetry.js";
 import type { PiSoundTelemetry } from "./pisound/telemetry.js";
 import type { TranscriptEvent } from "./transcripts/transcript-hub.js";
+import type { EcosystemStatus } from "./ecosystem/ecosystem-tracker.js";
+import type { FreedTelemetry } from "./camera/freed-receiver.js";
 
 export interface CameraEventPayload {
   id: string;
@@ -23,6 +25,7 @@ export interface MatrixEventPayload {
 
 export type GatewayEvent =
   | { type: "camera"; data: CameraEventPayload }
+  | { type: "freed"; data: FreedTelemetry }
   | { type: "atem"; data: unknown }
   | { type: "matrix"; data: MatrixEventPayload }
   | { type: "encoder"; data: unknown }
@@ -31,6 +34,7 @@ export type GatewayEvent =
   | { type: "pisound"; data: PiSoundTelemetry }
   | { type: "pivoice-activity"; data: unknown }
   | { type: "transcript"; data: TranscriptEvent }
+  | { type: "ecosystem"; data: EcosystemStatus }
   | { type: "ready"; data: { status: string; time: string } };
 
 export class GatewayEventBroker {

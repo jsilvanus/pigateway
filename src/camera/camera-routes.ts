@@ -2,6 +2,7 @@ import { isIPv4 } from "node:net";
 import type { FastifyInstance } from "fastify";
 import { CameraCgiError } from "./camera-adapter.js";
 import type { CameraService } from "./camera-service.js";
+import type { FreedUdpReceiver } from "./freed-receiver.js";
 import type { PanTiltDirection, SmartFrameMode, ZoomAction } from "./visca-protocol.js";
 
 function sendCameraCgiError(reply: { code: (n: number) => { send: (b: unknown) => unknown } }, err: unknown): unknown {
@@ -13,7 +14,7 @@ function sendCameraCgiError(reply: { code: (n: number) => { send: (b: unknown) =
   throw err;
 }
 
-export function registerCameraRoutes(app: FastifyInstance, cameraService: CameraService,
+export function registerCameraRoutes(app: FastifyInstance, cameraService: CameraService, freedReceiver?: FreedUdpReceiver,
   hooks: { onPower?: (cameraId: string, on: boolean) => void } = {}
 ): void {
   app.get("/api/v1/cameras", async () => ({ items: cameraService.list() }));
@@ -285,7 +286,10 @@ export function registerCameraRoutes(app: FastifyInstance, cameraService: Camera
 
     try {
       const freed = await cameraService.getFreed(request.params.cameraId);
-      return reply.code(200).send({ cameraId: request.params.cameraId, freed });
+      const match = request.params.cameraId.match(/\d+$/);
+      const numericId = match ? Number.parseInt(match[0]!, 10) : 1;
+      const telemetry = freedReceiver?.getTelemetry(numericId) ?? null;
+      return reply.code(200).send({ cameraId: request.params.cameraId, freed, telemetry });
     } catch (err) {
       return sendCameraCgiError(reply, err);
     }
