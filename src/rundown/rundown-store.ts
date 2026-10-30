@@ -1,7 +1,14 @@
 import type { GatewayEventBroker } from "../events.js";
 import type { ActionRegistry, ActionExecutionResult } from "../actions/action-registry.js";
+import {
+  buildRundownDisplay,
+  type RundownDisplay,
+  type DisplayLine,
+  type ExecutableItem,
+  type ItemStatus,
+} from "./rundown-display.js";
 
-export type ItemStatus = "pending" | "active" | "completed" | "skipped";
+export { ItemStatus };
 
 export type FireTarget =
   | number
@@ -21,15 +28,6 @@ export interface RundownItemSummary {
   actionCount: number;
 }
 
-export interface StoredRundownItem {
-  id: string;
-  title: string;
-  section?: string | undefined;
-  notes?: string | undefined;
-  cue?: unknown | undefined;
-  actions?: unknown[] | undefined;
-}
-
 export interface StoredRundownDoc {
   version?: number | undefined;
   title: string;
@@ -41,7 +39,7 @@ export interface StoredRundownDoc {
     variables?: Record<string, unknown> | undefined;
     fetch?: Array<{ connector: string; request: string }> | undefined;
   } | undefined;
-  rundown: StoredRundownItem[];
+  rundown: unknown[];
 }
 
 export interface RundownStatusSnapshot {
@@ -53,8 +51,10 @@ export interface RundownStatusSnapshot {
   currentIndex: number;
   currentLine: number | null;
   totalItems: number;
+  totalLines: number;
   currentItem: RundownItemSummary | null;
   items: RundownItemSummary[];
+  display: RundownDisplay;
   variables: Record<string, string>;
   history: Array<{ timestamp: string; actor: string; type: string; detail: unknown }>;
 }
@@ -69,7 +69,7 @@ export class RundownStore {
   private actionRegistry?: ActionRegistry | undefined;
 
   private doc: StoredRundownDoc | null = null;
-  private currentIndex = -1;
+  private currentExecutableId: string | null = null;
   private readonly itemStates = new Map<string, ItemStatus>();
   private readonly variables = new Map<string, string>();
   private readonly history: Array<{ timestamp: string; actor: string; type: string; detail: unknown }> = [];
@@ -90,34 +90,52 @@ export class RundownStore {
         currentIndex: -1,
         currentLine: null,
         totalItems: 0,
+        totalLines: 0,
         currentItem: null,
         items: [],
+        display: { lines: [], totalLines: 0, currentLine: null },
         variables: Object.fromEntries(this.variables.entries()),
         history: [...this.history],
       };
     }
 
-    const items: RundownItemSummary[] = this.doc.rundown.map((item, idx) => ({
-      id: item.id,
-      line: idx + 1,
+    const { display, executableItems } = buildRundownDisplay(
+      this.doc.rundown,
+      this.itemStates,
+      this.currentExecutableId
+    );
+
+    const execIndex = this.currentExecutableId
+      ? executableItems.findIndex((it) => it.id === this.currentExecutableId)
+      : -1;
+
+    const currentExec = execIndex >= 0 ? executableItems[execIndex] ?? null : null;
+
+    const currentItem: RundownItemSummary | null = currentExec
+      ? {
+          id: currentExec.id,
+          line: currentExec.line,
+          index: execIndex,
+          title: currentExec.title,
+          section: currentExec.section,
+          notes: currentExec.notes,
+          status: this.itemStates.get(currentExec.id) ?? "pending",
+          hasCue: Boolean(currentExec.cue),
+          actionCount: currentExec.actions.length,
+        }
+      : null;
+
+    const items: RundownItemSummary[] = executableItems.map((it, idx) => ({
+      id: it.id,
+      line: it.line,
       index: idx,
-      title: item.title,
-      section: item.section,
-      notes: item.notes,
-      status: this.itemStates.get(item.id) ?? "pending",
-      hasCue: Boolean(item.cue),
-      actionCount: item.actions?.length ?? 0,
+      title: it.title,
+      section: it.section,
+      notes: it.notes,
+      status: this.itemStates.get(it.id) ?? "pending",
+      hasCue: Boolean(it.cue),
+      actionCount: it.actions.length,
     }));
-
-    const currentItem =
-      this.currentIndex >= 0 && this.currentIndex < items.length
-        ? items[this.currentIndex] ?? null
-        : null;
-
-    const currentLine =
-      this.currentIndex >= 0 && this.currentIndex < items.length
-        ? this.currentIndex + 1
-        : null;
 
     return {
       loaded: true,
@@ -125,11 +143,13 @@ export class RundownStore {
       service: this.doc.service,
       church: this.doc.church,
       date: this.doc.date,
-      currentIndex: this.currentIndex,
-      currentLine,
-      totalItems: items.length,
+      currentIndex: execIndex,
+      currentLine: display.currentLine,
+      totalItems: executableItems.length,
+      totalLines: display.totalLines,
       currentItem,
       items,
+      display,
       variables: Object.fromEntries(this.variables.entries()),
       history: [...this.history],
     };
@@ -150,20 +170,22 @@ export class RundownStore {
       }
     }
 
-    // Initialize all items as pending
-    for (const item of doc.rundown) {
+    const { executableItems } = buildRundownDisplay(doc.rundown, this.itemStates);
+
+    // Initialize executable items as pending
+    for (const item of executableItems) {
       this.itemStates.set(item.id, "pending");
     }
 
-    // Activate item 0 if rundown not empty
-    if (doc.rundown.length > 0 && doc.rundown[0]) {
-      this.currentIndex = 0;
-      this.itemStates.set(doc.rundown[0].id, "active");
+    // Activate first executable item if rundown not empty
+    if (executableItems.length > 0 && executableItems[0]) {
+      this.currentExecutableId = executableItems[0].id;
+      this.itemStates.set(executableItems[0].id, "active");
     } else {
-      this.currentIndex = -1;
+      this.currentExecutableId = null;
     }
 
-    this.logHistory(actor, "rundown_loaded", { title: doc.title, totalItems: doc.rundown.length });
+    this.logHistory(actor, "rundown_loaded", { title: doc.title, totalItems: executableItems.length });
     this.emitState();
     return this.getStatus();
   }
@@ -171,15 +193,17 @@ export class RundownStore {
   reset(actor = "unknown"): RundownStatusSnapshot {
     if (!this.doc) return this.getStatus();
 
-    for (const item of this.doc.rundown) {
+    const { executableItems } = buildRundownDisplay(this.doc.rundown, this.itemStates);
+
+    for (const item of executableItems) {
       this.itemStates.set(item.id, "pending");
     }
 
-    if (this.doc.rundown.length > 0 && this.doc.rundown[0]) {
-      this.currentIndex = 0;
-      this.itemStates.set(this.doc.rundown[0].id, "active");
+    if (executableItems.length > 0 && executableItems[0]) {
+      this.currentExecutableId = executableItems[0].id;
+      this.itemStates.set(executableItems[0].id, "active");
     } else {
-      this.currentIndex = -1;
+      this.currentExecutableId = null;
     }
 
     this.logHistory(actor, "rundown_reset", {});
@@ -188,67 +212,99 @@ export class RundownStore {
   }
 
   async next(actor = "unknown"): Promise<{ advanced: boolean; rundown: RundownStatusSnapshot }> {
-    if (!this.doc || this.currentIndex < 0) {
+    if (!this.doc) {
       return { advanced: false, rundown: this.getStatus() };
     }
 
-    const current = this.getCurrentItem();
-    if (current) {
-      this.itemStates.set(current.id, "completed");
+    const { executableItems } = buildRundownDisplay(this.doc.rundown, this.itemStates, this.currentExecutableId);
+    if (executableItems.length === 0) {
+      return { advanced: false, rundown: this.getStatus() };
     }
 
-    const nextIndex = this.currentIndex + 1;
+    const currentIdx = this.currentExecutableId
+      ? executableItems.findIndex((it) => it.id === this.currentExecutableId)
+      : -1;
+
+    if (currentIdx >= 0 && executableItems[currentIdx]) {
+      this.itemStates.set(executableItems[currentIdx]!.id, "completed");
+    }
+
+    const nextIdx = currentIdx + 1;
     let advanced = false;
-    if (nextIndex < this.doc.rundown.length && this.doc.rundown[nextIndex]) {
-      this.currentIndex = nextIndex;
-      this.itemStates.set(this.doc.rundown[nextIndex]!.id, "active");
+    if (nextIdx < executableItems.length && executableItems[nextIdx]) {
+      this.currentExecutableId = executableItems[nextIdx]!.id;
+      this.itemStates.set(executableItems[nextIdx]!.id, "active");
       advanced = true;
     } else {
-      this.currentIndex = this.doc.rundown.length;
+      this.currentExecutableId = null;
       advanced = false;
     }
 
     this.logHistory(actor, "rundown_next", {
-      fromId: current?.id,
-      toId: this.getCurrentItem()?.id ?? null,
-      currentIndex: this.currentIndex,
+      fromId: currentIdx >= 0 ? executableItems[currentIdx]?.id : null,
+      toId: this.currentExecutableId,
+      currentIndex: nextIdx,
     });
     this.emitState();
     return { advanced, rundown: this.getStatus() };
   }
 
   previous(actor = "unknown"): { moved: boolean; rundown: RundownStatusSnapshot } {
-    if (!this.doc || this.currentIndex <= 0) {
+    if (!this.doc) {
       return { moved: false, rundown: this.getStatus() };
     }
 
-    const current = this.getCurrentItem();
-    if (current) {
-      this.itemStates.set(current.id, "pending");
+    const { executableItems } = buildRundownDisplay(this.doc.rundown, this.itemStates, this.currentExecutableId);
+    if (executableItems.length === 0) {
+      return { moved: false, rundown: this.getStatus() };
     }
 
-    this.currentIndex--;
-    const prev = this.getCurrentItem();
-    if (prev) {
-      this.itemStates.set(prev.id, "active");
+    const currentIdx = this.currentExecutableId
+      ? executableItems.findIndex((it) => it.id === this.currentExecutableId)
+      : -1;
+
+    if (currentIdx <= 0) {
+      return { moved: false, rundown: this.getStatus() };
+    }
+
+    if (currentIdx < executableItems.length && executableItems[currentIdx]) {
+      this.itemStates.set(executableItems[currentIdx]!.id, "pending");
+    }
+
+    const prevIdx = currentIdx - 1;
+    let moved = false;
+    if (prevIdx >= 0 && executableItems[prevIdx]) {
+      this.currentExecutableId = executableItems[prevIdx]!.id;
+      this.itemStates.set(executableItems[prevIdx]!.id, "active");
+      moved = true;
     }
 
     this.logHistory(actor, "rundown_previous", {
-      fromId: current?.id,
-      toId: prev?.id ?? null,
-      currentIndex: this.currentIndex,
+      fromId: executableItems[currentIdx]?.id,
+      toId: this.currentExecutableId,
+      currentIndex: prevIdx,
     });
     this.emitState();
-    return { moved: true, rundown: this.getStatus() };
+    return { moved, rundown: this.getStatus() };
   }
 
   goto(id: string, actor = "unknown"): { moved: boolean; rundown: RundownStatusSnapshot } {
     if (!this.doc) return { moved: false, rundown: this.getStatus() };
 
-    const targetIdx = this.doc.rundown.findIndex((it) => it.id === id);
-    if (targetIdx === -1) return { moved: false, rundown: this.getStatus() };
+    const { executableItems, display } = buildRundownDisplay(this.doc.rundown, this.itemStates, this.currentExecutableId);
 
-    this.doc.rundown.forEach((it, idx) => {
+    let targetExec = executableItems.find((it) => it.id === id);
+    if (!targetExec) {
+      const line = display.lines.find((l) => l.id === id);
+      if (line?.targetId) {
+        targetExec = executableItems.find((it) => it.id === line.targetId);
+      }
+    }
+
+    if (!targetExec) return { moved: false, rundown: this.getStatus() };
+
+    const targetIdx = executableItems.findIndex((it) => it.id === targetExec!.id);
+    executableItems.forEach((it, idx) => {
       if (idx < targetIdx) {
         if (this.itemStates.get(it.id) === "pending") this.itemStates.set(it.id, "completed");
       } else if (idx === targetIdx) {
@@ -258,7 +314,7 @@ export class RundownStore {
       }
     });
 
-    this.currentIndex = targetIdx;
+    this.currentExecutableId = targetExec.id;
     this.logHistory(actor, "rundown_goto", { targetId: id, targetIndex: targetIdx });
     this.emitState();
     return { moved: true, rundown: this.getStatus() };
@@ -267,21 +323,28 @@ export class RundownStore {
   skip(id?: string, actor = "unknown"): { skipped: boolean; rundown: RundownStatusSnapshot } {
     if (!this.doc) return { skipped: false, rundown: this.getStatus() };
 
+    const { executableItems } = buildRundownDisplay(this.doc.rundown, this.itemStates, this.currentExecutableId);
+
     const targetItem = id
-      ? this.doc.rundown.find((it) => it.id === id)
-      : this.getCurrentItem();
+      ? executableItems.find((it) => it.id === id)
+      : this.getCurrentExecutableItem();
 
     if (!targetItem) return { skipped: false, rundown: this.getStatus() };
 
     this.itemStates.set(targetItem.id, "skipped");
     this.logHistory(actor, "item_skipped", { id: targetItem.id, title: targetItem.title });
 
-    if (this.getCurrentItem()?.id === targetItem.id) {
-      this.advancePointer(targetItem);
-    } else {
-      this.emitState();
+    if (this.currentExecutableId === targetItem.id) {
+      const idx = executableItems.findIndex((it) => it.id === targetItem.id);
+      if (idx + 1 < executableItems.length && executableItems[idx + 1]) {
+        this.currentExecutableId = executableItems[idx + 1]!.id;
+        this.itemStates.set(executableItems[idx + 1]!.id, "active");
+      } else {
+        this.currentExecutableId = null;
+      }
     }
 
+    this.emitState();
     return { skipped: true, rundown: this.getStatus() };
   }
 
@@ -293,54 +356,70 @@ export class RundownStore {
       return { ok: false, executed: [], rundown: this.getStatus() };
     }
 
-    let targetIndex = -1;
+    const { display, executableItems } = buildRundownDisplay(
+      this.doc.rundown,
+      this.itemStates,
+      this.currentExecutableId
+    );
 
-    if (typeof target === "number") {
-      // 1-based line number (e.g. 17 -> index 16)
-      targetIndex = target - 1;
-    } else if (typeof target === "string") {
-      const trimmed = target.trim();
-      if (/^\d+$/.test(trimmed)) {
-        targetIndex = parseInt(trimmed, 10) - 1;
-      } else {
-        targetIndex = this.doc.rundown.findIndex((it) => it.id === trimmed);
-      }
-    } else if (typeof target === "object" && target !== null) {
-      if (typeof target.line === "number") {
-        targetIndex = target.line - 1;
-      } else if (typeof target.index === "number") {
-        targetIndex = target.index;
-      } else if (typeof target.id === "string") {
-        const trimmed = target.id.trim();
-        if (/^\d+$/.test(trimmed)) {
-          targetIndex = parseInt(trimmed, 10) - 1;
-        } else {
-          targetIndex = this.doc.rundown.findIndex((it) => it.id === trimmed);
-        }
-      } else {
-        targetIndex = this.currentIndex >= 0 ? this.currentIndex : 0;
-      }
-    } else {
-      targetIndex = this.currentIndex >= 0 ? this.currentIndex : 0;
-    }
-
-    if (targetIndex < 0 || targetIndex >= this.doc.rundown.length) {
+    if (executableItems.length === 0) {
       return { ok: false, executed: [], rundown: this.getStatus() };
     }
 
-    const targetItem = this.doc.rundown[targetIndex]!;
+    let targetExecItem: ExecutableItem | undefined;
 
-    // Move pointer TO target item and update item states:
-    // Prior items (0 .. targetIndex - 1) that were pending or active become completed
-    // Target item becomes active
+    if (typeof target === "number") {
+      const line = display.lines.find((l) => l.line === target);
+      if (line) {
+        targetExecItem = executableItems.find((it) => it.id === line.targetId);
+      }
+    } else if (typeof target === "string") {
+      const trimmed = target.trim();
+      if (/^\d+$/.test(trimmed)) {
+        const lineNum = parseInt(trimmed, 10);
+        const line = display.lines.find((l) => l.line === lineNum);
+        if (line) {
+          targetExecItem = executableItems.find((it) => it.id === line.targetId);
+        }
+      } else {
+        const line = display.lines.find((l) => l.id === trimmed);
+        const targetId = line?.targetId ?? trimmed;
+        targetExecItem = executableItems.find((it) => it.id === targetId);
+      }
+    } else if (typeof target === "object" && target !== null) {
+      if (typeof target.line === "number") {
+        const line = display.lines.find((l) => l.line === target.line);
+        if (line) {
+          targetExecItem = executableItems.find((it) => it.id === line.targetId);
+        }
+      } else if (typeof target.index === "number") {
+        targetExecItem = executableItems[target.index];
+      } else if (typeof target.id === "string") {
+        const line = display.lines.find((l) => l.id === target.id);
+        const targetId = line?.targetId ?? target.id;
+        targetExecItem = executableItems.find((it) => it.id === targetId);
+      }
+    } else {
+      targetExecItem = this.getCurrentExecutableItem() ?? executableItems[0];
+    }
+
+    if (!targetExecItem) {
+      return { ok: false, executed: [], rundown: this.getStatus() };
+    }
+
+    const targetIdx = executableItems.findIndex((it) => it.id === targetExecItem!.id);
+
+    // Transition item states:
+    // Prior executable items become completed
+    // Target becomes active
     // Following items that were active revert to pending
-    this.doc.rundown.forEach((it, idx) => {
-      if (idx < targetIndex) {
-        const currentStatus = this.itemStates.get(it.id);
-        if (currentStatus === "pending" || currentStatus === "active") {
+    executableItems.forEach((it, idx) => {
+      if (idx < targetIdx) {
+        const s = this.itemStates.get(it.id);
+        if (s === "pending" || s === "active") {
           this.itemStates.set(it.id, "completed");
         }
-      } else if (idx === targetIndex) {
+      } else if (idx === targetIdx) {
         this.itemStates.set(it.id, "active");
       } else {
         if (this.itemStates.get(it.id) === "active") {
@@ -349,11 +428,15 @@ export class RundownStore {
       }
     });
 
-    this.currentIndex = targetIndex;
+    this.currentExecutableId = targetExecItem.id;
+
+    // Find display line number
+    const displayLine = display.lines.find((l) => l.id === targetExecItem!.id) ?? display.lines.find((l) => l.targetId === targetExecItem!.id);
+    const lineNum = displayLine?.line ?? targetExecItem.line;
 
     const executed: ActionExecutionResult[] = [];
-    if (this.actionRegistry && targetItem.actions && targetItem.actions.length > 0) {
-      for (const action of targetItem.actions) {
+    if (this.actionRegistry && targetExecItem.actions && targetExecItem.actions.length > 0) {
+      for (const action of targetExecItem.actions) {
         let req: any;
         if (typeof action === "string") {
           req = { action: this.interpolate(action), actor };
@@ -399,10 +482,10 @@ export class RundownStore {
     }
 
     this.logHistory(actor, "line_fired", {
-      line: targetIndex + 1,
-      index: targetIndex,
-      id: targetItem.id,
-      title: targetItem.title,
+      line: lineNum,
+      index: targetIdx,
+      id: targetExecItem.id,
+      title: targetExecItem.title,
       actionCount: executed.length,
     });
     this.emitState();
@@ -420,26 +503,14 @@ export class RundownStore {
     return Object.fromEntries(this.variables.entries());
   }
 
-  getCurrentItem(): StoredRundownItem | null {
-    if (!this.doc || this.currentIndex < 0 || this.currentIndex >= this.doc.rundown.length) {
-      return null;
-    }
-    return this.doc.rundown[this.currentIndex] ?? null;
+  getCurrentExecutableItem(): ExecutableItem | null {
+    if (!this.doc || !this.currentExecutableId) return null;
+    const { executableItems } = buildRundownDisplay(this.doc.rundown, this.itemStates, this.currentExecutableId);
+    return executableItems.find((it) => it.id === this.currentExecutableId) ?? null;
   }
 
-  private advancePointer(item: StoredRundownItem): void {
-    if (!this.doc) return;
-    const currentIdx = this.doc.rundown.findIndex((it) => it.id === item.id);
-    if (currentIdx >= 0) {
-      const nextIdx = currentIdx + 1;
-      if (nextIdx < this.doc.rundown.length && this.doc.rundown[nextIdx]) {
-        this.currentIndex = nextIdx;
-        this.itemStates.set(this.doc.rundown[nextIdx]!.id, "active");
-      } else {
-        this.currentIndex = this.doc.rundown.length;
-      }
-    }
-    this.emitState();
+  getCurrentItem(): ExecutableItem | null {
+    return this.getCurrentExecutableItem();
   }
 
   private interpolate(text: string): string {

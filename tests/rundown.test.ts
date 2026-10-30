@@ -225,3 +225,114 @@ test("RundownStore - line 17 fires and pointer moves to line 17", async () => {
 
   await app.close();
 });
+
+test("RundownStore - section header line delegates firing to first child item", async () => {
+  const app = buildApp(loadConfig({ PIGATEWAY_MODE: "simulation" }));
+  await app.ready();
+
+  await app.inject({
+    method: "POST",
+    url: "/api/v1/rundown/load",
+    payload: {
+      title: "Sections and Hierarchy",
+      rundown: [
+        { section: "Johdanto", title: "Johdanto-osa" },
+        { id: "alkusoitto", title: "Alkusoitto", actions: ["cam:cam1:preset:1"] },
+        { id: "alkusiunaus", title: "Alkusiunaus", actions: ["cam:cam1:preset:2"] },
+        { section: "Sana", title: "Sana-osa" },
+        { id: "saarna", title: "Saarna", actions: ["cam:cam1:preset:3"] },
+      ],
+    },
+  });
+
+  // Display lines:
+  // Line 1: Section Johdanto (targetLine: 2, targetId: alkusoitto)
+  // Line 2: Item Alkusoitto
+  // Line 3: Item Alkusiunaus
+  // Line 4: Section Sana (targetLine: 5, targetId: saarna)
+  // Line 5: Item Saarna
+
+  const statusRes = await app.inject({ method: "GET", url: "/api/v1/rundown" });
+  const statusJson = JSON.parse(statusRes.payload);
+  assert.equal(statusJson.display.totalLines, 5);
+  assert.equal(statusJson.display.lines[0].type, "section");
+  assert.equal(statusJson.display.lines[0].targetLine, 2);
+  assert.equal(statusJson.display.lines[3].type, "section");
+  assert.equal(statusJson.display.lines[3].targetLine, 5);
+
+  // Fire Line 4 (Section "Sana")
+  const fireRes = await app.inject({
+    method: "POST",
+    url: "/api/v1/rundown/fire/4",
+    headers: { "x-actor": "operator" },
+  });
+
+  assert.equal(fireRes.statusCode, 200);
+  const data = JSON.parse(fireRes.payload);
+  assert.equal(data.ok, true);
+  // Pointer moves to Line 5 (Saarna)!
+  assert.equal(data.rundown.currentLine, 5);
+  assert.equal(data.rundown.currentItem.id, "saarna");
+  assert.equal(data.rundown.currentItem.status, "active");
+  assert.equal(data.rundown.display.lines[0].status, "completed"); // Johdanto completed
+  assert.equal(data.rundown.display.lines[1].status, "completed"); // Alkusoitto completed
+  assert.equal(data.rundown.display.lines[2].status, "completed"); // Alkusiunaus completed
+  assert.equal(data.rundown.display.lines[3].status, "active");    // Sana active
+
+  await app.close();
+});
+
+test("RundownStore - items with subitems have numbered display lines and fire correctly", async () => {
+  const app = buildApp(loadConfig({ PIGATEWAY_MODE: "simulation" }));
+  await app.ready();
+
+  await app.inject({
+    method: "POST",
+    url: "/api/v1/rundown/load",
+    payload: {
+      title: "Subitems Hierarchy",
+      rundown: [
+        {
+          id: "alkusoitto",
+          title: "Alkusoitto (Preludi)",
+          subitems: [
+            { id: "alkusoitto_alku", title: "Urkuri asettuu", actions: ["cam:cam1:preset:1"] },
+            { id: "alkusoitto_loppu", title: "Musiikin loppu", actions: ["atem:cut:1"] },
+          ],
+        },
+        {
+          id: "alkusiunaus",
+          title: "Alkusiunaus",
+          actions: ["cam:cam1:preset:2"],
+        },
+      ],
+    },
+  });
+
+  const statusRes = await app.inject({ method: "GET", url: "/api/v1/rundown" });
+  const status = JSON.parse(statusRes.payload);
+
+  assert.equal(status.display.totalLines, 4);
+  assert.equal(status.display.lines[0].type, "item");
+  assert.equal(status.display.lines[0].targetLine, 2); // Container points to first subitem Line 2
+  assert.equal(status.display.lines[1].type, "subitem");
+  assert.equal(status.display.lines[1].line, 2);
+  assert.equal(status.display.lines[1].id, "alkusoitto_alku");
+  assert.equal(status.display.lines[2].type, "subitem");
+  assert.equal(status.display.lines[2].line, 3);
+  assert.equal(status.display.lines[2].id, "alkusoitto_loppu");
+
+  // Fire Line 3 (second subitem)
+  const fireRes = await app.inject({
+    method: "POST",
+    url: "/api/v1/rundown/fire/3",
+  });
+  assert.equal(fireRes.statusCode, 200);
+  const data = JSON.parse(fireRes.payload);
+  assert.equal(data.rundown.currentLine, 3);
+  assert.equal(data.rundown.currentItem.id, "alkusoitto_loppu");
+  assert.equal(data.rundown.display.lines[1].status, "completed");
+  assert.equal(data.rundown.display.lines[2].status, "active");
+
+  await app.close();
+});
