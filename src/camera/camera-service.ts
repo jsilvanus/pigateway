@@ -9,12 +9,16 @@ import {
   SimulatedCameraAdapter,
   UdpViscaCameraAdapter
 } from "./camera-adapter.js";
+import { HttpPicamCameraAdapter } from "./picam-adapter.js";
 import type { PanTiltDirection, SmartFrameMode, ZoomAction } from "./visca-protocol.js";
 
 export interface CameraServiceOptions {
   mode: "simulation" | "production";
   eventBroker?: GatewayEventBroker | undefined;
   logger?: FastifyBaseLogger | undefined;
+  /** Standalone picam service URL to delegate camera operations to. */
+  picamApiUrl?: string | undefined;
+  fetchFn?: typeof fetch | undefined;
   /** Near focus limit (metres) restored when privacy blur goes off. */
   nearLimitM?: number | undefined;
   cam1Name?: string | undefined;
@@ -49,7 +53,28 @@ export class CameraService {
     const cam1Label = options.cam1Name?.trim() || "Camera 1";
     const cam2Label = options.cam2Name?.trim() || "Camera 2";
 
-    if (options.mode === "production" && options.cam1Host) {
+    if (options.picamApiUrl) {
+      this.cameras.set(
+        "cam1",
+        new HttpPicamCameraAdapter({
+          id: "cam1",
+          label: cam1Label,
+          baseUrl: options.picamApiUrl,
+          fetchFn: options.fetchFn,
+          logger: options.logger
+        })
+      );
+      this.cameras.set(
+        "cam2",
+        new HttpPicamCameraAdapter({
+          id: "cam2",
+          label: cam2Label,
+          baseUrl: options.picamApiUrl,
+          fetchFn: options.fetchFn,
+          logger: options.logger
+        })
+      );
+    } else if (options.mode === "production" && options.cam1Host) {
       this.cameras.set(
         "cam1",
         new UdpViscaCameraAdapter({

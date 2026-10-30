@@ -306,6 +306,78 @@ export class EcosystemTracker {
       url: this.#config.pirundownApiUrl ?? "http://127.0.0.1:3400"
     };
 
+    // 8.6. PiRundown Designer
+    const pirundownDesignerAvailable = this.#availableMap.get("pirundownDesigner") ?? false;
+    const pirundownDesignerConfigured = Boolean(this.#config.pirundownDesignerApiUrl);
+    const pirundownDesignerInUse = pirundownDesignerAvailable || pirundownDesignerConfigured;
+    components.pirundownDesigner = {
+      id: "pirundownDesigner",
+      tab: "rundown",
+      name: "PiRundown Designer",
+      description: "Visual cue authoring and YAML designer",
+      active: pirundownDesignerInUse,
+      inUse: pirundownDesignerInUse,
+      available: pirundownDesignerAvailable,
+      configured: pirundownDesignerConfigured,
+      connecting: false,
+      lastSeenAt: this.#lastSeenMap.get("pirundownDesigner") ?? null,
+      url: this.#config.pirundownDesignerApiUrl ?? "http://127.0.0.1:3410"
+    };
+
+    // 8.7. PiSpace
+    const pispaceAvailable = this.#availableMap.get("pispace") ?? false;
+    const pispaceConfigured = Boolean(this.#config.pispaceApiUrl);
+    const pispaceInUse = pispaceAvailable || pispaceConfigured;
+    components.pispace = {
+      id: "pispace",
+      tab: "spatial",
+      name: "PiSpace 3D Venue",
+      description: "3D venue digital twin, raycasting & spatial PTZ solver",
+      active: pispaceInUse,
+      inUse: pispaceInUse,
+      available: pispaceAvailable,
+      configured: pispaceConfigured,
+      connecting: false,
+      lastSeenAt: this.#lastSeenMap.get("pispace") ?? null,
+      url: this.#config.pispaceApiUrl ?? "http://127.0.0.1:3108"
+    };
+
+    // 8.8. PiGraphics
+    const pigraphicsAvailable = this.#availableMap.get("pigraphics") ?? false;
+    const pigraphicsConfigured = Boolean(this.#config.pigraphicsApiUrl);
+    const pigraphicsInUse = pigraphicsAvailable || pigraphicsConfigured;
+    components.pigraphics = {
+      id: "pigraphics",
+      tab: "graphics",
+      name: "PiGraphics Broadcast",
+      description: "Broadcast HTML5 graphics, lower-thirds and DSK keying",
+      active: pigraphicsInUse,
+      inUse: pigraphicsInUse,
+      available: pigraphicsAvailable,
+      configured: pigraphicsConfigured,
+      connecting: false,
+      lastSeenAt: this.#lastSeenMap.get("pigraphics") ?? null,
+      url: this.#config.pigraphicsApiUrl ?? "http://127.0.0.1:3107"
+    };
+
+    // 8.9. PiPerception
+    const piperceptionAvailable = this.#availableMap.get("piperception") ?? false;
+    const piperceptionConfigured = Boolean(this.#config.piperceptionApiUrl);
+    const piperceptionInUse = piperceptionAvailable || piperceptionConfigured;
+    components.piperception = {
+      id: "piperception",
+      tab: "perception",
+      name: "PiPerception Tracking",
+      description: "Real-time neural person detection and multi-target tracking",
+      active: piperceptionInUse,
+      inUse: piperceptionInUse,
+      available: piperceptionAvailable,
+      configured: piperceptionConfigured,
+      connecting: false,
+      lastSeenAt: this.#lastSeenMap.get("piperception") ?? null,
+      url: this.#config.piperceptionApiUrl ?? "http://127.0.0.1:3110"
+    };
+
     // 9. Radio Relay
     const relayConfigured = Boolean(this.#config.radioRelayApiUrl);
     components.radioRelay = {
@@ -359,6 +431,42 @@ export class EcosystemTracker {
       connecting: encoderConnected,
       lastSeenAt: encoderConnected ? new Date(this.#now()).toISOString() : null,
       ...(encoderState ? { details: { name: encoderState.name, encoder1: encoderState.encoder1, encoder2: encoderState.encoder2 } } : {})
+    };
+
+    // 11.5. PiCam Microservice
+    const picamAvailable = this.#availableMap.get("picam") ?? false;
+    const picamConfigured = Boolean(this.#config.picamApiUrl);
+    const picamInUse = picamAvailable || picamConfigured;
+    components.picam = {
+      id: "picam",
+      tab: "cameras",
+      name: "PiCam Controller",
+      description: "Dedicated PTZ camera controller microservice (VISCA & CGI)",
+      active: picamInUse,
+      inUse: picamInUse,
+      available: picamAvailable,
+      configured: picamConfigured,
+      connecting: false,
+      lastSeenAt: this.#lastSeenMap.get("picam") ?? null,
+      url: this.#config.picamApiUrl ?? "http://127.0.0.1:3300"
+    };
+
+    // 11.6. PiEncoder Microservice
+    const piencoderAvailable = this.#availableMap.get("piencoder") ?? false;
+    const piencoderConfigured = Boolean(this.#config.piencoderApiUrl);
+    const piencoderInUse = piencoderAvailable || piencoderConfigured;
+    components.piencoder = {
+      id: "piencoder",
+      tab: "encoder",
+      name: "PiEncoder Multi-Unit Controller",
+      description: "Dedicated multi-unit hardware streaming encoder microservice",
+      active: piencoderInUse,
+      inUse: piencoderInUse,
+      available: piencoderAvailable,
+      configured: piencoderConfigured,
+      connecting: false,
+      lastSeenAt: this.#lastSeenMap.get("piencoder") ?? null,
+      url: this.#config.piencoderApiUrl ?? "http://127.0.0.1:3109"
     };
 
     // 12. PTZ Cameras
@@ -435,7 +543,13 @@ export class EcosystemTracker {
         { id: "piprogram", url: `${this.#config.piprogramApiUrl ?? "http://127.0.0.1:3104"}/health` },
         { id: "picanva", url: `${this.#config.picanvaApiUrl ?? "http://127.0.0.1:3103"}/health` },
         { id: "auditor", url: `${this.#config.auditorUrl ?? "http://127.0.0.1:8090"}/health` },
-        { id: "pirundown", url: `${this.#config.pirundownApiUrl ?? "http://127.0.0.1:3400"}/health` }
+        { id: "pirundown", url: `${this.#config.pirundownApiUrl ?? "http://127.0.0.1:3400"}/health` },
+        { id: "pirundownDesigner", url: `${this.#config.pirundownDesignerApiUrl ?? "http://127.0.0.1:3410"}/health` },
+        { id: "pispace", url: `${this.#config.pispaceApiUrl ?? "http://127.0.0.1:3108"}/health` },
+        { id: "pigraphics", url: `${this.#config.pigraphicsApiUrl ?? "http://127.0.0.1:3107"}/health` },
+        { id: "piperception", url: `${this.#config.piperceptionApiUrl ?? "http://127.0.0.1:3110"}/health` },
+        { id: "picam", url: `${this.#config.picamApiUrl ?? "http://127.0.0.1:3300"}/health` },
+        { id: "piencoder", url: `${this.#config.piencoderApiUrl ?? "http://127.0.0.1:3109"}/health` }
       ];
 
       const results = await Promise.allSettled(

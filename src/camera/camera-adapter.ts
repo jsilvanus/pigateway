@@ -23,10 +23,20 @@ import {
   type ZoomAction
 } from "./visca-protocol.js";
 
+export interface CameraPresetCoordinates {
+  pan: number;
+  tilt: number;
+  roll?: number | undefined;
+  zoom: number;
+  focus?: number | undefined;
+}
+
 export interface CameraPreset {
   id: number;
-  name?: string;
-  thumbnail?: string;
+  name?: string | undefined;
+  thumbnail?: string | undefined;
+  coordinates?: CameraPresetCoordinates | undefined;
+  updatedAt?: string | undefined;
 }
 
 export interface CameraPosition {

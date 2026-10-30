@@ -31,7 +31,10 @@ export interface AppConfig {
   piprogramApiUrl?: string | undefined;
   picanvaApiUrl?: string | undefined;
   pirundownApiUrl?: string | undefined;
+  pirundownDesignerApiUrl?: string | undefined;
   pispaceApiUrl?: string | undefined;
+  pigraphicsApiUrl?: string | undefined;
+  piperceptionApiUrl?: string | undefined;
   ecosystemPollIntervalMs: number;
   radioRelayApiUrl?: string | undefined;
   radioRelayApiToken?: string | undefined;
@@ -79,6 +82,8 @@ export interface AppConfig {
   freedAllowedHosts?: string[] | undefined;
   /** picam standalone controller service URL (PIGATEWAY_PICAM_API_URL). */
   picamApiUrl?: string | undefined;
+  /** piencoder multi-unit hardware encoder service URL (PIGATEWAY_PIENCODER_API_URL). */
+  piencoderApiUrl?: string | undefined;
   /** AMX master (NetLinx) that owns the Atlona matrix (PIGATEWAY_AMX_MASTER_HOST/_PORT). */
   amxMasterHost?: string | undefined;
   amxMasterPort: number;
@@ -194,7 +199,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const piprogramApiUrl = urlWithScheme(env.PIGATEWAY_PIPROGRAM_API_URL, "PIGATEWAY_PIPROGRAM_API_URL", ["http:", "https:"]);
   const picanvaApiUrl = urlWithScheme(env.PIGATEWAY_PICANVA_API_URL, "PIGATEWAY_PICANVA_API_URL", ["http:", "https:"]);
   const pirundownApiUrl = urlWithScheme(env.PIGATEWAY_PIRUNDOWN_API_URL, "PIGATEWAY_PIRUNDOWN_API_URL", ["http:", "https:"]);
+  const pirundownDesignerApiUrl = urlWithScheme(env.PIGATEWAY_PIRUNDOWN_DESIGNER_API_URL, "PIGATEWAY_PIRUNDOWN_DESIGNER_API_URL", ["http:", "https:"]);
   const pispaceApiUrl = urlWithScheme(env.PIGATEWAY_PISPACE_API_URL, "PIGATEWAY_PISPACE_API_URL", ["http:", "https:"]);
+  const pigraphicsApiUrl = urlWithScheme(env.PIGATEWAY_PIGRAPHICS_API_URL, "PIGATEWAY_PIGRAPHICS_API_URL", ["http:", "https:"]);
+  const piperceptionApiUrl = urlWithScheme(env.PIGATEWAY_PIPERCEPTION_API_URL, "PIGATEWAY_PIPERCEPTION_API_URL", ["http:", "https:"]);
   const ecosystemPollIntervalMs = validInteger(env.PIGATEWAY_ECOSYSTEM_POLL_INTERVAL_MS, 15000, 0, 3600000, "PIGATEWAY_ECOSYSTEM_POLL_INTERVAL_MS");
 
   return {
@@ -222,7 +230,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     piprogramApiUrl,
     picanvaApiUrl,
     pirundownApiUrl,
+    pirundownDesignerApiUrl,
     pispaceApiUrl,
+    pigraphicsApiUrl,
+    piperceptionApiUrl,
     ecosystemPollIntervalMs,
     radioRelayApiUrl,
     radioRelayApiToken,
@@ -264,6 +275,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     freedUdpPort: validPort(env.PIGATEWAY_FREED_UDP_PORT, 40000, "PIGATEWAY_FREED_UDP_PORT", true),
     freedAllowedHosts: list(env.PIGATEWAY_FREED_ALLOWED_HOSTS),
     picamApiUrl: urlWithScheme(env.PIGATEWAY_PICAM_API_URL, "PIGATEWAY_PICAM_API_URL", ["http:", "https:"]),
+    piencoderApiUrl: urlWithScheme(env.PIGATEWAY_PIENCODER_API_URL, "PIGATEWAY_PIENCODER_API_URL", ["http:", "https:"]),
     amxMasterHost: env.PIGATEWAY_AMX_MASTER_HOST?.trim() || undefined,
     amxMasterPort: validPort(env.PIGATEWAY_AMX_MASTER_PORT, 6501, "PIGATEWAY_AMX_MASTER_PORT"),
     amxTcpEnabled: env.PIGATEWAY_AMX_TCP_ENABLED === "true" || env.PIGATEWAY_AMX_TCP_PORT !== undefined,

@@ -10,7 +10,7 @@ import type { RundownStore } from "../rundown/rundown-store.js";
 import { VideoSourceRegistry } from "../switcher/video-source-registry.js";
 
 export interface ActionParamDef {
-  type: "string" | "number" | "boolean";
+  type: "string" | "number" | "boolean" | "object";
   required?: boolean | undefined;
   description?: string | undefined;
   enum?: Array<string | number> | undefined;
@@ -454,6 +454,47 @@ export class ActionRegistry {
       params: {},
     });
 
+    // 8. Graphics Domain (PiGraphics)
+    const graphicsComponent = ecosystem.components.pigraphics;
+    const graphicsAvailable = Boolean(graphicsComponent?.available || graphicsComponent?.active || this.config.pigraphicsApiUrl);
+    const graphicsReason = graphicsAvailable ? undefined : "PiGraphics engine is not available";
+
+    actions.push({
+      id: "graphics:show",
+      domain: "graphics",
+      name: "Show Graphic",
+      description: "Trigger on-air lower third or graphic overlay",
+      available: graphicsAvailable,
+      unavailableReason: graphicsReason,
+      params: {
+        templateId: { type: "string", required: true, description: "Template ID (e.g. lower-third-speaker)" },
+        data: { type: "object", required: false, description: "Template variable fields" },
+        durationMs: { type: "number", required: false, description: "Auto-hide timeout in milliseconds" },
+      },
+    });
+
+    actions.push({
+      id: "graphics:hide",
+      domain: "graphics",
+      name: "Hide Graphic",
+      description: "Take graphic instance off air",
+      available: graphicsAvailable,
+      unavailableReason: graphicsReason,
+      params: {
+        id: { type: "string", required: true, description: "Active graphic instance ID" },
+      },
+    });
+
+    actions.push({
+      id: "graphics:clear",
+      domain: "graphics",
+      name: "Clear Graphics",
+      description: "Take all active graphics off air immediately",
+      available: graphicsAvailable,
+      unavailableReason: graphicsReason,
+      params: {},
+    });
+
     if (availableOnly) {
       return actions.filter((a) => a.available);
     }
@@ -779,6 +820,29 @@ export class ActionRegistry {
       }
     }
 
+    // 8. Graphics Domain (forward to PiGraphics)
+    if (domain === "graphics") {
+      const baseUrl = this.config.pigraphicsApiUrl ?? "http://127.0.0.1:3107";
+      if (op === "show") {
+        const templateId = String(params.templateId ?? "lower-third-speaker");
+        const res = await this.postJson(`${baseUrl}/api/v1/graphics/active/show`, {
+          templateId,
+          data: params.data ?? {},
+          durationMs: params.durationMs
+        });
+        return { ok: res.ok, action: actionId, target: "graphics:show", result: res.data, error: res.error };
+      }
+      if (op === "hide") {
+        const id = encodeURIComponent(String(params.id ?? ""));
+        const res = await this.postJson(`${baseUrl}/api/v1/graphics/active/hide/${id}`, {});
+        return { ok: res.ok, action: actionId, target: "graphics:hide", result: res.data, error: res.error };
+      }
+      if (op === "clear") {
+        const res = await this.postJson(`${baseUrl}/api/v1/graphics/active/clear`, {});
+        return { ok: res.ok, action: actionId, target: "graphics:clear", result: res.data, error: res.error };
+      }
+    }
+
     return { ok: false, action: actionId, error: `Unrecognized action '${actionId}'` };
   }
 
@@ -863,6 +927,12 @@ export class ActionRegistry {
       }
       if (parts[1] === "goto") return { action: "rundown:goto", params: { id: parts[2] } };
       if (parts[1] === "skip") return { action: "rundown:skip", params: { id: parts[2] } };
+    }
+
+    if (domain === "graphics") {
+      if (parts[1] === "clear") return { action: "graphics:clear", params: {} };
+      if (parts[1] === "show") return { action: "graphics:show", params: { templateId: parts[2] } };
+      if (parts[1] === "hide") return { action: "graphics:hide", params: { id: parts[2] } };
     }
 
     return { action: str, params: {} };

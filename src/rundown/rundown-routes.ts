@@ -34,7 +34,7 @@ export function registerRundownRoutes(
   app.post<{ Body: any }>(
     "/api/v1/rundown/load",
     async (req, reply) => {
-      const body = req.body;
+      const body = req.body as any;
       if (!body || typeof body !== "object") {
         return reply.status(400).send({ error: "Missing JSON body" });
       }
@@ -62,7 +62,7 @@ export function registerRundownRoutes(
         }
       }
 
-      const doc: StoredRundownDoc = "doc" in body && body.doc ? body.doc : (body as StoredRundownDoc);
+      const doc: StoredRundownDoc = "doc" in body && body.doc ? (body.doc as StoredRundownDoc) : (body as StoredRundownDoc);
       if (!doc.title || !Array.isArray(doc.rundown)) {
         return reply.status(422).send({ error: "Invalid rundown document: must have 'title' and 'rundown' array" });
       }

@@ -134,3 +134,40 @@ test("config reads the encoder and wants user and password together", () => {
   assert.equal(c.encoderUser, "a");
   assert.throws(() => loadConfig({ PIGATEWAY_ENCODER_USER: "a" }), /together/);
 });
+
+test("numbered encoder routes /api/v1/encoder/:number and list support", async () => {
+  const device = fakeDevice();
+  const { app } = await build(device);
+
+  // 1. GET /api/v1/encoder lists all with items array
+  const listRes = await app.inject({ method: "GET", url: "/api/v1/encoder" });
+  assert.equal(listRes.statusCode, 200);
+  const listJson = listRes.json();
+  assert.ok(Array.isArray(listJson.items));
+  assert.equal(listJson.items[0].id, 1);
+  assert.equal(listJson.id, 1);
+
+  // 2. GET /api/v1/encoders also lists all
+  const listAllRes = await app.inject({ method: "GET", url: "/api/v1/encoders" });
+  assert.equal(listAllRes.statusCode, 200);
+  assert.equal(listAllRes.json().items.length, 1);
+
+  // 3. GET /api/v1/encoder/1 returns unit 1
+  const enc1Res = await app.inject({ method: "GET", url: "/api/v1/encoder/1" });
+  assert.equal(enc1Res.statusCode, 200);
+  assert.equal(enc1Res.json().id, 1);
+
+  // 4. GET /api/v1/encoder/2 returns 404 when unit 2 is not configured
+  const enc2Res = await app.inject({ method: "GET", url: "/api/v1/encoder/2" });
+  assert.equal(enc2Res.statusCode, 404);
+
+  // 5. POST /api/v1/encoder/1/start starts unit 1
+  const start1Res = await app.inject({ method: "POST", url: "/api/v1/encoder/1/start", payload: { channel: 2 } });
+  assert.equal(start1Res.statusCode, 200);
+  assert.ok(device.calls.includes("start2"));
+
+  // 6. GET /api/v1/encoder/1/input
+  const inputRes = await app.inject({ method: "GET", url: "/api/v1/encoder/1/input" });
+  assert.equal(inputRes.statusCode, 200);
+  assert.equal(inputRes.json().input, "SDI A");
+});

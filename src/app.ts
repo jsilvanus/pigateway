@@ -50,7 +50,14 @@ export function buildApp(config: AppConfig): FastifyInstance {
         method !== "OPTIONS" &&
         !route.url.startsWith("/api/v1/video-mixer") &&
         !route.url.startsWith("/api/v1/switch") &&
-        !route.url.startsWith("/api/v1/piswitch")
+        !route.url.startsWith("/api/v1/piswitch") &&
+        route.url !== "/api/v1/encoders" &&
+        !route.url.includes("/rtmp/") &&
+        route.url !== "/api/v1/encoder/:number" &&
+        route.url !== "/api/v1/encoder/:number/start" &&
+        route.url !== "/api/v1/encoder/:number/stop" &&
+        route.url !== "/api/v1/encoder/:number/input" &&
+        route.url !== "/api/v1/encoder/:number/settings"
       ) routeTable.add(`${method} ${route.url.replace(/:(\w+)/g, "{$1}")}`);
     }
   });
@@ -113,7 +120,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
     logger: app.log,
     onChange: (state) => eventBroker.emit({ type: "encoder", data: state })
   });
-  registerEncoderRoutes(app, encoder);
+  registerEncoderRoutes(app, encoder, { piencoderUrl: config.piencoderApiUrl });
 
   const youtube = new YoutubeStatusStore({ onChange: (record) => eventBroker.emit({ type: "youtube", data: record }) });
   registerYoutubeRoutes(app, youtube);
@@ -122,6 +129,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
     mode: config.mode,
     eventBroker,
     logger: app.log,
+    picamApiUrl: config.picamApiUrl,
     nearLimitM: config.cameraNearLimitM,
     cam1Name: config.cam1Name,
     cam1Host: config.cam1Host,

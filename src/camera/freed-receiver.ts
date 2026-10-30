@@ -151,7 +151,11 @@ export class FreedUdpReceiver {
   }
 
   getTelemetry(camId: number): FreedTelemetry | undefined {
-    return this.telemetryByCamId.get(camId);
+    return (
+      this.telemetryByCamId.get(camId) ??
+      this.telemetryByCamId.get(100 + camId) ??
+      (camId > 100 ? this.telemetryByCamId.get(camId - 100) : undefined)
+    );
   }
 
   getAllTelemetry(): FreedTelemetry[] {
