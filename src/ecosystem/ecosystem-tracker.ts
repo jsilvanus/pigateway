@@ -469,6 +469,24 @@ export class EcosystemTracker {
       url: this.#config.piencoderApiUrl ?? "http://127.0.0.1:3109"
     };
 
+    // 11.7. PiEmbed Microservice
+    const piembedAvailable = this.#availableMap.get("piembed") ?? false;
+    const piembedConfigured = Boolean(this.#config.piembedApiUrl);
+    const piembedInUse = piembedAvailable || piembedConfigured;
+    components.piembed = {
+      id: "piembed",
+      tab: "rundown",
+      name: "PiEmbed Vector Engine",
+      description: "Vector embedding and semantic cue matching microservice (Ollama + Hugging Face ONNX)",
+      active: piembedInUse,
+      inUse: piembedInUse,
+      available: piembedAvailable,
+      configured: piembedConfigured,
+      connecting: false,
+      lastSeenAt: this.#lastSeenMap.get("piembed") ?? null,
+      url: this.#config.piembedApiUrl ?? "http://127.0.0.1:3125"
+    };
+
     // 12. PTZ Cameras
     const cameraList = this.#cameraService?.list() ?? [];
     const camerasConfigured = Boolean(this.#config.cam1Host || this.#config.cam2Host || this.#config.mode === "simulation");
@@ -549,7 +567,8 @@ export class EcosystemTracker {
         { id: "pigraphics", url: `${this.#config.pigraphicsApiUrl ?? "http://127.0.0.1:3107"}/health` },
         { id: "piperception", url: `${this.#config.piperceptionApiUrl ?? "http://127.0.0.1:3110"}/health` },
         { id: "picam", url: `${this.#config.picamApiUrl ?? "http://127.0.0.1:3300"}/health` },
-        { id: "piencoder", url: `${this.#config.piencoderApiUrl ?? "http://127.0.0.1:3109"}/health` }
+        { id: "piencoder", url: `${this.#config.piencoderApiUrl ?? "http://127.0.0.1:3109"}/health` },
+        { id: "piembed", url: `${this.#config.piembedApiUrl ?? "http://127.0.0.1:3125"}/health` }
       ];
 
       const results = await Promise.allSettled(

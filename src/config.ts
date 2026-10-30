@@ -84,6 +84,8 @@ export interface AppConfig {
   picamApiUrl?: string | undefined;
   /** piencoder multi-unit hardware encoder service URL (PIGATEWAY_PIENCODER_API_URL). */
   piencoderApiUrl?: string | undefined;
+  /** piembed vector embedding & semantic cue matching service URL (PIGATEWAY_PIEMBED_API_URL). */
+  piembedApiUrl?: string | undefined;
   /** AMX master (NetLinx) that owns the Atlona matrix (PIGATEWAY_AMX_MASTER_HOST/_PORT). */
   amxMasterHost?: string | undefined;
   amxMasterPort: number;
@@ -276,6 +278,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     freedAllowedHosts: list(env.PIGATEWAY_FREED_ALLOWED_HOSTS),
     picamApiUrl: urlWithScheme(env.PIGATEWAY_PICAM_API_URL, "PIGATEWAY_PICAM_API_URL", ["http:", "https:"]),
     piencoderApiUrl: urlWithScheme(env.PIGATEWAY_PIENCODER_API_URL, "PIGATEWAY_PIENCODER_API_URL", ["http:", "https:"]),
+    piembedApiUrl: urlWithScheme(env.PIGATEWAY_PIEMBED_API_URL, "PIGATEWAY_PIEMBED_API_URL", ["http:", "https:"]),
     amxMasterHost: env.PIGATEWAY_AMX_MASTER_HOST?.trim() || undefined,
     amxMasterPort: validPort(env.PIGATEWAY_AMX_MASTER_PORT, 6501, "PIGATEWAY_AMX_MASTER_PORT"),
     amxTcpEnabled: env.PIGATEWAY_AMX_TCP_ENABLED === "true" || env.PIGATEWAY_AMX_TCP_PORT !== undefined,
