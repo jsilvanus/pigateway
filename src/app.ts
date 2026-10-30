@@ -27,6 +27,8 @@ import { ActionRegistry } from "./actions/action-registry.js";
 import { registerActionRoutes } from "./actions/action-routes.js";
 import { RundownStore } from "./rundown/rundown-store.js";
 import { registerRundownRoutes } from "./rundown/rundown-routes.js";
+import { SpatialStatusStore } from "./spatial/spatial-status.js";
+import { registerSpatialRoutes } from "./spatial/spatial-routes.js";
 
 export function buildApp(config: AppConfig): FastifyInstance {
   const app = Fastify({
@@ -182,6 +184,8 @@ export function buildApp(config: AppConfig): FastifyInstance {
   rundownStore.setActionRegistry(actionRegistry);
   registerActionRoutes(app, actionRegistry);
   registerRundownRoutes(app, rundownStore);
+  const spatialStore = new SpatialStatusStore(eventBroker);
+  registerSpatialRoutes(app, spatialStore);
   (app as unknown as { rundownStore: RundownStore }).rundownStore = rundownStore;
 
   const amxControl: AmxControl = {

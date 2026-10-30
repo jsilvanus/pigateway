@@ -3096,6 +3096,81 @@
           }
         }
       }
+    },
+    "/api/v1/spatial": {
+      "get": {
+        "operationId": "getSpatialScene",
+        "tags": [
+          "Spatial"
+        ],
+        "summary": "Get latest spatial scene snapshot from pispace",
+        "responses": {
+          "200": {
+            "description": "Current spatial scene",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/spatial/scene": {
+      "put": {
+        "operationId": "updateSpatialScene",
+        "tags": [
+          "Spatial"
+        ],
+        "summary": "Update the live spatial scene snapshot",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated scene"
+          },
+          "422": {
+            "description": "Invalid payload"
+          }
+        }
+      }
+    },
+    "/api/v1/spatial/events": {
+      "post": {
+        "operationId": "postSpatialEvent",
+        "tags": [
+          "Spatial"
+        ],
+        "summary": "Post a spatial zone transition event",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Event accepted"
+          },
+          "422": {
+            "description": "Invalid event"
+          }
+        }
+      }
     }
   },
   "components": {

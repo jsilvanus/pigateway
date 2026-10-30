@@ -31,6 +31,7 @@ export interface AppConfig {
   piprogramApiUrl?: string | undefined;
   picanvaApiUrl?: string | undefined;
   pirundownApiUrl?: string | undefined;
+  pispaceApiUrl?: string | undefined;
   ecosystemPollIntervalMs: number;
   radioRelayApiUrl?: string | undefined;
   radioRelayApiToken?: string | undefined;
@@ -191,6 +192,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const piprogramApiUrl = urlWithScheme(env.PIGATEWAY_PIPROGRAM_API_URL, "PIGATEWAY_PIPROGRAM_API_URL", ["http:", "https:"]);
   const picanvaApiUrl = urlWithScheme(env.PIGATEWAY_PICANVA_API_URL, "PIGATEWAY_PICANVA_API_URL", ["http:", "https:"]);
   const pirundownApiUrl = urlWithScheme(env.PIGATEWAY_PIRUNDOWN_API_URL, "PIGATEWAY_PIRUNDOWN_API_URL", ["http:", "https:"]);
+  const pispaceApiUrl = urlWithScheme(env.PIGATEWAY_PISPACE_API_URL, "PIGATEWAY_PISPACE_API_URL", ["http:", "https:"]);
   const ecosystemPollIntervalMs = validInteger(env.PIGATEWAY_ECOSYSTEM_POLL_INTERVAL_MS, 15000, 0, 3600000, "PIGATEWAY_ECOSYSTEM_POLL_INTERVAL_MS");
 
   return {
@@ -218,6 +220,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     piprogramApiUrl,
     picanvaApiUrl,
     pirundownApiUrl,
+    pispaceApiUrl,
     ecosystemPollIntervalMs,
     radioRelayApiUrl,
     radioRelayApiToken,

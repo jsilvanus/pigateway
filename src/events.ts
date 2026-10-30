@@ -34,6 +34,33 @@ export interface ActionEventPayload {
   timestamp: string;
 }
 
+export interface SpatialScenePayload {
+  updatedAt: string;
+  activeZones: string[];
+  subjects: Array<{
+    trackId: number;
+    sourceCameraId: string;
+    position: { x: number; y: number; z: number };
+    headHeight?: number | undefined;
+    zoneId: string | null;
+    zoneName: string | null;
+    confidence: number;
+    label: string;
+    lastSeenAt: string;
+  }>;
+  cameras: Record<string, unknown>;
+}
+
+export interface SpatialZoneEventPayload {
+  event: "entered" | "left";
+  trackId: number;
+  zoneId: string;
+  zoneName: string;
+  sourceCameraId: string;
+  position?: { x: number; y: number; z: number } | undefined;
+  timestamp: string;
+}
+
 export type GatewayEvent =
   | { type: "camera"; data: CameraEventPayload }
   | { type: "freed"; data: FreedTelemetry }
@@ -48,6 +75,8 @@ export type GatewayEvent =
   | { type: "ecosystem"; data: EcosystemStatus }
   | { type: "action"; data: ActionEventPayload }
   | { type: "rundown"; data: RundownStatusSnapshot }
+  | { type: "spatial"; data: SpatialScenePayload }
+  | { type: "spatial-zone"; data: SpatialZoneEventPayload }
   | { type: "ready"; data: { status: string; time: string } };
 
 export class GatewayEventBroker {
