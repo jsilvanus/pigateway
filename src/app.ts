@@ -191,7 +191,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
   });
   rundownStore.setActionRegistry(actionRegistry);
   registerActionRoutes(app, actionRegistry);
-  registerRundownRoutes(app, rundownStore);
+  registerRundownRoutes(app, rundownStore, { pirundownUrl: config.pirundownApiUrl ?? "http://127.0.0.1:3400" });
   const spatialStore = new SpatialStatusStore(eventBroker);
   registerSpatialRoutes(app, spatialStore);
   const worldStateAggregator = new WorldStateAggregator({
@@ -471,3 +471,4 @@ export function buildApp(config: AppConfig): FastifyInstance {
 
   return app;
 }
+

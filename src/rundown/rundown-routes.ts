@@ -1,4 +1,4 @@
-import type { FastifyInstance, FastifyRequest } from "fastify";
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import type { RundownStore, StoredRundownDoc } from "./rundown-store.js";
 
 function getActor(req: FastifyRequest, body?: any): string {
@@ -12,14 +12,26 @@ function getActor(req: FastifyRequest, body?: any): string {
   return "unknown";
 }
 
-export function registerRundownRoutes(app: FastifyInstance, store: RundownStore): void {
+export interface RundownRoutesOptions {
+  pirundownUrl?: string;
+  fetchFn?: typeof fetch;
+}
+
+export function registerRundownRoutes(
+  app: FastifyInstance,
+  store: RundownStore,
+  options: RundownRoutesOptions = {}
+): void {
+  const pirundownUrl = (options.pirundownUrl ?? "http://127.0.0.1:3400").replace(/\/+$/, "");
+  const fetchFn = options.fetchFn ?? fetch;
+
   // 1. GET /api/v1/rundown - Current snapshot
   app.get("/api/v1/rundown", async () => {
     return store.getStatus();
   });
 
-  // 2. POST /api/v1/rundown/load - Load a new rundown document
-  app.post<{ Body: StoredRundownDoc | { doc: StoredRundownDoc; actor?: string } }>(
+  // 2. POST /api/v1/rundown/load - Load a new rundown document (JSON doc or { yaml: string })
+  app.post<{ Body: any }>(
     "/api/v1/rundown/load",
     async (req, reply) => {
       const body = req.body;
@@ -27,12 +39,34 @@ export function registerRundownRoutes(app: FastifyInstance, store: RundownStore)
         return reply.status(400).send({ error: "Missing JSON body" });
       }
 
+      const actor = getActor(req, body);
+
+      // Support YAML string payload forwarded to PiRundown
+      if (typeof body.yaml === "string") {
+        try {
+          const pirundownRes = await fetchFn(`${pirundownUrl}/api/v1/rundown/load`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ yaml: body.yaml }),
+          });
+          const pirundownData = (await pirundownRes.json()) as any;
+          if (!pirundownRes.ok) {
+            return reply.status(pirundownRes.status).send(pirundownData);
+          }
+          if (pirundownData.rundown?.raw) {
+            store.load(pirundownData.rundown.raw, actor);
+          }
+          return { ok: true, rundown: store.getStatus(), pirundown: pirundownData };
+        } catch (err: any) {
+          return reply.status(502).send({ error: `Cannot forward to pirundown: ${err.message}` });
+        }
+      }
+
       const doc: StoredRundownDoc = "doc" in body && body.doc ? body.doc : (body as StoredRundownDoc);
       if (!doc.title || !Array.isArray(doc.rundown)) {
         return reply.status(422).send({ error: "Invalid rundown document: must have 'title' and 'rundown' array" });
       }
 
-      const actor = getActor(req, body);
       const snapshot = store.load(doc, actor);
       return { ok: true, rundown: snapshot };
     }
@@ -110,12 +144,12 @@ export function registerRundownRoutes(app: FastifyInstance, store: RundownStore)
     }
   );
 
-  // 9. GET /api/v1/rundown/variables - List variables
+  // 10. GET /api/v1/rundown/variables - List variables
   app.get("/api/v1/rundown/variables", async () => {
     return { variables: store.getVariables() };
   });
 
-  // 10. POST /api/v1/rundown/variables - Set a variable
+  // 11. POST /api/v1/rundown/variables - Set a variable
   app.post<{ Body: { name: string; value: string; actor?: string } }>(
     "/api/v1/rundown/variables",
     async (req, reply) => {
@@ -128,4 +162,47 @@ export function registerRundownRoutes(app: FastifyInstance, store: RundownStore)
       return { ok: true, variables: store.getVariables() };
     }
   );
+
+  // 12. Storage Proxies for PiRundown (Internet / Gateway ingress)
+  const proxyStorage = async (path: string, req: FastifyRequest, reply: FastifyReply, method: string = "GET", body?: any) => {
+    try {
+      const res = await fetchFn(`${pirundownUrl}${path}`, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          ...(req.headers.accept ? { Accept: req.headers.accept } : {}),
+        },
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      });
+
+      const text = await res.text();
+      reply.type("application/json").status(res.status).send(text);
+    } catch (err: any) {
+      reply.status(502).send({ ok: false, error: `PiGateway: Cannot reach PiRundown at ${pirundownUrl}: ${err.message}` });
+    }
+  };
+
+  app.get("/api/v1/rundown/storage", async (req, reply) => {
+    await proxyStorage("/api/v1/storage", req, reply);
+  });
+
+  app.get("/api/v1/storage/rundowns", async (req, reply) => {
+    await proxyStorage("/api/v1/storage", req, reply);
+  });
+
+  app.get<{ Params: { id: string } }>("/api/v1/rundown/storage/:id", async (req, reply) => {
+    await proxyStorage(`/api/v1/storage/${req.params.id}`, req, reply);
+  });
+
+  app.post<{ Body: any }>("/api/v1/rundown/storage", async (req, reply) => {
+    await proxyStorage("/api/v1/storage", req, reply, "POST", req.body);
+  });
+
+  app.post<{ Params: { id: string } }>("/api/v1/rundown/storage/:id/load", async (req, reply) => {
+    await proxyStorage(`/api/v1/storage/${req.params.id}/load`, req, reply, "POST");
+  });
+
+  app.delete<{ Params: { id: string } }>("/api/v1/rundown/storage/:id", async (req, reply) => {
+    await proxyStorage(`/api/v1/storage/${req.params.id}`, req, reply, "DELETE");
+  });
 }
