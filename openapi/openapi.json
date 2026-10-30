@@ -3171,6 +3171,48 @@
           }
         }
       }
+    },
+    "/api/v1/world-state": {
+      "get": {
+        "operationId": "getWorldState",
+        "tags": [
+          "WorldState"
+        ],
+        "summary": "Get fused World State snapshot across audio, spatial, and rundown",
+        "responses": {
+          "200": {
+            "description": "Current world state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/world-state/refresh": {
+      "post": {
+        "operationId": "refreshWorldState",
+        "tags": [
+          "WorldState"
+        ],
+        "summary": "Force re-computation of the World State",
+        "responses": {
+          "200": {
+            "description": "Fresh world state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

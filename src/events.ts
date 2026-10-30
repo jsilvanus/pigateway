@@ -5,6 +5,7 @@ import type { TranscriptEvent } from "./transcripts/transcript-hub.js";
 import type { EcosystemStatus } from "./ecosystem/ecosystem-tracker.js";
 import type { FreedTelemetry } from "./camera/freed-receiver.js";
 import type { RundownStatusSnapshot } from "./rundown/rundown-store.js";
+import type { WorldState } from "./world/world-state.js";
 
 export interface CameraEventPayload {
   id: string;
@@ -77,6 +78,7 @@ export type GatewayEvent =
   | { type: "rundown"; data: RundownStatusSnapshot }
   | { type: "spatial"; data: SpatialScenePayload }
   | { type: "spatial-zone"; data: SpatialZoneEventPayload }
+  | { type: "world-state"; data: WorldState }
   | { type: "ready"; data: { status: string; time: string } };
 
 export class GatewayEventBroker {

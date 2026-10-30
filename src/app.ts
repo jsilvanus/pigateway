@@ -29,6 +29,8 @@ import { RundownStore } from "./rundown/rundown-store.js";
 import { registerRundownRoutes } from "./rundown/rundown-routes.js";
 import { SpatialStatusStore } from "./spatial/spatial-status.js";
 import { registerSpatialRoutes } from "./spatial/spatial-routes.js";
+import { WorldStateAggregator } from "./world/world-state.js";
+import { registerWorldStateRoutes } from "./world/world-routes.js";
 
 export function buildApp(config: AppConfig): FastifyInstance {
   const app = Fastify({
@@ -192,6 +194,19 @@ export function buildApp(config: AppConfig): FastifyInstance {
   registerRundownRoutes(app, rundownStore);
   const spatialStore = new SpatialStatusStore(eventBroker);
   registerSpatialRoutes(app, spatialStore);
+  const worldStateAggregator = new WorldStateAggregator({
+    eventBroker,
+    getSpatial: () => spatialStore.get(),
+    getPiVoice: () => pivoice.getState(),
+    getPiSound: () => pisound.getState(),
+    getRundown: () => rundownStore.getStatus(),
+    getAtem: () => {
+      const s = atem.getState();
+      return { connected: s.connected, programInput: s.programInput, previewInput: s.previewInput };
+    },
+  });
+  registerWorldStateRoutes(app, worldStateAggregator);
+  (app as unknown as { worldStateAggregator: WorldStateAggregator }).worldStateAggregator = worldStateAggregator;
   (app as unknown as { rundownStore: RundownStore }).rundownStore = rundownStore;
 
   const amxControl: AmxControl = {
@@ -358,6 +373,8 @@ export function buildApp(config: AppConfig): FastifyInstance {
       transcripts: { delivery: transcriptDelivery?.mode ?? null, ...transcripts.status(), source: auditorSse.status() },
       radioRelay: await radioRelay.safeLifecycle(),
       cameras: cameraService.list().map((cam) => ({ id: cam.id, connection: cam.connection })),
+      spatial: spatialStore.get(),
+      worldState: worldStateAggregator.get(),
       ecosystem: eco,
       activePlugins: eco.activePlugins,
       inUseTabs: eco.inUseTabs
@@ -413,6 +430,10 @@ export function buildApp(config: AppConfig): FastifyInstance {
     const currentRundown = rundownStore.getStatus();
     if (currentRundown.loaded && (!wanted || wanted.has("rundown"))) {
       reply.raw.write(`event: rundown\ndata: ${JSON.stringify(currentRundown)}\n\n`);
+    }
+    const currentWorldState = worldStateAggregator.get();
+    if (!wanted || wanted.has("world-state")) {
+      reply.raw.write(`event: world-state\ndata: ${JSON.stringify(currentWorldState)}\n\n`);
     }
     reply.raw.write(
       `event: ready\ndata: ${JSON.stringify({ status: "connected", time: new Date().toISOString() })}\n\n`
