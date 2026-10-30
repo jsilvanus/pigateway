@@ -144,7 +144,40 @@ test("action execution runs camera preset and emits event with actor", async () 
   assert.equal(cutRes.statusCode, 200);
   assert.equal(JSON.parse(cutRes.payload).ok, true);
 
-  // 5. Invalid action gives 422 with actor preserved
+  // 5. Named camera input mapping: atem:preview:cam1
+  const cam1Res = await app.inject({
+    method: "POST",
+    url: "/api/v1/actions/execute",
+    payload: {
+      action: "atem:preview:cam1",
+      actor: "rundown",
+    },
+  });
+  assert.equal(cam1Res.statusCode, 200);
+  const cam1Json = JSON.parse(cam1Res.payload);
+  assert.equal(cam1Json.ok, true);
+  assert.equal(cam1Json.result?.input, 1);
+  assert.equal(cam1Json.result?.source, "cam1");
+
+  // 6. Automatic routing for pastorphone (piswitch -> pimatrix -> atlona)
+  const pastorRes = await app.inject({
+    method: "POST",
+    url: "/api/v1/actions/execute",
+    payload: {
+      action: "atem:preview:pastorphone",
+      actor: "rundown",
+    },
+  });
+  assert.equal(pastorRes.statusCode, 200);
+  const pastorJson = JSON.parse(pastorRes.payload);
+  assert.equal(pastorJson.ok, true);
+  assert.equal(pastorJson.result?.input, 4); // switch matrix input
+  assert.equal(pastorJson.result?.source, "pastorphone");
+  assert.equal(pastorJson.result?.matrix?.routed, true);
+  assert.equal(pastorJson.result?.matrix?.atlonaInput, 4);
+  assert.equal(pastorJson.result?.matrix?.atlonaOutput, 5);
+
+  // 7. Invalid action gives 422 with actor preserved
   const badRes = await app.inject({
     method: "POST",
     url: "/api/v1/actions/execute",

@@ -95,6 +95,8 @@ export interface AppConfig {
   /** MediaMTX bases a camera is told to push to (PIGATEWAY_MEDIAMTX_RTSP_URL / _RTMP_URL). */
   mediaMtxRtspUrl?: string | undefined;
   mediaMtxRtmpUrl?: string | undefined;
+  /** Video mixer input connected to Atlona matrix output 5 (PIGATEWAY_SWITCH_MATRIX_INPUT, default 4). */
+  switchMatrixInput: number;
 }
 
 function validPort(value: string | undefined, fallback: number, name: string, allowZero = false): number {
@@ -272,6 +274,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     videoAmxHost: env.PIGATEWAY_VIDEO_AMX_HOST?.trim() || undefined,
     videoAmxPort: validPort(env.PIGATEWAY_VIDEO_AMX_PORT, 6601, "PIGATEWAY_VIDEO_AMX_PORT"),
     mediaMtxRtspUrl: urlWithScheme(env.PIGATEWAY_MEDIAMTX_RTSP_URL, "PIGATEWAY_MEDIAMTX_RTSP_URL", ["rtsp:", "rtsps:"]),
-    mediaMtxRtmpUrl: urlWithScheme(env.PIGATEWAY_MEDIAMTX_RTMP_URL, "PIGATEWAY_MEDIAMTX_RTMP_URL", ["rtmp:", "rtmps:"])
+    mediaMtxRtmpUrl: urlWithScheme(env.PIGATEWAY_MEDIAMTX_RTMP_URL, "PIGATEWAY_MEDIAMTX_RTMP_URL", ["rtmp:", "rtmps:"]),
+    switchMatrixInput: Number(env.PIGATEWAY_SWITCH_MATRIX_INPUT || 4),
   };
 }

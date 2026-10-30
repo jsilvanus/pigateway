@@ -7,6 +7,7 @@ import type { GatewayEventBroker } from "../events.js";
 import type { AppConfig } from "../config.js";
 import type { PanTiltDirection, ZoomAction } from "../camera/visca-protocol.js";
 import type { RundownStore } from "../rundown/rundown-store.js";
+import { VideoSourceRegistry } from "../switcher/video-source-registry.js";
 
 export interface ActionParamDef {
   type: "string" | "number" | "boolean";
@@ -50,6 +51,7 @@ export interface ActionRegistryOptions {
   eventBroker: GatewayEventBroker;
   fetchFn?: typeof fetch | undefined;
   rundownStore?: RundownStore | undefined;
+  sourceRegistry?: VideoSourceRegistry | undefined;
 }
 
 export class ActionRegistry {
@@ -61,6 +63,7 @@ export class ActionRegistry {
   private readonly ecosystemTracker: EcosystemTracker;
   private readonly eventBroker: GatewayEventBroker;
   private readonly fetchFn: typeof fetch;
+  readonly sourceRegistry: VideoSourceRegistry;
   private rundownStore?: RundownStore | undefined;
 
   constructor(options: ActionRegistryOptions) {
@@ -73,6 +76,9 @@ export class ActionRegistry {
     this.eventBroker = options.eventBroker;
     this.fetchFn = options.fetchFn ?? fetch;
     this.rundownStore = options.rundownStore;
+    this.sourceRegistry =
+      options.sourceRegistry ??
+      new VideoSourceRegistry({ switchMatrixInput: options.config.switchMatrixInput });
   }
 
   setRundownStore(store: RundownStore): void {
@@ -529,25 +535,64 @@ export class ActionRegistry {
         return { ok: false, action: actionId, error: "Video switch is not connected" };
       }
 
-      if (op === "cut") {
-        const input = typeof params.input === "number" ? params.input : undefined;
-        if (input !== undefined) {
-          await this.atem.setPreview(input);
+      if (op === "cut" || op === "preview" || op === "program") {
+        const rawInput = params.input !== undefined ? params.input : params.source;
+        let mixerInput: number | undefined;
+        let matrixResult: unknown = undefined;
+        let resolvedSource: unknown = undefined;
+
+        if (rawInput !== undefined) {
+          const resolved = this.sourceRegistry.resolve(rawInput as string | number);
+          mixerInput = resolved.mixerInput;
+          resolvedSource = resolved.source;
+
+          // If source requires matrix routing (e.g. pastorphone on Atlona 4 -> output 5)
+          if (resolved.matrixRoute) {
+            const { input: matIn, output: matOut } = resolved.matrixRoute;
+            const routeRes = await this.matrix.route(matIn, matOut, this.config.mode);
+            matrixResult = {
+              routed: true,
+              atlonaInput: matIn,
+              atlonaOutput: matOut,
+              message: routeRes.message,
+            };
+          }
         }
-        await this.atem.cut();
-        return { ok: true, action: actionId, target: `${domain}:cut`, result: { input } };
-      }
 
-      if (op === "preview") {
-        const input = typeof params.input === "number" ? params.input : 1;
-        await this.atem.setPreview(input);
-        return { ok: true, action: actionId, target: `${domain}:preview`, result: { input } };
-      }
+        if (op === "cut") {
+          if (mixerInput !== undefined) {
+            await this.atem.setPreview(mixerInput);
+          }
+          await this.atem.cut();
+          return {
+            ok: true,
+            action: actionId,
+            target: `${domain}:cut`,
+            result: { input: mixerInput, source: (resolvedSource as any)?.id, matrix: matrixResult },
+          };
+        }
 
-      if (op === "program") {
-        const input = typeof params.input === "number" ? params.input : 1;
-        await this.atem.setProgram(input);
-        return { ok: true, action: actionId, target: `${domain}:program`, result: { input } };
+        if (op === "preview") {
+          const targetInput = mixerInput ?? 1;
+          await this.atem.setPreview(targetInput);
+          return {
+            ok: true,
+            action: actionId,
+            target: `${domain}:preview`,
+            result: { input: targetInput, source: (resolvedSource as any)?.id, matrix: matrixResult },
+          };
+        }
+
+        if (op === "program") {
+          const targetInput = mixerInput ?? 1;
+          await this.atem.setProgram(targetInput);
+          return {
+            ok: true,
+            action: actionId,
+            target: `${domain}:program`,
+            result: { input: targetInput, source: (resolvedSource as any)?.id, matrix: matrixResult },
+          };
+        }
       }
 
       if (op === "auto") {
@@ -743,15 +788,15 @@ export class ActionRegistry {
 
     if (domain === "switch" || domain === "atem" || domain === "piswitch") {
       if (parts[1] === "cut") {
-        const input = parts[2] ? parseInt(parts[2], 10) : undefined;
+        const input = parts[2] ? (isNaN(Number(parts[2])) ? parts[2] : parseInt(parts[2], 10)) : undefined;
         return { action: `${domain}:cut`, params: input !== undefined ? { input } : {} };
       }
       if (parts[1] === "preview") {
-        const input = parts[2] ? parseInt(parts[2], 10) : 1;
+        const input = parts[2] ? (isNaN(Number(parts[2])) ? parts[2] : parseInt(parts[2], 10)) : 1;
         return { action: `${domain}:preview`, params: { input } };
       }
       if (parts[1] === "program") {
-        const input = parts[2] ? parseInt(parts[2], 10) : 1;
+        const input = parts[2] ? (isNaN(Number(parts[2])) ? parts[2] : parseInt(parts[2], 10)) : 1;
         return { action: `${domain}:program`, params: { input } };
       }
       if (parts[1] === "auto") return { action: `${domain}:auto` };
@@ -764,12 +809,12 @@ export class ActionRegistry {
     }
 
     if (domain === "cut") {
-      const input = parts[1] ? parseInt(parts[1], 10) : undefined;
+      const input = parts[1] ? (isNaN(Number(parts[1])) ? parts[1] : parseInt(parts[1], 10)) : undefined;
       return { action: "switch:cut", params: input !== undefined ? { input } : {} };
     }
 
     if (domain === "preview") {
-      const input = parts[1] ? parseInt(parts[1], 10) : 1;
+      const input = parts[1] ? (isNaN(Number(parts[1])) ? parts[1] : parseInt(parts[1], 10)) : 1;
       return { action: "switch:preview", params: { input } };
     }
 
