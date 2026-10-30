@@ -441,12 +441,14 @@ export class RundownStore {
         if (typeof action === "string") {
           req = { action: this.interpolate(action), actor };
         } else if (typeof action === "object" && action !== null) {
-          if ("atem" in (action as any)) {
-            const atem = (action as any).atem;
-            if (atem.cut !== undefined) req = { action: "atem:cut", params: { input: atem.cut }, actor };
-            else if (atem.auto) req = { action: "atem:auto", actor };
-            else if (atem.ftb) req = { action: "atem:ftb", actor };
-            else if (atem.dsk !== undefined) req = { action: "atem:dsk", params: { dskIndex: atem.dsk, state: atem.state }, actor };
+          const switchObj = (action as any).switch ?? (action as any).atem;
+          if (switchObj) {
+            if (switchObj.cut !== undefined) req = { action: "switch:cut", params: { input: switchObj.cut }, actor };
+            else if (switchObj.preview !== undefined) req = { action: "switch:preview", params: { input: switchObj.preview }, actor };
+            else if (switchObj.program !== undefined) req = { action: "switch:program", params: { input: switchObj.program }, actor };
+            else if (switchObj.auto) req = { action: "switch:auto", actor };
+            else if (switchObj.ftb) req = { action: "switch:ftb", actor };
+            else if (switchObj.dsk !== undefined) req = { action: "switch:dsk", params: { dskIndex: switchObj.dsk, state: switchObj.state }, actor };
           } else if ("cam" in (action as any)) {
             const cam = (action as any).cam;
             if (cam.preset !== undefined) {

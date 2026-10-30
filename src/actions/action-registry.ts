@@ -86,19 +86,101 @@ export class ActionRegistry {
     const ecosystem = this.ecosystemTracker.getSummary();
     const actions: ActionDefinition[] = [];
 
-    // 1. ATEM Actions
-    const atemConnected = this.atem.getState().connected;
-    const atemReason = atemConnected ? undefined : "ATEM switcher is not connected";
+    // 1. Switch / Video Mixer Actions (primary: switch, alias: atem, piswitch)
+    const switchConnected = this.atem.getState().connected;
+    const switchReason = switchConnected ? undefined : "Video switch is not connected";
 
+    actions.push({
+      id: "switch:cut",
+      domain: "switch",
+      name: "Switch Cut",
+      description: "Direct cut transition to an input, or cut preview to program",
+      available: switchConnected,
+      unavailableReason: switchReason,
+      params: {
+        input: { type: "number", required: false, description: "Optional input number to set on preview before cut" },
+      },
+    });
+
+    actions.push({
+      id: "switch:preview",
+      domain: "switch",
+      name: "Switch Set Preview",
+      description: "Select video source on the preview bus",
+      available: switchConnected,
+      unavailableReason: switchReason,
+      params: {
+        input: { type: "number", required: true, description: "Video input number (e.g. 1-8)" },
+      },
+    });
+
+    actions.push({
+      id: "switch:program",
+      domain: "switch",
+      name: "Switch Set Program",
+      description: "Directly select video source on the program bus",
+      available: switchConnected,
+      unavailableReason: switchReason,
+      params: {
+        input: { type: "number", required: true, description: "Video input number (e.g. 1-8)" },
+      },
+    });
+
+    actions.push({
+      id: "switch:auto",
+      domain: "switch",
+      name: "Switch Auto Transition",
+      description: "Perform mix/auto transition between preview and program",
+      available: switchConnected,
+      unavailableReason: switchReason,
+      params: {},
+    });
+
+    actions.push({
+      id: "switch:ftb",
+      domain: "switch",
+      name: "Switch Fade To Black",
+      description: "Toggle fade to black transition",
+      available: switchConnected,
+      unavailableReason: switchReason,
+      params: {},
+    });
+
+    actions.push({
+      id: "switch:dsk",
+      domain: "switch",
+      name: "Switch Downstream Keyer",
+      description: "Control DSK overlay on air or tie state",
+      available: switchConnected,
+      unavailableReason: switchReason,
+      params: {
+        dskIndex: { type: "number", required: true, description: "DSK index (0 or 1)" },
+        state: { type: "string", required: false, enum: ["on", "off", "toggle"] },
+      },
+    });
+
+    // ATEM aliases for backward compatibility
     actions.push({
       id: "atem:cut",
       domain: "atem",
       name: "ATEM Cut",
-      description: "Direct cut transition to an input, or cut preview to program",
-      available: atemConnected,
-      unavailableReason: atemReason,
+      description: "Alias for switch:cut",
+      available: switchConnected,
+      unavailableReason: switchReason,
       params: {
         input: { type: "number", required: false, description: "Optional input number to set on preview before cut" },
+      },
+    });
+
+    actions.push({
+      id: "atem:preview",
+      domain: "atem",
+      name: "ATEM Set Preview",
+      description: "Alias for switch:preview",
+      available: switchConnected,
+      unavailableReason: switchReason,
+      params: {
+        input: { type: "number", required: true, description: "Video input number (e.g. 1-8)" },
       },
     });
 
@@ -106,9 +188,9 @@ export class ActionRegistry {
       id: "atem:auto",
       domain: "atem",
       name: "ATEM Auto Transition",
-      description: "Perform mix/auto transition between preview and program",
-      available: atemConnected,
-      unavailableReason: atemReason,
+      description: "Alias for switch:auto",
+      available: switchConnected,
+      unavailableReason: switchReason,
       params: {},
     });
 
@@ -116,9 +198,9 @@ export class ActionRegistry {
       id: "atem:ftb",
       domain: "atem",
       name: "ATEM Fade To Black",
-      description: "Toggle fade to black transition",
-      available: atemConnected,
-      unavailableReason: atemReason,
+      description: "Alias for switch:ftb",
+      available: switchConnected,
+      unavailableReason: switchReason,
       params: {},
     });
 
@@ -126,9 +208,9 @@ export class ActionRegistry {
       id: "atem:dsk",
       domain: "atem",
       name: "ATEM Downstream Keyer",
-      description: "Control DSK overlay on air or tie state",
-      available: atemConnected,
-      unavailableReason: atemReason,
+      description: "Alias for switch:dsk",
+      available: switchConnected,
+      unavailableReason: switchReason,
       params: {
         dskIndex: { type: "number", required: true, description: "DSK index (0 or 1)" },
         state: { type: "string", required: false, enum: ["on", "off", "toggle"] },
@@ -440,11 +522,11 @@ export class ActionRegistry {
     const domain = parts[0]?.toLowerCase();
     const op = parts[1]?.toLowerCase();
 
-    // 1. ATEM Domain
-    if (domain === "atem") {
-      const atemState = this.atem.getState();
-      if (!atemState.connected && this.config.mode !== "simulation") {
-        return { ok: false, action: actionId, error: "ATEM switcher is not connected" };
+    // 1. Switch / Video Mixer Domain (primary: switch, alias: atem, piswitch)
+    if (domain === "switch" || domain === "atem" || domain === "piswitch") {
+      const switchState = this.atem.getState();
+      if (!switchState.connected && this.config.mode !== "simulation") {
+        return { ok: false, action: actionId, error: "Video switch is not connected" };
       }
 
       if (op === "cut") {
@@ -453,17 +535,29 @@ export class ActionRegistry {
           await this.atem.setPreview(input);
         }
         await this.atem.cut();
-        return { ok: true, action: actionId, target: "atem:cut", result: { input } };
+        return { ok: true, action: actionId, target: `${domain}:cut`, result: { input } };
+      }
+
+      if (op === "preview") {
+        const input = typeof params.input === "number" ? params.input : 1;
+        await this.atem.setPreview(input);
+        return { ok: true, action: actionId, target: `${domain}:preview`, result: { input } };
+      }
+
+      if (op === "program") {
+        const input = typeof params.input === "number" ? params.input : 1;
+        await this.atem.setProgram(input);
+        return { ok: true, action: actionId, target: `${domain}:program`, result: { input } };
       }
 
       if (op === "auto") {
         await this.atem.autoTransition();
-        return { ok: true, action: actionId, target: "atem:auto" };
+        return { ok: true, action: actionId, target: `${domain}:auto` };
       }
 
       if (op === "ftb") {
         await this.atem.fadeToBlack();
-        return { ok: true, action: actionId, target: "atem:ftb" };
+        return { ok: true, action: actionId, target: `${domain}:ftb` };
       }
 
       if (op === "dsk") {
@@ -472,10 +566,10 @@ export class ActionRegistry {
         if (state === "on") await this.atem.setDownstreamKeyOnAir(dsk, true);
         else if (state === "off") await this.atem.setDownstreamKeyOnAir(dsk, false);
         else {
-          const current = atemState.downstreamKeyers?.[dsk]?.onAir ?? false;
+          const current = switchState.downstreamKeyers?.[dsk]?.onAir ?? false;
           await this.atem.setDownstreamKeyOnAir(dsk, !current);
         }
-        return { ok: true, action: actionId, target: "atem:dsk", result: { dsk, state } };
+        return { ok: true, action: actionId, target: `${domain}:dsk`, result: { dsk, state } };
       }
     }
 
@@ -647,18 +741,36 @@ export class ActionRegistry {
     const parts = str.trim().split(":");
     const domain = parts[0]?.toLowerCase() ?? "";
 
-    if (domain === "atem") {
+    if (domain === "switch" || domain === "atem" || domain === "piswitch") {
       if (parts[1] === "cut") {
         const input = parts[2] ? parseInt(parts[2], 10) : undefined;
-        return { action: "atem:cut", params: input !== undefined ? { input } : {} };
+        return { action: `${domain}:cut`, params: input !== undefined ? { input } : {} };
       }
-      if (parts[1] === "auto") return { action: "atem:auto" };
-      if (parts[1] === "ftb") return { action: "atem:ftb" };
+      if (parts[1] === "preview") {
+        const input = parts[2] ? parseInt(parts[2], 10) : 1;
+        return { action: `${domain}:preview`, params: { input } };
+      }
+      if (parts[1] === "program") {
+        const input = parts[2] ? parseInt(parts[2], 10) : 1;
+        return { action: `${domain}:program`, params: { input } };
+      }
+      if (parts[1] === "auto") return { action: `${domain}:auto` };
+      if (parts[1] === "ftb") return { action: `${domain}:ftb` };
       if (parts[1] === "dsk") {
         const dskIndex = parts[2] ? parseInt(parts[2], 10) : 0;
         const state = parts[3] ?? "toggle";
-        return { action: "atem:dsk", params: { dskIndex, state } };
+        return { action: `${domain}:dsk`, params: { dskIndex, state } };
       }
+    }
+
+    if (domain === "cut") {
+      const input = parts[1] ? parseInt(parts[1], 10) : undefined;
+      return { action: "switch:cut", params: input !== undefined ? { input } : {} };
+    }
+
+    if (domain === "preview") {
+      const input = parts[1] ? parseInt(parts[1], 10) : 1;
+      return { action: "switch:preview", params: { input } };
     }
 
     if (domain === "cam" || domain === "camera") {

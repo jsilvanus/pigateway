@@ -19,6 +19,14 @@ test("actions endpoint returns catalog of actions with dynamic availability", as
   assert.ok(Array.isArray(json.actions));
   assert.ok(json.actions.length > 5);
 
+  const switchAction = json.actions.find((a: any) => a.id === "switch:cut");
+  assert.ok(switchAction);
+  assert.equal(switchAction.domain, "switch");
+
+  const switchPreview = json.actions.find((a: any) => a.id === "switch:preview");
+  assert.ok(switchPreview);
+  assert.equal(switchPreview.domain, "switch");
+
   const atemAction = json.actions.find((a: any) => a.id === "atem:cut");
   assert.ok(atemAction);
   assert.equal(atemAction.domain, "atem");
@@ -112,7 +120,31 @@ test("action execution runs camera preset and emits event with actor", async () 
   assert.equal(matrixJson.ok, true);
   assert.equal(matrixJson.actor, "unknown");
 
-  // 4. Invalid action gives 422 with actor preserved
+  // 4. Switch preview and cut execution
+  const prevRes = await app.inject({
+    method: "POST",
+    url: "/api/v1/actions/execute",
+    payload: {
+      action: "switch:preview",
+      params: { input: 3 },
+      actor: "rundown",
+    },
+  });
+  assert.equal(prevRes.statusCode, 200);
+  assert.equal(JSON.parse(prevRes.payload).ok, true);
+
+  const cutRes = await app.inject({
+    method: "POST",
+    url: "/api/v1/actions/execute",
+    payload: {
+      action: "switch:cut",
+      actor: "rundown",
+    },
+  });
+  assert.equal(cutRes.statusCode, 200);
+  assert.equal(JSON.parse(cutRes.payload).ok, true);
+
+  // 5. Invalid action gives 422 with actor preserved
   const badRes = await app.inject({
     method: "POST",
     url: "/api/v1/actions/execute",

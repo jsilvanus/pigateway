@@ -43,7 +43,13 @@ export function buildApp(config: AppConfig): FastifyInstance {
   const routeTable = new Set<string>();
   app.addHook("onRoute", (route) => {
     for (const method of [route.method].flat()) {
-      if (method !== "HEAD" && method !== "OPTIONS" && !route.url.startsWith("/api/v1/video-mixer")) routeTable.add(`${method} ${route.url.replace(/:(\w+)/g, "{$1}")}`);
+      if (
+        method !== "HEAD" &&
+        method !== "OPTIONS" &&
+        !route.url.startsWith("/api/v1/video-mixer") &&
+        !route.url.startsWith("/api/v1/switch") &&
+        !route.url.startsWith("/api/v1/piswitch")
+      ) routeTable.add(`${method} ${route.url.replace(/:(\w+)/g, "{$1}")}`);
     }
   });
   (app as unknown as { routeTable: Set<string> }).routeTable = routeTable;

@@ -322,15 +322,15 @@ export class EcosystemTracker {
       url: this.#config.radioRelayApiUrl ?? null
     };
 
-    // 10. ATEM Switcher
+    // 10. Video Switcher (PiSwitch / ATEM)
     const atemState = this.#atemAdapter?.getState();
     const atemConfigured = Boolean(this.#config.atemHost);
     const atemConnected = Boolean(atemState?.connected);
-    components.atem = {
-      id: "atem",
-      tab: "atem",
-      name: "ATEM Switcher",
-      description: "Blackmagic ATEM video switcher",
+    const switchComponent = {
+      id: "switch",
+      tab: "switch",
+      name: "PiSwitch",
+      description: "Video switcher (PiSwitch / ATEM)",
       active: atemConfigured || atemConnected,
       inUse: atemConfigured || atemConnected,
       available: atemConnected,
@@ -339,6 +339,9 @@ export class EcosystemTracker {
       lastSeenAt: atemConnected ? new Date(this.#now()).toISOString() : null,
       ...(atemState ? { details: { programInput: atemState.programInput, previewInput: atemState.previewInput } } : {})
     };
+    components.switch = switchComponent;
+    components.piswitch = switchComponent;
+    components.atem = { ...switchComponent, id: "atem", tab: "atem", name: "ATEM Switcher" };
 
     // 11. Encoder
     const encoderState = this.#encoderService?.getState();

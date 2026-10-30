@@ -48,8 +48,8 @@ export function registerAtemRoutes(
     return Number.isInteger(dsk) && dsk >= 1 && dsk <= MAX_DSK ? dsk : null;
   }
 
-  // Register /api/v1/atem (documented in OpenAPI). Also support /api/v1/video-mixer without requiring duplicate OpenAPI commands.
-  const prefixes = ["/api/v1/video-mixer", "/api/v1/atem"] as const;
+  // Register /api/v1/atem (documented in OpenAPI). Also support /api/v1/switch, /api/v1/piswitch, and /api/v1/video-mixer.
+  const prefixes = ["/api/v1/switch", "/api/v1/piswitch", "/api/v1/video-mixer", "/api/v1/atem"] as const;
 
   for (const prefix of prefixes) {
     app.get(prefix, async (): Promise<AtemAdapterState> => atem.getState());
