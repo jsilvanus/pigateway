@@ -82,7 +82,22 @@ export function registerRundownRoutes(app: FastifyInstance, store: RundownStore)
     return { ok: true, rundown: result.rundown };
   });
 
-  // 8. POST /api/v1/rundown/fire/:id - Fire cue & execute actions for item
+  // 8. POST /api/v1/rundown/fire - Fire current item or item specified in body
+  app.post<{ Body?: { target?: string | number; line?: number; index?: number; id?: string; actor?: string } }>(
+    "/api/v1/rundown/fire",
+    async (req, reply) => {
+      const body = req.body;
+      const target = body?.line !== undefined ? body.line : body?.index !== undefined ? { index: body.index } : body?.id ?? body?.target;
+      const actor = getActor(req, body);
+      const result = await store.fire(target, actor);
+      if (!result.ok) {
+        return reply.status(404).send({ error: "Rundown item not found or out of bounds" });
+      }
+      return { ok: true, executed: result.executed, rundown: result.rundown };
+    }
+  );
+
+  // 9. POST /api/v1/rundown/fire/:id - Fire cue & execute actions for item or line
   app.post<{ Params: { id: string }; Body?: { actor?: string } }>(
     "/api/v1/rundown/fire/:id",
     async (req, reply) => {

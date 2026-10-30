@@ -3,8 +3,16 @@ import type { ActionRegistry, ActionExecutionResult } from "../actions/action-re
 
 export type ItemStatus = "pending" | "active" | "completed" | "skipped";
 
+export type FireTarget =
+  | number
+  | string
+  | { line?: number | undefined; index?: number | undefined; id?: string | undefined }
+  | undefined;
+
 export interface RundownItemSummary {
   id: string;
+  line: number;
+  index: number;
   title: string;
   section?: string | undefined;
   notes?: string | undefined;
@@ -43,6 +51,7 @@ export interface RundownStatusSnapshot {
   church?: string | undefined;
   date?: string | undefined;
   currentIndex: number;
+  currentLine: number | null;
   totalItems: number;
   currentItem: RundownItemSummary | null;
   items: RundownItemSummary[];
@@ -79,6 +88,7 @@ export class RundownStore {
       return {
         loaded: false,
         currentIndex: -1,
+        currentLine: null,
         totalItems: 0,
         currentItem: null,
         items: [],
@@ -87,8 +97,10 @@ export class RundownStore {
       };
     }
 
-    const items: RundownItemSummary[] = this.doc.rundown.map((item) => ({
+    const items: RundownItemSummary[] = this.doc.rundown.map((item, idx) => ({
       id: item.id,
+      line: idx + 1,
+      index: idx,
       title: item.title,
       section: item.section,
       notes: item.notes,
@@ -102,6 +114,11 @@ export class RundownStore {
         ? items[this.currentIndex] ?? null
         : null;
 
+    const currentLine =
+      this.currentIndex >= 0 && this.currentIndex < items.length
+        ? this.currentIndex + 1
+        : null;
+
     return {
       loaded: true,
       title: this.doc.title,
@@ -109,6 +126,7 @@ export class RundownStore {
       church: this.doc.church,
       date: this.doc.date,
       currentIndex: this.currentIndex,
+      currentLine,
       totalItems: items.length,
       currentItem,
       items,
@@ -268,16 +286,70 @@ export class RundownStore {
   }
 
   async fire(
-    id?: string,
+    target?: FireTarget,
     actor = "unknown"
   ): Promise<{ ok: boolean; executed: ActionExecutionResult[]; rundown: RundownStatusSnapshot }> {
-    if (!this.doc) return { ok: false, executed: [], rundown: this.getStatus() };
+    if (!this.doc || this.doc.rundown.length === 0) {
+      return { ok: false, executed: [], rundown: this.getStatus() };
+    }
 
-    const targetItem = id
-      ? this.doc.rundown.find((it) => it.id === id)
-      : this.getCurrentItem();
+    let targetIndex = -1;
 
-    if (!targetItem) return { ok: false, executed: [], rundown: this.getStatus() };
+    if (typeof target === "number") {
+      // 1-based line number (e.g. 17 -> index 16)
+      targetIndex = target - 1;
+    } else if (typeof target === "string") {
+      const trimmed = target.trim();
+      if (/^\d+$/.test(trimmed)) {
+        targetIndex = parseInt(trimmed, 10) - 1;
+      } else {
+        targetIndex = this.doc.rundown.findIndex((it) => it.id === trimmed);
+      }
+    } else if (typeof target === "object" && target !== null) {
+      if (typeof target.line === "number") {
+        targetIndex = target.line - 1;
+      } else if (typeof target.index === "number") {
+        targetIndex = target.index;
+      } else if (typeof target.id === "string") {
+        const trimmed = target.id.trim();
+        if (/^\d+$/.test(trimmed)) {
+          targetIndex = parseInt(trimmed, 10) - 1;
+        } else {
+          targetIndex = this.doc.rundown.findIndex((it) => it.id === trimmed);
+        }
+      } else {
+        targetIndex = this.currentIndex >= 0 ? this.currentIndex : 0;
+      }
+    } else {
+      targetIndex = this.currentIndex >= 0 ? this.currentIndex : 0;
+    }
+
+    if (targetIndex < 0 || targetIndex >= this.doc.rundown.length) {
+      return { ok: false, executed: [], rundown: this.getStatus() };
+    }
+
+    const targetItem = this.doc.rundown[targetIndex]!;
+
+    // Move pointer TO target item and update item states:
+    // Prior items (0 .. targetIndex - 1) that were pending or active become completed
+    // Target item becomes active
+    // Following items that were active revert to pending
+    this.doc.rundown.forEach((it, idx) => {
+      if (idx < targetIndex) {
+        const currentStatus = this.itemStates.get(it.id);
+        if (currentStatus === "pending" || currentStatus === "active") {
+          this.itemStates.set(it.id, "completed");
+        }
+      } else if (idx === targetIndex) {
+        this.itemStates.set(it.id, "active");
+      } else {
+        if (this.itemStates.get(it.id) === "active") {
+          this.itemStates.set(it.id, "pending");
+        }
+      }
+    });
+
+    this.currentIndex = targetIndex;
 
     const executed: ActionExecutionResult[] = [];
     if (this.actionRegistry && targetItem.actions && targetItem.actions.length > 0) {
@@ -326,9 +398,14 @@ export class RundownStore {
       }
     }
 
-    this.itemStates.set(targetItem.id, "completed");
-    this.logHistory(actor, "item_fired", { id: targetItem.id, title: targetItem.title, actionCount: executed.length });
-    this.advancePointer(targetItem);
+    this.logHistory(actor, "line_fired", {
+      line: targetIndex + 1,
+      index: targetIndex,
+      id: targetItem.id,
+      title: targetItem.title,
+      actionCount: executed.length,
+    });
+    this.emitState();
 
     return { ok: true, executed, rundown: this.getStatus() };
   }

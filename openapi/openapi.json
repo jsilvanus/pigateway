@@ -3051,6 +3051,51 @@
           }
         }
       }
+    },
+    "/api/v1/rundown/fire": {
+      "post": {
+        "operationId": "fireRundown",
+        "tags": [
+          "Rundown"
+        ],
+        "summary": "Execute actions for current item or item specified in body and set pointer there",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "line": {
+                    "type": "number",
+                    "description": "1-based line number"
+                  },
+                  "id": {
+                    "type": "string",
+                    "description": "Item ID"
+                  },
+                  "index": {
+                    "type": "number",
+                    "description": "0-based item index"
+                  },
+                  "actor": {
+                    "type": "string",
+                    "description": "Actor triggering fire"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Actions executed and pointer set to item"
+          },
+          "404": {
+            "description": "Item not found or out of bounds"
+          }
+        }
+      }
     }
   },
   "components": {

@@ -345,12 +345,14 @@ export class ActionRegistry {
     actions.push({
       id: "rundown:fire",
       domain: "rundown",
-      name: "Fire Rundown Item",
-      description: "Execute actions for current or specified item and advance",
+      name: "Fire Rundown Item / Line",
+      description: "Execute actions for item (by line number, index, or ID) and move pointer there",
       available: rundownLoaded,
       unavailableReason: rundownReason,
       params: {
-        id: { type: "string", required: false, description: "Item ID (omits for current item)" },
+        line: { type: "number", required: false, description: "1-based line number (e.g. 17)" },
+        id: { type: "string", required: false, description: "Item ID (e.g. saarna)" },
+        index: { type: "number", required: false, description: "0-based index" },
       },
     });
 
@@ -617,9 +619,19 @@ export class ActionRegistry {
           return { ok: res.skipped, action: actionId, target: "rundown:skip", result: res.rundown };
         }
         if (op === "fire") {
-          const id = params.id ? String(params.id) : undefined;
-          const res = await this.rundownStore.fire(id, String(params.actor ?? "action"));
-          return { ok: res.ok, action: actionId, target: `rundown:fire:${id ?? "current"}`, result: res.executed };
+          let target: any = undefined;
+          if (typeof params.line === "number") {
+            target = params.line;
+          } else if (typeof params.index === "number") {
+            target = { index: params.index };
+          } else if (params.id !== undefined && params.id !== null) {
+            target = String(params.id);
+          } else if (params.target !== undefined && params.target !== null) {
+            target = params.target;
+          }
+          const res = await this.rundownStore.fire(target, String(params.actor ?? "action"));
+          const targetStr = typeof target === "object" ? JSON.stringify(target) : String(target ?? "current");
+          return { ok: res.ok, action: actionId, target: `rundown:fire:${targetStr}`, result: res.executed };
         }
         if (op === "reset") {
           const res = this.rundownStore.reset(String(params.actor ?? "action"));
@@ -685,7 +697,13 @@ export class ActionRegistry {
       if (parts[1] === "next") return { action: "rundown:next" };
       if (parts[1] === "prev" || parts[1] === "previous") return { action: "rundown:prev" };
       if (parts[1] === "reset") return { action: "rundown:reset" };
-      if (parts[1] === "fire") return { action: "rundown:fire", params: { id: parts[2] } };
+      if (parts[1] === "fire") {
+        const arg = parts[2];
+        if (arg !== undefined && /^\d+$/.test(arg)) {
+          return { action: "rundown:fire", params: { line: parseInt(arg, 10) } };
+        }
+        return { action: "rundown:fire", params: arg ? { id: arg } : {} };
+      }
       if (parts[1] === "goto") return { action: "rundown:goto", params: { id: parts[2] } };
       if (parts[1] === "skip") return { action: "rundown:skip", params: { id: parts[2] } };
     }
