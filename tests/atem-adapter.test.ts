@@ -250,3 +250,24 @@ test("reconnect keeps trying while the ATEM refuses, and disconnect() stops it",
   await new Promise((resolve) => setTimeout(resolve, 40));
   assert.equal(fakes.length, beforeStop, "no attempts after disconnect()");
 });
+
+test("auxiliary outputs are read from the state and routed one-based", async () => {
+  const { adapter, fakes } = makeAdapter();
+  await adapter.connect("192.0.2.10");
+  const [fake] = fakes;
+  assert.ok(fake);
+  const calls: Array<[number, number | undefined]> = [];
+  (fake as unknown as AtemClient).setAuxSource = async (source, bus) => {
+    calls.push([source, bus]);
+  };
+  fake.state = { video: { mixEffects: [{ programInput: 1, previewInput: 2 }], auxilliaries: [8, undefined, 3010] } };
+  fake.emit("connected");
+
+  assert.deepEqual(adapter.getAuxiliaries(), [
+    { aux: 1, source: 8 },
+    { aux: 2, source: null },
+    { aux: 3, source: 3010 },
+  ]);
+  await adapter.setAux(2, 4);
+  assert.deepEqual(calls, [[4, 1]]);
+});

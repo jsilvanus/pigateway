@@ -3342,6 +3342,162 @@
           }
         }
       }
+    },
+    "/api/v1/atem/aux": {
+      "get": {
+        "operationId": "getAtemAux",
+        "tags": [
+          "ATEM"
+        ],
+        "summary": "What each auxiliary output of the ATEM shows",
+        "responses": {
+          "200": {
+            "description": "Auxiliary outputs and their sources",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "aux",
+                          "source"
+                        ],
+                        "properties": {
+                          "aux": {
+                            "type": "integer"
+                          },
+                          "source": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "ATEM is not connected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/atem/aux/{aux}": {
+      "put": {
+        "operationId": "setAtemAux",
+        "tags": [
+          "ATEM"
+        ],
+        "summary": "Route a source to an auxiliary output (ATEM source id: 1-20 inputs, 0 black, 1000 bars, 10010 ME1 program)",
+        "parameters": [
+          {
+            "name": "aux",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 6
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "source"
+                ],
+                "properties": {
+                  "source": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 65535
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Source routed; returns the auxiliary outputs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "aux",
+                          "source"
+                        ],
+                        "properties": {
+                          "aux": {
+                            "type": "integer"
+                          },
+                          "source": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid aux or source",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "ATEM is not connected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

@@ -70,6 +70,7 @@ export interface AtemClient {
   autoTransition?(me?: number): Promise<void>;
   fadeToBlack?(me?: number): Promise<void>;
   setDownstreamKeyTie?(tie: boolean, key?: number): Promise<void>;
+  setAuxSource?(source: number, bus?: number): Promise<void>;
   readonly state: unknown;
   on(event: string, listener: (...args: never[]) => void): unknown;
   /** Media pool and keyer calls used by the slide composite. Optional so older fakes still fit. */
@@ -327,6 +328,21 @@ export class AtemAdapter {
     const client = this.requireClient();
     if (!client.fadeToBlack) throw new Error("ATEM client does not support fade to black");
     await client.fadeToBlack(this.meIndex);
+  }
+
+  /** What each auxiliary output (AUX 1..n, one-based) currently shows; null = not reported. */
+  getAuxiliaries(): Array<{ aux: number; source: number | null }> {
+    if (!this.client) return [];
+    const video = (this.client.state as { video?: { auxilliaries?: Array<number | undefined> } } | undefined)?.video;
+    return (video?.auxilliaries ?? []).map((source, index) => ({ aux: index + 1, source: source ?? null }));
+  }
+
+  /** Route a source to an auxiliary output (one-based AUX). Source numbers are ATEM input ids (1-20, 0 black, 1000 bars, 10010 ME1 program ...). */
+  async setAux(aux: number, source: number): Promise<void> {
+    this.requireConnected();
+    const client = this.requireClient();
+    if (!client.setAuxSource) throw new Error("ATEM client does not support auxiliary outputs");
+    await client.setAuxSource(source, aux - 1);
   }
 
   /** Set the tie of a downstream keyer. Zero-based DSK. */
