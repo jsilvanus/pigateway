@@ -175,7 +175,7 @@ test("action execution runs camera preset and emits event with actor", async () 
   assert.equal(pastorJson.result?.source, "pastorphone");
   assert.equal(pastorJson.result?.matrix?.routed, true);
   assert.equal(pastorJson.result?.matrix?.atlonaInput, 4);
-  assert.equal(pastorJson.result?.matrix?.atlonaOutput, 5);
+  assert.equal(pastorJson.result?.matrix?.atlonaOutput, 4);
 
   // 7. Invalid action gives 422 with actor preserved
   const badRes = await app.inject({

@@ -3,7 +3,7 @@ import type { FastifyBaseLogger } from "fastify";
 
 export interface AmxRouteRequest {
   input: number; // 1-4 Atlona input
-  output: number; // 1-5 Atlona output (1 Proj1, 2 Proj2, 3 Screen3, 4 Screen4, 5 Videomixer)
+  output: number; // 1-5 Atlona output (1 Proj1, 2 Proj2, 3 Screen3, 4 Screen4 = Videomixer; 5 is an HDMI mirror of 4)
 }
 
 export interface AmxRouteResponse {

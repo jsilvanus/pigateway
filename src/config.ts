@@ -102,7 +102,7 @@ export interface AppConfig {
   /** MediaMTX bases a camera is told to push to (PIGATEWAY_MEDIAMTX_RTSP_URL / _RTMP_URL). */
   mediaMtxRtspUrl?: string | undefined;
   mediaMtxRtmpUrl?: string | undefined;
-  /** Video mixer input connected to Atlona matrix output 5 (PIGATEWAY_SWITCH_MATRIX_INPUT, default 4). */
+  /** Video mixer input connected to Atlona matrix output 4 (PIGATEWAY_SWITCH_MATRIX_INPUT, default 4). */
   switchMatrixInput: number;
 }
 
