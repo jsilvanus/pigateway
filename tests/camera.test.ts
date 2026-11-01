@@ -185,8 +185,9 @@ test("UdpViscaCameraAdapter transmits valid VISCA packets over UDP to mock targe
     server.bind(0, "127.0.0.1", () => resolve());
   });
 
-  server.on("message", (msg) => {
+  server.on("message", (msg, rinfo) => {
     receivedPackets.push(msg);
+    server.send(Buffer.from([0x90, 0x41, 0xff]), rinfo.port, rinfo.address); // ACK
   });
 
   const port = server.address().port;
@@ -232,7 +233,10 @@ test("privacy blur sends focus manual, near limit, near drive, stop; off returns
   const server = dgram.createSocket("udp4");
   const received: Buffer[] = [];
   await new Promise<void>((resolve) => server.bind(0, "127.0.0.1", () => resolve()));
-  server.on("message", (msg) => received.push(msg));
+  server.on("message", (msg, rinfo) => {
+    received.push(msg);
+    server.send(Buffer.from([0x90, 0x41, 0xff]), rinfo.port, rinfo.address); // ACK
+  });
 
   const adapter = new UdpViscaCameraAdapter({
     id: "cam1",
@@ -274,7 +278,10 @@ test("focus mode sends VISCA auto/manual and auto ends a privacy blur", async ()
   const server = dgram.createSocket("udp4");
   const received: Buffer[] = [];
   await new Promise<void>((resolve) => server.bind(0, "127.0.0.1", () => resolve()));
-  server.on("message", (msg) => received.push(msg));
+  server.on("message", (msg, rinfo) => {
+    received.push(msg);
+    server.send(Buffer.from([0x90, 0x41, 0xff]), rinfo.port, rinfo.address); // ACK
+  });
 
   const adapter = new UdpViscaCameraAdapter({
     id: "cam1",
@@ -317,7 +324,10 @@ test("UdpViscaCameraAdapter sends power from the VISCA source port", async () =>
   const server = dgram.createSocket("udp4");
   const received: { body: number[]; port: number }[] = [];
   await new Promise<void>((resolve) => server.bind(0, "127.0.0.1", () => resolve()));
-  server.on("message", (msg, rinfo) => received.push({ body: [...msg.subarray(8)], port: rinfo.port }));
+  server.on("message", (msg, rinfo) => {
+    received.push({ body: [...msg.subarray(8)], port: rinfo.port });
+    server.send(Buffer.from([0x90, 0x41, 0xff]), rinfo.port, rinfo.address); // ACK
+  });
 
   // Port 0 = any free source port in tests; production defaults to 52381.
   const adapter = new UdpViscaCameraAdapter({
