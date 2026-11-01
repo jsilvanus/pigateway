@@ -147,6 +147,8 @@ export function buildApp(config: AppConfig): FastifyInstance {
     mediaMtxRtmpBaseUrl: config.mediaMtxRtmpUrl
   });
 
+  let freedBindError: string | null = null;
+  let freedRetry: NodeJS.Timeout | null = null;
   const freedReceiver = config.freedUdpEnabled
     ? new FreedUdpReceiver({
         host: config.freedUdpHost,
@@ -289,9 +291,18 @@ export function buildApp(config: AppConfig): FastifyInstance {
     if (config.amxMasterHost) matrix.startPolling();
     encoder.start();
     if (freedReceiver) {
-      await freedReceiver.start().catch((err: unknown) => {
-        app.log.warn({ err }, "FreeD UDP receiver failed to start; tracking telemetry disabled");
-      });
+      const startFreed = async (): Promise<void> => {
+        try {
+          await freedReceiver.start();
+          freedBindError = null;
+        } catch (err: unknown) {
+          freedBindError = err instanceof Error ? err.message : String(err);
+          app.log.warn({ err }, "FreeD UDP receiver failed to start; retrying in 15 s");
+          freedRetry = setTimeout(() => void startFreed(), 15_000);
+          freedRetry.unref();
+        }
+      };
+      await startFreed();
     }
     if (config.atemHost) {
       await atem.connect(config.atemHost, config.atemPort).catch((error: unknown) => {
@@ -311,7 +322,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
       pivoiceActivity.close(),
       atem.disconnect(),
       cameraService.close(),
-      freedReceiver ? freedReceiver.stop() : Promise.resolve(),
+      (freedRetry ? clearTimeout(freedRetry) : undefined, freedReceiver ? freedReceiver.stop() : Promise.resolve()),
       amxListener ? amxListener.stop() : Promise.resolve(),
       amxClient.close()
     ]);
@@ -365,7 +376,16 @@ export function buildApp(config: AppConfig): FastifyInstance {
 
   app.get("/api/v1/sound", async () => pisound.getState());
 
-  app.get("/health", async () => ({ status: "ok", service: "pigateway" }));
+  // A FreeD bind failure (port held by another process) is shown here instead of only in the log.
+  app.get("/health", async () => {
+    const problems: string[] = [];
+    if (freedReceiver && !freedReceiver.getStats().listening) {
+      problems.push(`FreeD UDP port ${config.freedUdpPort} is not bound${freedBindError ? `: ${freedBindError}` : ""}`);
+    }
+    return problems.length
+      ? { status: "degraded", service: "pigateway", problems }
+      : { status: "ok", service: "pigateway" };
+  });
 
   app.get("/api/v1/status", async () => {
     const eco = ecosystemTracker.getSummary();
