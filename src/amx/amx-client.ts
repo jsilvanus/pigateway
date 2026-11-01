@@ -103,11 +103,15 @@ export class DisabledAmxClient implements AmxClient {
   }
 }
 
+const CONNECT_TIMEOUT_MS = 5000;
+
 export class TcpAmxClient implements AmxClient {
   private readonly host: string;
   private readonly port: number;
   private readonly logger?: FastifyBaseLogger | undefined;
   private socket: Socket | null = null;
+  /** A connect in progress, so close() can abort it. */
+  private connecting: Socket | null = null;
   private reqCount = 0;
   private buffer = "";
   private statusRequests = new Map<
@@ -143,8 +147,13 @@ export class TcpAmxClient implements AmxClient {
     return new Promise((resolve, reject) => {
       const socket = new Socket();
       socket.setEncoding("utf8");
+      this.connecting = socket;
+      // An unreachable master must fail within seconds, not after the OS connect timeout (minutes).
+      socket.setTimeout(CONNECT_TIMEOUT_MS, () => socket.destroy(new Error(`AMX master did not answer within ${CONNECT_TIMEOUT_MS} ms`)));
 
       socket.connect(this.port, this.host, () => {
+        socket.setTimeout(0);
+        if (this.connecting === socket) this.connecting = null;
         this.socket = socket;
         this.logger?.info({ host: this.host, port: this.port }, "Connected to AMX NetLinx master");
         resolve(socket);
@@ -340,6 +349,10 @@ export class TcpAmxClient implements AmxClient {
   }
 
   async close(): Promise<void> {
+    if (this.connecting) {
+      this.connecting.destroy();
+      this.connecting = null;
+    }
     if (this.socket) {
       this.socket.destroy();
       this.socket = null;
