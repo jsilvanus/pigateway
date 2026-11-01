@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Raspberry Pi device gateway: the one process that talks to the ATEM, cameras and AMX",
+  "packageManager": "pnpm@11.23.0",
   "engines": {
     "node": ">=22"
   },
@@ -31,5 +32,18 @@
     "bin",
     "cli",
     "openapi"
-  ]
+  ],
+  "pi": {
+    "service": "pigateway",
+    "displayName": "PiGateway",
+    "layer": "southbound-hardware",
+    "port": 3100,
+    "ports": {
+      "pivoiceUdp": 3101,
+      "freedUdp": 40000,
+      "amxTcp": 6600
+    },
+    "healthEndpoint": "/health",
+    "envPortVar": "PIGATEWAY_PORT"
+  }
 }
