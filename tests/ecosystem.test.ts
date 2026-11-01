@@ -17,8 +17,8 @@ test("EcosystemTracker tracks default services and respects probe responses", as
     eventBroker,
     probeFetch: async (url) => {
       probedUrls.push(url);
-      if (url.includes(":3300") && probeTargetOnline) return true;
-      if (url.includes(":3200")) return true; // simulate pilight online
+      if (url.includes(":3105") && probeTargetOnline) return true;
+      if (url.includes(":3107")) return true; // simulate pilight online
       return false;
     }
   });

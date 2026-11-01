@@ -209,7 +209,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
 
   return {
     host,
-    port: validPort(env.PIGATEWAY_PORT, 3100, "PIGATEWAY_PORT"),
+    port: validPort(env.PIGATEWAY_PORT, 3000, "PIGATEWAY_PORT"),
     mode,
     apiKey: env.PIGATEWAY_API_KEY?.trim() || undefined,
     authAllowedHosts: list(env.PIGATEWAY_AUTH_ALLOWED_HOSTS),

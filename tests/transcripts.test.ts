@@ -162,7 +162,7 @@ test("coordinator asks PiVoice for the configured delivery and reports the sessi
   const bodies: Array<Record<string, unknown>> = [];
   const sessions: Array<string | null> = [];
   const coordinator = new PiVoiceActivityCoordinator({
-    baseUrl: "http://pivoice:8095", idleCloseSeconds: 0,
+    baseUrl: "http://pivoice:3106", idleCloseSeconds: 0,
     delivery: { mode: "push", url: "https://gw/api/v1/transcripts", token: "t" },
     onSession: (id) => sessions.push(id),
     fetchFn: async (url, init) => {
