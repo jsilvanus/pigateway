@@ -3,6 +3,7 @@ import { createAmxClient } from "./amx/amx-client.js";
 import { AmxTcpListener, tcpVideoForward, type AmxControl } from "./amx/amx-listener.js";
 import { AtlonaMatrix } from "./amx/atlona.js";
 import { registerProjectorRoutes } from "./amx/projector-routes.js";
+import { REDACT_PATHS, serializers } from "./log/redact.js";
 import { AtemAdapter } from "./atem/atem-adapter.js";
 import { registerAtemRoutes } from "./atem/atem-routes.js";
 import { registerEncoderRoutes } from "./encoder/encoder-routes.js";
@@ -36,9 +37,24 @@ export function buildApp(config: AppConfig): FastifyInstance {
   const app = Fastify({
     trustProxy: true,
     logger: {
-      level: process.env.LOG_LEVEL ?? "info",
-      redact: ["req.headers.authorization", "req.headers.cookie", "req.headers.x-api-key"]
-    }
+      level: process.env.PIGATEWAY_LOG_LEVEL ?? process.env.LOG_LEVEL ?? "info",
+      redact: REDACT_PATHS,
+      serializers
+    },
+    // Replaced by the audit line below: no per-request "incoming request" noise.
+    disableRequestLogging: true
+  });
+
+  // One audit line per request: method, route pattern, status, duration, source host. No query, headers or body.
+  app.addHook("onResponse", async (request, reply) => {
+    const route = request.routeOptions?.url ?? "(unmatched)";
+    if (route === "/health") return;
+    const status = reply.statusCode;
+    const level = status >= 500 ? "error" : status >= 400 ? "warn" : request.method === "GET" ? "debug" : "info";
+    request.log[level](
+      { event: "http_request", component: "http", method: request.method, route, status, durationMs: Math.round(reply.elapsedTime), source: request.ip },
+      "request"
+    );
   });
 
   // Every route as "METHOD /path/{param}", for the test that keeps openapi/openapi.json in step.

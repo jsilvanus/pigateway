@@ -15,7 +15,7 @@ async function main(): Promise<void> {
   const keepAlive = setInterval(() => undefined, 60_000);
   let shuttingDown = false;
   process.on("uncaughtException", (err) => {
-    app.log.error({ err }, "Uncaught exception (process kept running)");
+    app.log.error({ event: "uncaught_exception", component: "lifecycle", err }, "Uncaught exception (process kept running)");
   });
   process.on("unhandledRejection", (reason) => {
     app.log.error({ err: reason }, "Unhandled promise rejection (process kept running)");
@@ -30,7 +30,7 @@ async function main(): Promise<void> {
   const shutdown = async (signal: string): Promise<void> => {
     shuttingDown = true;
     clearInterval(keepAlive);
-    app.log.info({ signal }, "Shutting down pigateway");
+    app.log.info({ event: "shutting_down", component: "lifecycle", reason: `signal ${signal}` }, "Shutting down pigateway");
     try {
       await app.close();
     } catch (error) {
@@ -38,12 +38,31 @@ async function main(): Promise<void> {
       process.exitCode = 1;
     }
   };
+  process.once("SIGHUP", () => void shutdown("SIGHUP"));
   process.once("SIGINT", () => void shutdown("SIGINT"));
   process.once("SIGTERM", () => void shutdown("SIGTERM"));
 
   try {
     const address = await app.listen({ host: config.host, port: config.port });
     app.log.info({ address, mode: config.mode }, "pigateway listening");
+    app.log.info(
+      {
+        event: "startup",
+        component: "lifecycle",
+        pid: process.pid,
+        node: process.version,
+        mode: config.mode,
+        restartCount: process.env.NRESTARTS ?? null,
+        // host:port only; secrets are reported as set/unset
+        devices: {
+          atem: config.atemHost ? `${config.atemHost}:${config.atemPort}` : null,
+          amxMaster: config.amxMasterHost ?? null,
+          encoder: config.encoderHost ?? null
+        },
+        apiKey: config.apiKey ? "set" : "unset"
+      },
+      "pigateway started"
+    );
   } catch (error) {
     app.log.error({ err: error }, "Unable to start pigateway");
     shuttingDown = true;
