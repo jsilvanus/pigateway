@@ -14,7 +14,7 @@ Needs Node 22 or newer (Node 24 on the Pi). `PIGATEWAY_MODE=simulation` (default
 
 ## PiVoice telemetry
 
-PiGateway listens for the binary PiVoice telemetry protocol on UDP `PIGATEWAY_PIVOICE_UDP_HOST` / `PIGATEWAY_PIVOICE_UDP_PORT` (defaults `0.0.0.0:3101`), separately from the HTTP API on port 3100. Set `PIGATEWAY_PIVOICE_ALLOWED_HOSTS` to a comma-separated list of sender IPs to restrict who can update telemetry.
+PiGateway listens for the binary PiVoice telemetry protocol on UDP `PIGATEWAY_PIVOICE_UDP_HOST` / `PIGATEWAY_PIVOICE_UDP_PORT` (defaults `0.0.0.0:3101`), separately from the HTTP API on port 3000. Set `PIGATEWAY_PIVOICE_ALLOWED_HOSTS` to a comma-separated list of sender IPs to restrict who can update telemetry.
 
 The shared [protocol specification](docs/pivoice-telemetry.md) defines the packet. The v1 packet is 42 bytes: a 20-byte header and a 22-byte snapshot payload. It uses big-endian integers, magic `PV`, version 1, type `0x01` for capture snapshots and type `0x02` for completed health/status polls. PiVoice sends periodic snapshots only while capturing, and no idle heartbeat packets. A valid packet refreshes the six-second TTL; when it expires, the gateway marks the retained snapshot stale rather than erasing it. `lastPollAt` records the last completed poll. Invalid packets and packets from disallowed IPs do not update state.
 
@@ -33,7 +33,7 @@ The decoded telemetry is broadcast live on Server-Sent Events (`GET /api/v1/even
 
 ## PiVoice activity sessions
 
-Set `PIGATEWAY_PIVOICE_API_URL` (for example `http://127.0.0.1:8095`) and `PIGATEWAY_PIVOICE_API_TOKEN` to the PiVoice control API and its bearer token. PiGateway observes speech/music classifications over UDP, asks PiVoice to open a live Auditor session, and owns the idle-close timer. PiVoice sends its rolling PCM pre-roll to Auditor; neither audio nor PCM passes through PiGateway. `PIGATEWAY_PIVOICE_IDLE_CLOSE_SECONDS` defaults to 15 seconds; `0` disables automatic close. Read or change the setting with `GET /api/v1/activity/idle-close` and `PUT /api/v1/activity/idle-close` using `{"idleCloseSeconds":30}`. Current coordinator state is included in `/api/v1/status` and emitted as `pivoice-activity` events.
+Set `PIGATEWAY_PIVOICE_API_URL` (for example `http://127.0.0.1:3106`) and `PIGATEWAY_PIVOICE_API_TOKEN` to the PiVoice control API and its bearer token. PiGateway observes speech/music classifications over UDP, asks PiVoice to open a live Auditor session, and owns the idle-close timer. PiVoice sends its rolling PCM pre-roll to Auditor; neither audio nor PCM passes through PiGateway. `PIGATEWAY_PIVOICE_IDLE_CLOSE_SECONDS` defaults to 15 seconds; `0` disables automatic close. Read or change the setting with `GET /api/v1/activity/idle-close` and `PUT /api/v1/activity/idle-close` using `{"idleCloseSeconds":30}`. Current coordinator state is included in `/api/v1/status` and emitted as `pivoice-activity` events.
 
 ## Endpoints
 

@@ -15,7 +15,7 @@ function telemetry(classification: PiVoiceTelemetry["classification"]): PiVoiceT
 test("gateway opens on activity and closes after a single idle timeout", async () => {
   const calls: Array<{ url: string; body: string }> = [];
   const coordinator = new PiVoiceActivityCoordinator({
-    baseUrl: "http://pivoice:8095",
+    baseUrl: "http://pivoice:3106",
     token: "test-token",
     idleCloseSeconds: 1,
     fetchFn: async (url, init) => {
@@ -30,8 +30,8 @@ test("gateway opens on activity and closes after a single idle timeout", async (
   await new Promise((resolve) => setTimeout(resolve, 1150));
   assert.equal(coordinator.getState().session, "closed");
   assert.deepEqual(calls.map((call) => call.url), [
-    "http://pivoice:8095/api/v1/activity/session/start",
-    "http://pivoice:8095/api/v1/activity/session/stop"
+    "http://pivoice:3106/api/v1/activity/session/start",
+    "http://pivoice:3106/api/v1/activity/session/stop"
   ]);
   assert.equal(JSON.parse(calls[0].body).trigger, "speech");
   assert.equal(JSON.parse(calls[1].body).reason, "idle-timeout");
@@ -39,7 +39,7 @@ test("gateway opens on activity and closes after a single idle timeout", async (
 
 test("zero idle timeout leaves an activity session open", async () => {
   const coordinator = new PiVoiceActivityCoordinator({
-    baseUrl: "http://pivoice:8095", idleCloseSeconds: 0,
+    baseUrl: "http://pivoice:3106", idleCloseSeconds: 0,
     fetchFn: async () => new Response("{}", { status: 200 })
   });
   coordinator.observe(telemetry("music"));
@@ -55,7 +55,7 @@ test("session opened after capture loss is immediately closed", async () => {
   let finishStart: ((response: Response) => void) | undefined;
   const calls: string[] = [];
   const coordinator = new PiVoiceActivityCoordinator({
-    baseUrl: "http://pivoice:8095",
+    baseUrl: "http://pivoice:3106",
     idleCloseSeconds: 15,
     fetchFn: async (url) => {
       calls.push(String(url));
@@ -77,7 +77,7 @@ test("session opened after capture loss is immediately closed", async () => {
   await new Promise((resolve) => setTimeout(resolve, 20));
   assert.equal(coordinator.getState().session, "closed");
   assert.deepEqual(calls, [
-    "http://pivoice:8095/api/v1/activity/session/start",
-    "http://pivoice:8095/api/v1/activity/session/stop"
+    "http://pivoice:3106/api/v1/activity/session/start",
+    "http://pivoice:3106/api/v1/activity/session/stop"
   ]);
 });

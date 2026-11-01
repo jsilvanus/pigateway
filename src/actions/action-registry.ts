@@ -721,7 +721,7 @@ export class ActionRegistry {
 
     // 5. Tally Domain (forward to PiLight)
     if (domain === "tally") {
-      const baseUrl = this.config.pilightApiUrl ?? "http://127.0.0.1:3200";
+      const baseUrl = this.config.pilightApiUrl ?? "http://127.0.0.1:3107";
       const unit = encodeURIComponent(String(params.unit ?? "1"));
 
       if (op === "cue") {
@@ -739,7 +739,7 @@ export class ActionRegistry {
 
     // 6. Presentation / PiPGM Domain (forward to PiProgram)
     if (domain === "pipgm" || domain === "program") {
-      const baseUrl = this.config.piprogramApiUrl ?? "http://127.0.0.1:3100";
+      const baseUrl = this.config.piprogramApiUrl ?? "http://127.0.0.1:3200";
 
       if (op === "hymn") {
         const hymn = encodeURIComponent(String(params.hymn ?? ""));
@@ -822,7 +822,7 @@ export class ActionRegistry {
 
     // 8. Graphics Domain (forward to PiGraphics)
     if (domain === "graphics") {
-      const baseUrl = this.config.pigraphicsApiUrl ?? "http://127.0.0.1:3107";
+      const baseUrl = this.config.pigraphicsApiUrl ?? "http://127.0.0.1:3201";
       if (op === "show") {
         const templateId = String(params.templateId ?? "lower-third-speaker");
         const res = await this.postJson(`${baseUrl}/api/v1/graphics/active/show`, {

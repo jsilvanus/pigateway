@@ -113,7 +113,7 @@ export class EcosystemTracker {
     if (this.#config.pisoundApiUrl) return true;
     if (this.#config.pisoundUdpPort === 0) return true;
 
-    const probeUrl = `${this.#config.pisoundApiUrl ?? "http://127.0.0.1:3300"}/health`;
+    const probeUrl = `${this.#config.pisoundApiUrl ?? "http://127.0.0.1:3105"}/health`;
     const available = await this.#probeFetch(probeUrl);
     if (available) {
       this.#availableMap.set("pisound", true);
@@ -145,7 +145,7 @@ export class EcosystemTracker {
       configured: pisoundConfigured,
       connecting: pisoundConnecting,
       lastSeenAt: this.#lastSeenMap.get("pisound") ?? null,
-      url: this.#config.pisoundApiUrl ?? "http://127.0.0.1:3300",
+      url: this.#config.pisoundApiUrl ?? "http://127.0.0.1:3105",
       ...(pisoundState ? { details: { mixesCount: pisoundState.mixes.length, channelsCount: pisoundState.channels.length } } : {})
     };
 
@@ -169,7 +169,7 @@ export class EcosystemTracker {
       configured: pivoiceConfigured,
       connecting: pivoiceConnecting,
       lastSeenAt: this.#lastSeenMap.get("pivoice") ?? null,
-      url: this.#config.pivoiceApiUrl ?? "http://127.0.0.1:8095"
+      url: this.#config.pivoiceApiUrl ?? "http://127.0.0.1:3106"
     };
 
     // 3. PiTube
@@ -192,7 +192,7 @@ export class EcosystemTracker {
       configured: ytConfigured,
       connecting: ytConnecting,
       lastSeenAt: this.#lastSeenMap.get("pitube") ?? null,
-      url: this.#config.pitubeApiUrl ?? "http://127.0.0.1:3105",
+      url: this.#config.pitubeApiUrl ?? "http://127.0.0.1:3500",
       ...(ytState ? { details: { state: ytState.state, ...(ytState.detail ? { detail: ytState.detail } : {}) } } : {})
     };
 
@@ -212,7 +212,7 @@ export class EcosystemTracker {
       configured: pilightConfigured,
       connecting: pilightConnecting,
       lastSeenAt: this.#lastSeenMap.get("pilight") ?? null,
-      url: this.#config.pilightApiUrl ?? "http://127.0.0.1:3200"
+      url: this.#config.pilightApiUrl ?? "http://127.0.0.1:3107"
     };
 
     // 5. PiMatrix
@@ -230,7 +230,7 @@ export class EcosystemTracker {
       configured: pimatrixConfigured,
       connecting: false,
       lastSeenAt: this.#lastSeenMap.get("pimatrix") ?? null,
-      url: this.#config.pimatrixApiUrl ?? "http://127.0.0.1:3000"
+      url: this.#config.pimatrixApiUrl ?? "http://127.0.0.1:3101"
     };
 
     // 6. PiProgram
@@ -321,7 +321,7 @@ export class EcosystemTracker {
       configured: pirundownDesignerConfigured,
       connecting: false,
       lastSeenAt: this.#lastSeenMap.get("pirundownDesigner") ?? null,
-      url: this.#config.pirundownDesignerApiUrl ?? "http://127.0.0.1:3410"
+      url: this.#config.pirundownDesignerApiUrl ?? "http://127.0.0.1:3610"
     };
 
     // 8.7. PiSpace
@@ -339,7 +339,7 @@ export class EcosystemTracker {
       configured: pispaceConfigured,
       connecting: false,
       lastSeenAt: this.#lastSeenMap.get("pispace") ?? null,
-      url: this.#config.pispaceApiUrl ?? "http://127.0.0.1:3108"
+      url: this.#config.pispaceApiUrl ?? "http://127.0.0.1:3203"
     };
 
     // 8.8. PiGraphics
@@ -357,7 +357,7 @@ export class EcosystemTracker {
       configured: pigraphicsConfigured,
       connecting: false,
       lastSeenAt: this.#lastSeenMap.get("pigraphics") ?? null,
-      url: this.#config.pigraphicsApiUrl ?? "http://127.0.0.1:3107"
+      url: this.#config.pigraphicsApiUrl ?? "http://127.0.0.1:3201"
     };
 
     // 8.9. PiPerception
@@ -375,7 +375,7 @@ export class EcosystemTracker {
       configured: piperceptionConfigured,
       connecting: false,
       lastSeenAt: this.#lastSeenMap.get("piperception") ?? null,
-      url: this.#config.piperceptionApiUrl ?? "http://127.0.0.1:3110"
+      url: this.#config.piperceptionApiUrl ?? "http://127.0.0.1:3202"
     };
 
     // 9. Radio Relay
@@ -448,7 +448,7 @@ export class EcosystemTracker {
       configured: picamConfigured,
       connecting: false,
       lastSeenAt: this.#lastSeenMap.get("picam") ?? null,
-      url: this.#config.picamApiUrl ?? "http://127.0.0.1:3300"
+      url: this.#config.picamApiUrl ?? "http://127.0.0.1:3102"
     };
 
     // 11.6. PiEncoder Microservice
@@ -466,7 +466,7 @@ export class EcosystemTracker {
       configured: piencoderConfigured,
       connecting: false,
       lastSeenAt: this.#lastSeenMap.get("piencoder") ?? null,
-      url: this.#config.piencoderApiUrl ?? "http://127.0.0.1:3109"
+      url: this.#config.piencoderApiUrl ?? "http://127.0.0.1:3104"
     };
 
     // 11.7. PiEmbed Microservice
@@ -484,7 +484,7 @@ export class EcosystemTracker {
       configured: piembedConfigured,
       connecting: false,
       lastSeenAt: this.#lastSeenMap.get("piembed") ?? null,
-      url: this.#config.piembedApiUrl ?? "http://127.0.0.1:3125"
+      url: this.#config.piembedApiUrl ?? "http://127.0.0.1:3300"
     };
 
     // 12. PTZ Cameras
@@ -553,22 +553,22 @@ export class EcosystemTracker {
 
     try {
       const probeTargets: Array<{ id: string; url: string }> = [
-        { id: "pisound", url: `${this.#config.pisoundApiUrl ?? "http://127.0.0.1:3300"}/health` },
-        { id: "pivoice", url: `${this.#config.pivoiceApiUrl ?? "http://127.0.0.1:8095"}/health` },
-        { id: "pitube", url: `${this.#config.pitubeApiUrl ?? "http://127.0.0.1:3105"}/health` },
-        { id: "pilight", url: `${this.#config.pilightApiUrl ?? "http://127.0.0.1:3200"}/health` },
-        { id: "pimatrix", url: `${this.#config.pimatrixApiUrl ?? "http://127.0.0.1:3000"}/health` },
+        { id: "pisound", url: `${this.#config.pisoundApiUrl ?? "http://127.0.0.1:3105"}/health` },
+        { id: "pivoice", url: `${this.#config.pivoiceApiUrl ?? "http://127.0.0.1:3106"}/health` },
+        { id: "pitube", url: `${this.#config.pitubeApiUrl ?? "http://127.0.0.1:3500"}/health` },
+        { id: "pilight", url: `${this.#config.pilightApiUrl ?? "http://127.0.0.1:3107"}/health` },
+        { id: "pimatrix", url: `${this.#config.pimatrixApiUrl ?? "http://127.0.0.1:3101"}/health` },
         { id: "piprogram", url: `${this.#config.piprogramApiUrl ?? "http://127.0.0.1:3104"}/health` },
         { id: "picanva", url: `${this.#config.picanvaApiUrl ?? "http://127.0.0.1:3103"}/health` },
         { id: "auditor", url: `${this.#config.auditorUrl ?? "http://127.0.0.1:8090"}/health` },
         { id: "pirundown", url: `${this.#config.pirundownApiUrl ?? "http://127.0.0.1:3400"}/health` },
-        { id: "pirundownDesigner", url: `${this.#config.pirundownDesignerApiUrl ?? "http://127.0.0.1:3410"}/health` },
-        { id: "pispace", url: `${this.#config.pispaceApiUrl ?? "http://127.0.0.1:3108"}/health` },
-        { id: "pigraphics", url: `${this.#config.pigraphicsApiUrl ?? "http://127.0.0.1:3107"}/health` },
-        { id: "piperception", url: `${this.#config.piperceptionApiUrl ?? "http://127.0.0.1:3110"}/health` },
-        { id: "picam", url: `${this.#config.picamApiUrl ?? "http://127.0.0.1:3300"}/health` },
-        { id: "piencoder", url: `${this.#config.piencoderApiUrl ?? "http://127.0.0.1:3109"}/health` },
-        { id: "piembed", url: `${this.#config.piembedApiUrl ?? "http://127.0.0.1:3125"}/health` }
+        { id: "pirundownDesigner", url: `${this.#config.pirundownDesignerApiUrl ?? "http://127.0.0.1:3610"}/health` },
+        { id: "pispace", url: `${this.#config.pispaceApiUrl ?? "http://127.0.0.1:3203"}/health` },
+        { id: "pigraphics", url: `${this.#config.pigraphicsApiUrl ?? "http://127.0.0.1:3201"}/health` },
+        { id: "piperception", url: `${this.#config.piperceptionApiUrl ?? "http://127.0.0.1:3202"}/health` },
+        { id: "picam", url: `${this.#config.picamApiUrl ?? "http://127.0.0.1:3102"}/health` },
+        { id: "piencoder", url: `${this.#config.piencoderApiUrl ?? "http://127.0.0.1:3104"}/health` },
+        { id: "piembed", url: `${this.#config.piembedApiUrl ?? "http://127.0.0.1:3300"}/health` }
       ];
 
       const results = await Promise.allSettled(
