@@ -1,7 +1,7 @@
 export interface MatrixRouteConfig {
   /** Atlona matrix input (1..4) */
   input: number;
-  /** Atlona matrix output (1..5; 5 = Videomixer) */
+  /** Atlona matrix output (1..5; 4 = Videomixer, 5 mirrors 4) */
   output: number;
 }
 
@@ -63,44 +63,44 @@ export class VideoSourceRegistry {
       aliases: ["3", "camera3"],
     });
 
-    // 4. Pastorphone (Mobile / RTSP camera routed via Atlona input 4 -> output 5)
+    // 4. Pastorphone (Mobile / RTSP camera routed via Atlona input 4 -> output 4)
     this.register({
       id: "pastorphone",
       name: "Pastor Phone (RTSP / Matrix)",
       mixerInput: this.switchMatrixInput,
       type: "matrix",
-      matrixRoute: { input: 4, output: 5 },
+      matrixRoute: { input: 4, output: 4 },
       rtspUrl: "rtsp://127.0.0.1:8554/pastorphone",
       aliases: ["phone", "pastori", "pastorin_puhelin", "pastor_phone"],
     });
 
-    // 5. Lectern / Lukupulpetti (Atlona input 1 -> output 5)
+    // 5. Lectern / Lukupulpetti (Atlona input 1 -> output 4)
     this.register({
       id: "lukupulpetti",
       name: "Lukupulpetti (Lectern)",
       mixerInput: this.switchMatrixInput,
       type: "matrix",
-      matrixRoute: { input: 1, output: 5 },
+      matrixRoute: { input: 1, output: 4 },
       aliases: ["lectern", "reading_desk"],
     });
 
-    // 6. Rack PC (Atlona input 2 -> output 5)
+    // 6. Rack PC (Atlona input 2 -> output 4)
     this.register({
       id: "rackpc",
       name: "Rack PC",
       mixerInput: this.switchMatrixInput,
       type: "matrix",
-      matrixRoute: { input: 2, output: 5 },
+      matrixRoute: { input: 2, output: 4 },
       aliases: ["pc", "tietokone"],
     });
 
-    // 7. Pi 1 (Hymns / Slides / PiPGM - Atlona input 3 -> output 5)
+    // 7. Pi 1 (Hymns / Slides / PiPGM - Atlona input 3 -> output 4)
     this.register({
       id: "pi1",
       name: "Pi 1 (Graphics / Hymns)",
       mixerInput: this.switchMatrixInput,
       type: "matrix",
-      matrixRoute: { input: 3, output: 5 },
+      matrixRoute: { input: 3, output: 4 },
       aliases: ["pipgm", "hymn"],
     });
   }

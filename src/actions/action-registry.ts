@@ -587,7 +587,7 @@ export class ActionRegistry {
           mixerInput = resolved.mixerInput;
           resolvedSource = resolved.source;
 
-          // If source requires matrix routing (e.g. pastorphone on Atlona 4 -> output 5)
+          // If source requires matrix routing (e.g. pastorphone on Atlona 4 -> output 4)
           if (resolved.matrixRoute) {
             const { input: matIn, output: matOut } = resolved.matrixRoute;
             const routeRes = await this.matrix.route(matIn, matOut, this.config.mode);
