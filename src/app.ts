@@ -305,7 +305,9 @@ export function buildApp(config: AppConfig): FastifyInstance {
       await startFreed();
     }
     if (config.atemHost) {
-      await atem.connect(config.atemHost, config.atemPort).catch((error: unknown) => {
+      // Not awaited: with the ATEM unreachable the library's connect() can stay pending for good,
+      // which would hold up onReady (and so the HTTP listen) and leave nothing keeping the process alive.
+      void atem.connect(config.atemHost, config.atemPort).catch((error: unknown) => {
         app.log.warn({ err: error }, "ATEM connect failed; the adapter keeps retrying");
       });
     }

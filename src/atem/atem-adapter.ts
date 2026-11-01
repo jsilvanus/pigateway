@@ -234,7 +234,7 @@ export class AtemAdapter {
       if (!this.target) return;
       this.open().catch(() => undefined);
     }, delay);
-    this.reconnectTimer.unref();
+    // Deliberately not unref'd: a pending reconnect must keep the process alive.
   }
 
   private clearReconnectTimer(): void {

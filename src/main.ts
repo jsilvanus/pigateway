@@ -10,7 +10,26 @@ async function main(): Promise<void> {
   }
   const app = buildApp(config);
 
+  // The gateway must outlive any device being down. This timer keeps the event loop alive until
+  // shutdown, and the handlers below log how the process ended if it ever ends unexpectedly.
+  const keepAlive = setInterval(() => undefined, 60_000);
+  let shuttingDown = false;
+  process.on("uncaughtException", (err) => {
+    app.log.error({ err }, "Uncaught exception (process kept running)");
+  });
+  process.on("unhandledRejection", (reason) => {
+    app.log.error({ err: reason }, "Unhandled promise rejection (process kept running)");
+  });
+  process.on("beforeExit", (code) => {
+    if (!shuttingDown) app.log.error({ code }, "Event loop drained without a shutdown request");
+  });
+  process.on("exit", (code) => {
+    if (!shuttingDown) console.error(`pigateway exiting with code ${code} without a shutdown request`);
+  });
+
   const shutdown = async (signal: string): Promise<void> => {
+    shuttingDown = true;
+    clearInterval(keepAlive);
     app.log.info({ signal }, "Shutting down pigateway");
     try {
       await app.close();
@@ -27,6 +46,8 @@ async function main(): Promise<void> {
     app.log.info({ address, mode: config.mode }, "pigateway listening");
   } catch (error) {
     app.log.error({ err: error }, "Unable to start pigateway");
+    shuttingDown = true;
+    clearInterval(keepAlive);
     process.exitCode = 1;
   }
 }
