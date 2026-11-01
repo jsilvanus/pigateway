@@ -165,6 +165,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
 
   let freedBindError: string | null = null;
   let freedRetry: NodeJS.Timeout | null = null;
+  let amxRetry: NodeJS.Timeout | null = null;
   const freedReceiver = config.freedUdpEnabled
     ? new FreedUdpReceiver({
         host: config.freedUdpHost,
@@ -287,25 +288,48 @@ export function buildApp(config: AppConfig): FastifyInstance {
     : null;
   (app as unknown as { amxListener?: AmxTcpListener | null }).amxListener = amxListener;
 
+  // A missing or broken device must never stop the gateway from starting: every step is isolated,
+  // failures are logged, and the steps that can be retried (AMX listener, FreeD) retry.
+  const safely = async (step: string, fn: () => unknown): Promise<void> => {
+    try {
+      await fn();
+    } catch (err: unknown) {
+      app.log.error({ event: "startup_step_failed", component: "lifecycle", step, err }, "Startup step failed; the gateway keeps running");
+    }
+  };
+
   app.addHook("onReady", async () => {
-    const pisoundShouldStart = await ecosystemTracker.shouldStartPisoundReceiver();
-    if (pisoundShouldStart) {
-      await pisound.start().catch((error: unknown) => {
-        app.log.error({ err: error, port: config.pisoundUdpPort }, "Unable to start PiSound UDP telemetry receiver");
-      });
-      ecosystemTracker.markPisoundReceiverStarted();
-    } else {
-      app.log.info({ port: config.pisoundUdpPort }, "PiSound is not active; skipping UDP telemetry receiver startup");
-    }
+    await safely("pisound", async () => {
+      if (await ecosystemTracker.shouldStartPisoundReceiver()) {
+        await pisound.start().catch((error: unknown) => {
+          app.log.error({ err: error, port: config.pisoundUdpPort }, "Unable to start PiSound UDP telemetry receiver");
+        });
+        ecosystemTracker.markPisoundReceiverStarted();
+      } else {
+        app.log.info({ port: config.pisoundUdpPort }, "PiSound is not active; skipping UDP telemetry receiver startup");
+      }
+    });
     if (config.pivoiceEnabled !== false) {
-      await pivoice.start().catch((error: unknown) => {
-        app.log.error({ err: error, port: config.pivoiceUdpPort }, "Unable to start PiVoice UDP telemetry receiver");
-      });
+      await safely("pivoice", () =>
+        pivoice.start().catch((error: unknown) => {
+          app.log.error({ err: error, port: config.pivoiceUdpPort }, "Unable to start PiVoice UDP telemetry receiver");
+        })
+      );
     }
-    ecosystemTracker.start();
-    if (amxListener) await amxListener.start();
-    if (config.amxMasterHost) matrix.startPolling();
-    encoder.start();
+    await safely("ecosystem", () => ecosystemTracker.start());
+    if (amxListener) {
+      const startAmx = async (): Promise<void> => {
+        try {
+          await amxListener.start();
+        } catch (err: unknown) {
+          app.log.error({ event: "amx_listener_failed", component: "amx-6600", err }, "AMX TCP listener failed to start; retrying in 15 s");
+          amxRetry = setTimeout(() => void startAmx(), 15_000);
+        }
+      };
+      await startAmx();
+    }
+    if (config.amxMasterHost) await safely("atlona-polling", () => matrix.startPolling());
+    await safely("encoder", () => encoder.start());
     if (freedReceiver) {
       const startFreed = async (): Promise<void> => {
         try {
@@ -340,7 +364,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
       pivoiceActivity.close(),
       atem.disconnect(),
       cameraService.close(),
-      (freedRetry ? clearTimeout(freedRetry) : undefined, freedReceiver ? freedReceiver.stop() : Promise.resolve()),
+      (amxRetry ? clearTimeout(amxRetry) : undefined, freedRetry ? clearTimeout(freedRetry) : undefined, freedReceiver ? freedReceiver.stop() : Promise.resolve()),
       amxListener ? amxListener.stop() : Promise.resolve(),
       amxClient.close()
     ]);

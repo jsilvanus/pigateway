@@ -37,6 +37,9 @@ async function main(): Promise<void> {
       app.log.error({ err: error }, "Error while shutting down");
       process.exitCode = 1;
     }
+    // A device library can leave a handle open (e.g. a pending ATEM connect); once everything is
+    // closed, leave anyway after a short grace period. Unref'd: it only fires when something lingers.
+    setTimeout(() => process.exit(process.exitCode ?? 0), 2000).unref();
   };
   process.once("SIGHUP", () => void shutdown("SIGHUP"));
   process.once("SIGINT", () => void shutdown("SIGINT"));
