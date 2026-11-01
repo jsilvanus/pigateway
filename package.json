@@ -36,7 +36,7 @@
   "pi": {
     "service": "pigateway",
     "displayName": "PiGateway",
-    "layer": "southbound-hardware",
+    "layer": "Layer 1: Southbound hardware",
     "port": 3000,
     "ports": {
       "pivoiceUdp": 3101,
