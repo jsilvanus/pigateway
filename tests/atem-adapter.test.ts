@@ -117,6 +117,7 @@ test("state change listeners receive the new state and can unsubscribe", async (
 
   assert.deepEqual(seen, [true, true]);
   assert.equal(adapter.getState().connected, false);
+  await adapter.disconnect(); // stop the scheduled reconnect so the test process can exit
 });
 
 test("commands are forwarded to the M/E index and refused while not connected", async () => {
@@ -186,6 +187,7 @@ test("connect logs a warning and rethrows when the connection fails", async () =
   });
   await assert.rejects(adapter.connect("192.0.2.20"), /no route/);
   assert.deepEqual(warnings, ["ATEM connection failed"]);
+  await adapter.disconnect(); // stop the scheduled reconnect so the test process can exit
 });
 
 test("a dropped ATEM is reconnected to the same address with backoff, and the log says so", async () => {

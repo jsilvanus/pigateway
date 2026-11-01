@@ -56,6 +56,20 @@ PiGateway tracks availability and in-use status of all Pi ecosystem services (`p
 
 The gateway listens for the AMX on `PIGATEWAY_AMX_TCP_PORT` (6600) and speaks the same line protocol pimatrix did. `CAM`, `DEV`, `PING` and the camera and Atlona parts of `STATUS:ALL` are answered here. `SOURCE`, `OUTPUT`, `QUICK` and `PROGRAM` are forwarded to pimatrix's own AMX listener (`PIGATEWAY_VIDEO_AMX_HOST/PORT`), so the AMX program does not change. Atlona routing (`POST /api/v1/matrix/route`, plus `/api/v1/matrix` and `/matrix/lock`) is sent to the AMX master on 6501.
 
+## Logging
+
+JSON lines to stdout (journald). Level from `PIGATEWAY_LOG_LEVEL` (default `info`; `LOG_LEVEL` still works). Every line has `component` and, for notable moments, a stable `event`: `startup`, `shutting_down`, `uncaught_exception`, `device_connected`, `device_disconnected` (with `upMs`), `device_reconnect_scheduled`, `http_request`, `amx_command`.
+
+- HTTP audit: one line per request with method, route pattern, status, `durationMs` and source host. Writes at info, GETs at debug (errors always warn/error). No query string, headers or body.
+- AMX: command name, sub-command and result code only, never arguments. PING/STATUS polls are debug.
+- Never logged: transcript or caption text, names, tokens, stream keys, passwords (`src/log/redact.ts`, tested in `tests/log-redact.test.ts`).
+
+```
+journalctl --user -u pigateway -o cat | grep '"event":"device_'      # device state changes
+journalctl --user -u pigateway -o cat | grep '"event":"shutting_down\|"event":"startup"'
+journalctl --user -u pigateway -o cat | grep '"event":"amx_command"' | tail
+```
+
 ## Configuration
 
 See [.env.example](.env.example). Camera and ATEM addresses, MediaMTX push URLs, API key, LAN allow list, CORS origins.

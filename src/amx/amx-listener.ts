@@ -106,6 +106,8 @@ export class AmxTcpListener {
       }
     }
     this.clients.add(socket);
+    this.options.logger?.info?.({ event: "device_connected", component: "amx-6600", source: remoteIp }, "AMX client connected");
+    const connectedAt = Date.now();
     let buffer = "";
     socket.setEncoding("utf8");
     socket.on("data", async (chunk: string) => {
@@ -122,17 +124,39 @@ export class AmxTcpListener {
         if (rawCmd.length === 0) continue;
         try {
           const response = await this.dispatch(rawCmd);
+          this.auditCommand(rawCmd, response, remoteIp);
           if (response) this.send(socket, response);
         } catch (error) {
           this.send(socket, `ERR:DISPATCH_FAILED:${error instanceof Error ? error.message : "INTERNAL_ERROR"}`);
         }
       }
     });
-    socket.on("close", () => this.clients.delete(socket));
+    socket.on("close", () => {
+      this.clients.delete(socket);
+      this.options.logger?.info?.(
+        { event: "device_disconnected", component: "amx-6600", source: remoteIp, upMs: Date.now() - connectedAt },
+        "AMX client disconnected"
+      );
+    });
     socket.on("error", (err) => {
       this.options.logger?.warn({ err }, "AMX TCP client socket error");
       this.clients.delete(socket);
     });
+  }
+
+  /** Command name and result code only, never arguments or payloads. Polling commands go to debug. */
+  private auditCommand(raw: string, response: string, remoteIp: string | undefined): void {
+    const parts = raw.split(":").map((p) => p.trim().toUpperCase());
+    const first = parts[0] ?? "";
+    const named = KNOWN_COMMANDS.has(first) ? 0 : KNOWN_COMMANDS.has(parts[1] ?? "") ? 1 : -1;
+    const command = named >= 0 ? (parts[named] ?? "") : "UNKNOWN";
+    const sub = named >= 0 && /^[A-Z]{1,12}$/.test(parts[named + 1] ?? "") ? parts[named + 1] : undefined;
+    const err = /(?:^|:)ERR:([A-Z_]+)/.exec(response.toUpperCase());
+    const level = command === "PING" || command === "STATUS" ? "debug" : err ? "warn" : "info";
+    this.options.logger?.[level]?.(
+      { event: "amx_command", component: "amx-6600", command, sub, result: err ? `ERR:${err[1]}` : "OK", source: remoteIp },
+      "AMX command"
+    );
   }
 
   private send(socket: Socket, payload: string): void {

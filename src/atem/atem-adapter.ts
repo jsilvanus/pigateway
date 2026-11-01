@@ -136,6 +136,7 @@ export class AtemAdapter {
   private target: { host: string; port: number } | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private reconnectDelayMs: number;
+  private connectedAt = 0;
 
   constructor(options: AtemAdapterOptions = {}) {
     this.meIndex = options.meIndex ?? 0;
@@ -191,8 +192,9 @@ export class AtemAdapter {
       if (this.client !== client) return;
       clearTimeout(warnTimer);
       this.connected = true;
+      this.connectedAt = Date.now();
       this.reconnectDelayMs = this.reconnectMinMs;
-      this.logger?.info?.({ host: target, port }, "ATEM connected");
+      this.logger?.info?.({ event: "device_connected", component: "atem", host: target, port }, "ATEM connected");
       this.emit();
     });
     client.on("disconnected", () => {
@@ -200,7 +202,12 @@ export class AtemAdapter {
       clearTimeout(warnTimer);
       const wasConnected = this.connected;
       this.connected = false;
-      if (wasConnected) this.logger?.warn({ host: target, port }, "ATEM disconnected");
+      if (wasConnected) {
+        this.logger?.warn(
+          { event: "device_disconnected", component: "atem", host: target, port, upMs: Date.now() - this.connectedAt },
+          "ATEM disconnected"
+        );
+      }
       this.emit();
       this.scheduleReconnect();
     });
@@ -228,13 +235,13 @@ export class AtemAdapter {
     if (!this.target || this.reconnectTimer) return;
     const delay = this.reconnectDelayMs;
     this.reconnectDelayMs = Math.min(this.reconnectMaxMs, this.reconnectDelayMs * 2);
-    this.logger?.info?.({ host: this.target.host, port: this.target.port, delayMs: delay }, "ATEM reconnect scheduled");
+    this.logger?.info?.({ event: "device_reconnect_scheduled", component: "atem", host: this.target.host, port: this.target.port, delayMs: delay }, "ATEM reconnect scheduled");
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
       if (!this.target) return;
       this.open().catch(() => undefined);
     }, delay);
-    this.reconnectTimer.unref();
+    // Deliberately not unref'd: a pending reconnect must keep the process alive.
   }
 
   private clearReconnectTimer(): void {
