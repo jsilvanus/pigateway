@@ -18,6 +18,7 @@ export interface AtemRouteOptions {
 const DEFAULT_MAX_INPUT = 40;
 /** Downstream keyers on an ATEM Extreme ISO class switcher. */
 const MAX_DSK = 4;
+const MAX_AUX = 6;
 
 function notConnected(reply: { code: (n: number) => { send: (b: unknown) => unknown } }): unknown {
   return reply.code(503).send({
@@ -94,6 +95,24 @@ export function registerAtemRoutes(
       if (!atem.getState().connected) return notConnected(reply);
       await atem.fadeToBlack();
       return reply.code(200).send(atem.getState());
+    });
+
+    app.get(`${prefix}/aux`, async (_request, reply) => {
+      if (!atem.getState().connected) return notConnected(reply);
+      return reply.code(200).send({ items: atem.getAuxiliaries() });
+    });
+
+    app.put<{ Params: { aux: string }; Body: { source?: unknown } }>(`${prefix}/aux/:aux`, async (request, reply) => {
+      const aux = Number(request.params.aux);
+      const source = request.body?.source;
+      if (!Number.isInteger(aux) || aux < 1 || aux > MAX_AUX || typeof source !== "number" || !Number.isInteger(source) || source < 0 || source > 65535) {
+        return reply.code(422).send({
+          error: { code: "INVALID_REQUEST", message: `aux must be 1-${MAX_AUX} and source an integer ATEM source id (0-65535)` },
+        });
+      }
+      if (!atem.getState().connected) return notConnected(reply);
+      await atem.setAux(aux, source);
+      return reply.code(200).send({ items: atem.getAuxiliaries() });
     });
 
     app.put<{ Params: { dsk: string }; Body: { onAir?: unknown } }>(`${prefix}/dsk/:dsk/on-air`, async (request, reply) => {
