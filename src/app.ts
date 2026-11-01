@@ -381,6 +381,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
       transcripts: { delivery: transcriptDelivery?.mode ?? null, ...transcripts.status(), source: auditorSse.status() },
       radioRelay: await radioRelay.safeLifecycle(),
       cameras: cameraService.list().map((cam) => ({ id: cam.id, connection: cam.connection })),
+      freed: freedReceiver ? freedReceiver.getStats() : null,
       spatial: spatialStore.get(),
       worldState: worldStateAggregator.get(),
       ecosystem: eco,

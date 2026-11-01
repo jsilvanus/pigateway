@@ -129,6 +129,17 @@ export function decodeFreedPacket(buf: Buffer): FreedTelemetry | null {
   };
 }
 
+export interface FreedReceiverStats {
+  received: number;
+  decoded: number;
+  droppedNotAllowed: number;
+  invalid: number;
+  lastSource: string | null;
+  lastBytes: number | null;
+  listening: boolean;
+  port: number;
+}
+
 export interface FreedUdpReceiverOptions {
   host: string;
   port: number;
@@ -140,6 +151,7 @@ export interface FreedUdpReceiverOptions {
 export class FreedUdpReceiver {
   private readonly options: FreedUdpReceiverOptions;
   private readonly allowedIps?: Set<string> | undefined;
+  private readonly stats = { received: 0, decoded: 0, droppedNotAllowed: 0, invalid: 0, lastSource: null as string | null, lastBytes: null as number | null };
   private readonly telemetryByCamId = new Map<number, FreedTelemetry>();
   private socket: dgram.Socket | null = null;
 
@@ -162,6 +174,11 @@ export class FreedUdpReceiver {
     return [...this.telemetryByCamId.values()];
   }
 
+  /** Datagram counters, to tell "nothing arrives" from "arrives but is dropped or invalid". */
+  getStats(): FreedReceiverStats {
+    return { ...this.stats, listening: this.socket !== null, port: this.getBoundPort() };
+  }
+
   getBoundPort(): number {
     const address = this.socket?.address();
     return address && typeof address === "object" ? address.port : this.options.port;
@@ -175,12 +192,27 @@ export class FreedUdpReceiver {
 
     socket.on("message", (buf, remote) => {
       const remoteIp = remote.address.startsWith("::ffff:") ? remote.address.slice(7) : remote.address;
+      this.stats.received += 1;
+      this.stats.lastSource = remoteIp;
+      this.stats.lastBytes = buf.length;
+      if (this.stats.received === 1) {
+        this.options.logger?.info({ from: remoteIp, bytes: buf.length }, "FreeD: first datagram received");
+      }
       if (this.allowedIps && !this.allowedIps.has(remoteIp)) {
+        if (this.stats.droppedNotAllowed++ === 0) {
+          this.options.logger?.warn({ from: remoteIp }, "FreeD datagram dropped: source is not in PIGATEWAY_FREED_ALLOWED_HOSTS");
+        }
         return;
       }
 
       const telemetry = decodeFreedPacket(buf);
-      if (!telemetry) return;
+      if (!telemetry) {
+        if (this.stats.invalid++ === 0) {
+          this.options.logger?.warn({ from: remoteIp, bytes: buf.length }, "FreeD datagram invalid (length or checksum)");
+        }
+        return;
+      }
+      this.stats.decoded += 1;
 
       this.telemetryByCamId.set(telemetry.camId, telemetry);
 
