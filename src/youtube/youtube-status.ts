@@ -1,6 +1,6 @@
 /**
  * YouTube live status, written by pitube (the only YouTube connection) and read by
- * everything else, e.g. pilight. The gateway never talks to YouTube itself.
+ * everything else, e.g. pitally. The gateway never talks to YouTube itself.
  *
  * The writer says how long its reading is good for (ttlMs). Once the gateway has
  * not heard from pitube for that long, the state reads as "unknown".
