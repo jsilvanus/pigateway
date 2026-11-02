@@ -196,23 +196,23 @@ export class EcosystemTracker {
       ...(ytState ? { details: { state: ytState.state, ...(ytState.detail ? { detail: ytState.detail } : {}) } } : {})
     };
 
-    // 4. PiLight
-    const pilightAvailable = this.#availableMap.get("pilight") ?? false;
-    const pilightConfigured = Boolean(this.#config.pilightApiUrl);
-    const pilightConnecting = this.#sseClients.has("pilight");
-    const pilightInUse = pilightConnecting || pilightAvailable || pilightConfigured;
-    components.pilight = {
-      id: "pilight",
+    // 4. PiTally
+    const pitallyAvailable = this.#availableMap.get("pitally") ?? false;
+    const pitallyConfigured = Boolean(this.#config.pitallyApiUrl);
+    const pitallyConnecting = this.#sseClients.has("pitally");
+    const pitallyInUse = pitallyConnecting || pitallyAvailable || pitallyConfigured;
+    components.pitally = {
+      id: "pitally",
       tab: "tally",
-      name: "PiLight Tally Lights",
+      name: "PiTally Tally Lights",
       description: "Wireless tally lights (Tally-Ma) and camera director cueing",
-      active: pilightInUse,
-      inUse: pilightInUse,
-      available: pilightAvailable,
-      configured: pilightConfigured,
-      connecting: pilightConnecting,
-      lastSeenAt: this.#lastSeenMap.get("pilight") ?? null,
-      url: this.#config.pilightApiUrl ?? "http://127.0.0.1:3107"
+      active: pitallyInUse,
+      inUse: pitallyInUse,
+      available: pitallyAvailable,
+      configured: pitallyConfigured,
+      connecting: pitallyConnecting,
+      lastSeenAt: this.#lastSeenMap.get("pitally") ?? null,
+      url: this.#config.pitallyApiUrl ?? "http://127.0.0.1:3107"
     };
 
     // 5. PiMatrix
@@ -556,7 +556,7 @@ export class EcosystemTracker {
         { id: "pisound", url: `${this.#config.pisoundApiUrl ?? "http://127.0.0.1:3105"}/health` },
         { id: "pivoice", url: `${this.#config.pivoiceApiUrl ?? "http://127.0.0.1:3106"}/health` },
         { id: "pitube", url: `${this.#config.pitubeApiUrl ?? "http://127.0.0.1:3500"}/health` },
-        { id: "pilight", url: `${this.#config.pilightApiUrl ?? "http://127.0.0.1:3107"}/health` },
+        { id: "pitally", url: `${this.#config.pitallyApiUrl ?? "http://127.0.0.1:3107"}/health` },
         { id: "pimatrix", url: `${this.#config.pimatrixApiUrl ?? "http://127.0.0.1:3101"}/health` },
         { id: "piprogram", url: `${this.#config.piprogramApiUrl ?? "http://127.0.0.1:3104"}/health` },
         { id: "picanva", url: `${this.#config.picanvaApiUrl ?? "http://127.0.0.1:3103"}/health` },

@@ -18,7 +18,7 @@ test("EcosystemTracker tracks default services and respects probe responses", as
     probeFetch: async (url) => {
       probedUrls.push(url);
       if (url.includes(":3105") && probeTargetOnline) return true;
-      if (url.includes(":3107")) return true; // simulate pilight online
+      if (url.includes(":3107")) return true; // simulate pitally online
       return false;
     }
   });
@@ -29,7 +29,7 @@ test("EcosystemTracker tracks default services and respects probe responses", as
   assert.ok(initial.components.pisound);
   assert.ok(initial.components.pivoice);
   assert.ok(initial.components.pitube);
-  assert.ok(initial.components.pilight);
+  assert.ok(initial.components.pitally);
   assert.ok(initial.components.pimatrix);
   assert.ok(initial.components.piprogram);
   assert.ok(initial.components.picanva);
@@ -41,11 +41,11 @@ test("EcosystemTracker tracks default services and respects probe responses", as
   // Probe all
   const afterProbe = await tracker.probeAll();
   assert.ok(probedUrls.length >= 7);
-  // pilight was simulated online
-  assert.equal(afterProbe.components.pilight.active, true);
-  assert.equal(afterProbe.components.pilight.available, true);
+  // pitally was simulated online
+  assert.equal(afterProbe.components.pitally.active, true);
+  assert.equal(afterProbe.components.pitally.available, true);
   assert.ok(afterProbe.inUseTabs.includes("tally"));
-  assert.ok(afterProbe.activePlugins.includes("pilight"));
+  assert.ok(afterProbe.activePlugins.includes("pitally"));
 
   // Check event emitted
   const ecoEvents = events.filter((e) => e.type === "ecosystem");

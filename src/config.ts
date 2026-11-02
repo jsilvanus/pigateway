@@ -26,7 +26,7 @@ export interface AppConfig {
   pisoundApiUrl?: string | undefined;
   pisoundApiToken?: string | undefined;
   pitubeApiUrl?: string | undefined;
-  pilightApiUrl?: string | undefined;
+  pitallyApiUrl?: string | undefined;
   pimatrixApiUrl?: string | undefined;
   piprogramApiUrl?: string | undefined;
   picanvaApiUrl?: string | undefined;
@@ -196,7 +196,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
           : undefined;
   const pivoiceEnabled = env.PIGATEWAY_PIVOICE_ENABLED === "false" ? false : true;
   const pitubeApiUrl = urlWithScheme(env.PIGATEWAY_PITUBE_API_URL, "PIGATEWAY_PITUBE_API_URL", ["http:", "https:"]);
-  const pilightApiUrl = urlWithScheme(env.PIGATEWAY_PILIGHT_API_URL, "PIGATEWAY_PILIGHT_API_URL", ["http:", "https:"]);
+  const pitallyApiUrl = urlWithScheme(env.PIGATEWAY_PITALLY_API_URL, "PIGATEWAY_PITALLY_API_URL", ["http:", "https:"]);
   const pimatrixApiUrl = urlWithScheme(env.PIGATEWAY_PIMATRIX_API_URL, "PIGATEWAY_PIMATRIX_API_URL", ["http:", "https:"]);
   const piprogramApiUrl = urlWithScheme(env.PIGATEWAY_PIPROGRAM_API_URL, "PIGATEWAY_PIPROGRAM_API_URL", ["http:", "https:"]);
   const picanvaApiUrl = urlWithScheme(env.PIGATEWAY_PICANVA_API_URL, "PIGATEWAY_PICANVA_API_URL", ["http:", "https:"]);
@@ -227,7 +227,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     pisoundApiUrl,
     pisoundApiToken,
     pitubeApiUrl,
-    pilightApiUrl,
+    pitallyApiUrl,
     pimatrixApiUrl,
     piprogramApiUrl,
     picanvaApiUrl,

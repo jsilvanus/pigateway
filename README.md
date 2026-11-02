@@ -41,7 +41,7 @@ Set `PIGATEWAY_PIVOICE_API_URL` (for example `http://127.0.0.1:3106`) and `PIGAT
 
 ## Ecosystem discovery & in-use plugin tracking
 
-PiGateway tracks availability and in-use status of all Pi ecosystem services (`pisound`, `pivoice`, `pitube`, `pilight`, `pimatrix`, `piprogram`, `picanva`, `auditor`, `radioRelay`, and attached devices like ATEM, encoder, and cameras).
+PiGateway tracks availability and in-use status of all Pi ecosystem services (`pisound`, `pivoice`, `pitube`, `pitally`, `pimatrix`, `piprogram`, `picanva`, `auditor`, `radioRelay`, and attached devices like ATEM, encoder, and cameras).
 - `GET /api/v1/status` includes `ecosystem`, `activePlugins` (list of active plugin IDs), and `inUseTabs` (list of active UI tabs, e.g. `["sound", "voice", "youtube", "tally", "atem"]`). Browser interfaces like `picontrol` can inspect `inUseTabs` to selectively render only the tabs that are currently active in the venue.
 - `GET /api/v1/ecosystem` returns detailed status per component.
 - `POST /api/v1/ecosystem/probe` actively triggers an immediate health probe of all endpoints.

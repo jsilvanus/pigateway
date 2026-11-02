@@ -329,18 +329,18 @@ export class ActionRegistry {
       },
     });
 
-    // 5. Tally Actions (forwarded to PiLight)
-    const pilightComponent = ecosystem.components.pilight;
-    const pilightAvailable = Boolean(pilightComponent?.available || pilightComponent?.active || this.config.pilightApiUrl);
-    const pilightReason = pilightAvailable ? undefined : "PiLight tally service is not available";
+    // 5. Tally Actions (forwarded to PiTally)
+    const pitallyComponent = ecosystem.components.pitally;
+    const pitallyAvailable = Boolean(pitallyComponent?.available || pitallyComponent?.active || this.config.pitallyApiUrl);
+    const pitallyReason = pitallyAvailable ? undefined : "PiTally tally service is not available";
 
     actions.push({
       id: "tally:cue",
       domain: "tally",
       name: "Camera Director Tally Cue",
       description: "Direct camera operator via rear tally LEDs (pan-left, zoom-in, call)",
-      available: pilightAvailable,
-      unavailableReason: pilightReason,
+      available: pitallyAvailable,
+      unavailableReason: pitallyReason,
       params: {
         unit: { type: "string", required: true, description: "Tally light unit ID (e.g. tally01 or 1)" },
         cue: { type: "string", required: true, enum: ["pan-left", "pan-right", "zoom-in", "zoom-out", "operator-call", "clear"] },
@@ -352,8 +352,8 @@ export class ActionRegistry {
       domain: "tally",
       name: "Set Tally State",
       description: "Set solid Program, Preview, or Off state on tally light",
-      available: pilightAvailable,
-      unavailableReason: pilightReason,
+      available: pitallyAvailable,
+      unavailableReason: pitallyReason,
       params: {
         unit: { type: "string", required: true },
         state: { type: "string", required: true, enum: ["pgm", "prv", "off"] },
@@ -719,9 +719,9 @@ export class ActionRegistry {
       }
     }
 
-    // 5. Tally Domain (forward to PiLight)
+    // 5. Tally Domain (forward to PiTally)
     if (domain === "tally") {
-      const baseUrl = this.config.pilightApiUrl ?? "http://127.0.0.1:3107";
+      const baseUrl = this.config.pitallyApiUrl ?? "http://127.0.0.1:3107";
       const unit = encodeURIComponent(String(params.unit ?? "1"));
 
       if (op === "cue") {
