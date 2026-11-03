@@ -3622,7 +3622,7 @@
           "Canva"
         ],
         "summary": "Step 2: put a ready presentation on a pipeline",
-        "description": "Adds the presentation to the pipeline, cues a slide and routes the Atlona to the chosen displays. Projector picture mute is not applied yet and is reported in `warnings`.",
+        "description": "Adds the presentation to the pipeline, cues a slide and routes the Atlona to the chosen displays. With unblankProjectors the picture mute of both projectors is switched off; a failure is reported in `warnings`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -3830,8 +3830,8 @@
               }
             }
           },
-          "501": {
-            "description": "picMute is not available yet",
+          "502": {
+            "description": "Pi Program or a projector command failed",
             "content": {
               "application/json": {
                 "schema": {
@@ -3840,8 +3840,8 @@
               }
             }
           },
-          "502": {
-            "description": "Pi Program not reachable",
+          "501": {
+            "description": "picMute is not connected",
             "content": {
               "application/json": {
                 "schema": {
@@ -3923,6 +3923,55 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/projectors/{target}/picture-mute": {
+      "post": {
+        "operationId": "setProjectorPictureMute",
+        "summary": "Mute or open the picture of a projector (shows black while muted)",
+        "parameters": [
+          {
+            "name": "target",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "proj1",
+                "proj2"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "muted": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "muted"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Picture mute set"
+          },
+          "422": {
+            "description": "Invalid target or value"
+          },
+          "502": {
+            "description": "Command failed"
           }
         }
       }

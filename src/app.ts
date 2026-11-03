@@ -195,7 +195,11 @@ export function buildApp(config: AppConfig): FastifyInstance {
       downloadHosts: config.canvaDownloadHosts,
       logger: app.log
     }),
-    { routeMatrix: (input, output) => matrix.route(input, output, config.mode), matrixRoutes: () => ({ ...matrix.state.routes }) }
+    {
+      routeMatrix: (input, output) => matrix.route(input, output, config.mode),
+      matrixRoutes: () => ({ ...matrix.state.routes }),
+      setPictureMute: (target, muted) => amxClient.epsonCommand(target, "MUTE", muted ? "ON" : "OFF")
+    }
   );
 
   const ecosystemTracker = new EcosystemTracker({
