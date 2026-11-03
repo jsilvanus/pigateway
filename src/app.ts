@@ -6,6 +6,7 @@ import { registerProjectorRoutes } from "./amx/projector-routes.js";
 import { CanvaService } from "./canva/canva-service.js";
 import { registerCanvaRoutes, type CanvaRoutesOptions } from "./canva/canva-routes.js";
 import { buildCanvaTunnelApp } from "./canva/canva-tunnel.js";
+import { createCanvaUserAuth } from "./canva/canva-user-auth.js";
 import { REDACT_PATHS, serializers } from "./log/redact.js";
 import { AtemAdapter, type AtemClient } from "./atem/atem-adapter.js";
 import { SimulatedAtemClient } from "./simulation/simulated-atem.js";
@@ -211,8 +212,9 @@ export function buildApp(config: AppConfig): FastifyInstance {
   };
   registerCanvaRoutes(app, canvaService, canvaRouteOptions);
   if (config.canvaTunnelPort !== undefined) {
-    // Same service and routes, on a separate local port that always needs the API key (see canva-tunnel.ts).
-    const tunnel = buildCanvaTunnelApp({ apiKey: config.apiKey, corsOrigins: config.canvaTunnelCorsOrigins }, canvaService, canvaRouteOptions, app.log);
+    // Same service and routes, on a separate local port that needs the API key or a Canva user token of an allowed team (see canva-tunnel.ts).
+    const userAuth = config.canvaAppId ? createCanvaUserAuth({ appId: config.canvaAppId, allowedBrands: config.canvaAllowedBrands ?? [] }) : undefined;
+    const tunnel = buildCanvaTunnelApp({ apiKey: config.apiKey, corsOrigins: config.canvaTunnelCorsOrigins, userAuth }, canvaService, canvaRouteOptions, app.log);
     app.decorate("canvaTunnel", tunnel);
     app.addHook("onClose", async () => {
       await tunnel.close();

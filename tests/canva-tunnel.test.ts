@@ -51,3 +51,31 @@ test("canva tunnel: CORS only for the configured origin, preflight needs no key"
   const evil = await app.inject({ url: "/api/v1/canva/tasks/x", headers: { origin: "https://evil.example", authorization: "Bearer secret" } });
   assert.equal(evil.headers["access-control-allow-origin"], undefined);
 });
+
+test("canva tunnel: a Canva user token of an allowed team is accepted, others are refused", async () => {
+  const seen: string[] = [];
+  const userAuth = {
+    async verify(token: string) {
+      seen.push(token);
+      if (token === "good.user.token") return { userId: "u1", brandId: "team-ok" };
+      if (token === "other.team.token") throw new (await import("../src/canva/canva-user-auth.js")).CanvaTeamNotAllowed("team-x");
+      throw new Error("bad signature");
+    },
+  };
+  const app = buildCanvaTunnelApp({ apiKey: "secret", userAuth }, service(), {}, quiet);
+  const status = (headers: Record<string, string>) => app.inject({ url: "/api/v1/canva/status", headers }).then((r) => r.statusCode);
+
+  assert.equal(await status({ authorization: "Bearer good.user.token" }), 404, "allowed team passes (404 = the route is missing in this test app, not an auth failure)");
+  assert.equal(await status({ authorization: "Bearer other.team.token" }), 403);
+  assert.equal(await status({ authorization: "Bearer forged.user.token" }), 401);
+  assert.equal(await status({ authorization: "Bearer secret" }), 404, "the shared key still passes the key check (404 = no such route here)");
+  assert.equal(await status({ authorization: "Bearer wrong" }), 401, "a wrong non-JWT key is refused");
+  assert.deepEqual(seen, ["good.user.token", "other.team.token", "forged.user.token"]);
+});
+
+test("canva tunnel: a user token alone (no shared key) still works, and refuses without one", async () => {
+  const userAuth = { async verify() { return { userId: "u1", brandId: "team-ok" }; } };
+  const app = buildCanvaTunnelApp({ userAuth }, service(), {}, quiet);
+  assert.equal((await app.inject({ url: "/api/v1/canva/status", headers: { authorization: "Bearer a.b.c" } })).statusCode, 404);
+  assert.equal((await app.inject({ url: "/api/v1/canva/status", headers: { authorization: "Bearer plain" } })).statusCode, 401);
+});
