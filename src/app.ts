@@ -4,7 +4,8 @@ import { AmxTcpListener, tcpVideoForward, type AmxControl } from "./amx/amx-list
 import { AtlonaMatrix } from "./amx/atlona.js";
 import { registerProjectorRoutes } from "./amx/projector-routes.js";
 import { CanvaService } from "./canva/canva-service.js";
-import { registerCanvaRoutes } from "./canva/canva-routes.js";
+import { registerCanvaRoutes, type CanvaRoutesOptions } from "./canva/canva-routes.js";
+import { buildCanvaTunnelApp } from "./canva/canva-tunnel.js";
 import { REDACT_PATHS, serializers } from "./log/redact.js";
 import { AtemAdapter, type AtemClient } from "./atem/atem-adapter.js";
 import { SimulatedAtemClient } from "./simulation/simulated-atem.js";
@@ -197,20 +198,26 @@ export function buildApp(config: AppConfig): FastifyInstance {
   }
   matrix.register(app, config.mode);
   registerProjectorRoutes(app, amxClient);
-  registerCanvaRoutes(
-    app,
-    new CanvaService({
-      piprogramUrl: config.piprogramApiUrl ?? "http://127.0.0.1:3200",
-      piprogramApiKey: config.piprogramApiKey,
-      downloadHosts: config.canvaDownloadHosts,
-      logger: app.log
-    }),
-    {
-      routeMatrix: (input, output) => matrix.route(input, output, config.mode),
-      matrixRoutes: () => ({ ...matrix.state.routes }),
-      setPictureMute: (target, muted) => amxClient.epsonCommand(target, "MUTE", muted ? "ON" : "OFF")
-    }
-  );
+  const canvaService = new CanvaService({
+    piprogramUrl: config.piprogramApiUrl ?? "http://127.0.0.1:3200",
+    piprogramApiKey: config.piprogramApiKey,
+    downloadHosts: config.canvaDownloadHosts,
+    logger: app.log
+  });
+  const canvaRouteOptions: CanvaRoutesOptions = {
+    routeMatrix: (input, output) => matrix.route(input, output, config.mode),
+    matrixRoutes: () => ({ ...matrix.state.routes }),
+    setPictureMute: (target, muted) => amxClient.epsonCommand(target, "MUTE", muted ? "ON" : "OFF")
+  };
+  registerCanvaRoutes(app, canvaService, canvaRouteOptions);
+  if (config.canvaTunnelPort !== undefined) {
+    // Same service and routes, on a separate local port that always needs the API key (see canva-tunnel.ts).
+    const tunnel = buildCanvaTunnelApp({ apiKey: config.apiKey, corsOrigins: config.canvaTunnelCorsOrigins }, canvaService, canvaRouteOptions, app.log);
+    app.decorate("canvaTunnel", tunnel);
+    app.addHook("onClose", async () => {
+      await tunnel.close();
+    });
+  }
 
   const ecosystemTracker = new EcosystemTracker({
     config,
