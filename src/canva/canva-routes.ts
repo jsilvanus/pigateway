@@ -13,7 +13,11 @@ export interface CanvaRoutesOptions {
   /** Routes an Atlona input to an output (the gateway's own matrix). Without it a route request is reported as not applied. */
   routeMatrix?: ((input: number, output: number) => Promise<{ success: boolean; message?: string | undefined }>) | undefined;
   matrixRoutes?: (() => Record<number, number | null>) | undefined;
+  /** Mutes or opens the picture of a projector (Epson picture mute through the AMX). Without it picMute is not available. */
+  setPictureMute?: ((target: "proj1" | "proj2", muted: boolean) => Promise<{ success: boolean; message?: string | undefined }>) | undefined;
 }
+
+const PROJECTORS = ["proj1", "proj2"] as const;
 
 function fail(reply: FastifyReply, error: unknown) {
   if (error instanceof CanvaError) return reply.code(error.status).send({ error: { code: error.code, message: error.message } });
@@ -21,6 +25,19 @@ function fail(reply: FastifyReply, error: unknown) {
 }
 
 export function registerCanvaRoutes(app: FastifyInstance, service: CanvaService, options: CanvaRoutesOptions = {}): void {
+  /** What the plugin last asked for. The projectors do not report it back, so this is not read from them. */
+  let lastPicMute: boolean | null = null;
+  const applyPictureMute = async (muted: boolean): Promise<string | null> => {
+    if (!options.setPictureMute) return "picture mute is not connected";
+    const failures: string[] = [];
+    for (const target of PROJECTORS) {
+      const res = await options.setPictureMute(target, muted);
+      if (!res.success) failures.push(`${target}: ${res.message ?? "failed"}`);
+    }
+    if (failures.length === 0) lastPicMute = muted;
+    return failures.length ? failures.join("; ") : null;
+  };
+
   // Step 1: the plugin's export URLs go in, a task comes out (202). The task shows download and preparation progress.
   app.post<{ Body: { title?: unknown; pages?: unknown; orientation?: unknown } }>("/api/v1/canva/push", async (request, reply) => {
     try {
@@ -80,9 +97,12 @@ export function registerCanvaRoutes(app: FastifyInstance, service: CanvaService,
             }
           }
         }
-        if (body.unblankProjectors === true) warnings.push("unblankProjectors was not applied: projector picture mute is not controlled from here yet");
+        if (body.unblankProjectors === true) {
+          const problem = await applyPictureMute(false);
+          if (problem) warnings.push(`unblankProjectors was not applied: ${problem}`);
+        }
 
-        return { success: true, pipelineId: String(body.pipelineId).toLowerCase(), matrixRoute, routed, picMute: null, currentSlide: cueSlide, warnings };
+        return { success: true, pipelineId: String(body.pipelineId).toLowerCase(), matrixRoute, routed, picMute: lastPicMute, currentSlide: cueSlide, warnings };
       } catch (error) {
         return fail(reply, error);
       }
@@ -113,7 +133,13 @@ export function registerCanvaRoutes(app: FastifyInstance, service: CanvaService,
         return { success: true, ftb: state.fadeToBlack };
       }
       if (action === "picMute") {
-        return reply.code(501).send({ error: { code: "PIC_MUTE_NOT_AVAILABLE", message: "Projector picture mute is not controlled from the gateway yet" } });
+        if (typeof body.muted !== "boolean") return reply.code(422).send({ error: { code: "INVALID_MUTED", message: "muted must be true or false" } });
+        if (!options.setPictureMute) {
+          return reply.code(501).send({ error: { code: "PIC_MUTE_NOT_AVAILABLE", message: "Projector picture mute is not connected" } });
+        }
+        const problem = await applyPictureMute(body.muted);
+        if (problem) return reply.code(502).send({ error: { code: "PIC_MUTE_FAILED", message: problem } });
+        return { success: true, muted: body.muted };
       }
       return reply.code(422).send({ error: { code: "INVALID_ACTION", message: "action must be next, prev, gotoPage, ftb or picMute" } });
     } catch (error) {
@@ -129,9 +155,9 @@ export function registerCanvaRoutes(app: FastifyInstance, service: CanvaService,
       const input = PIPELINE_INPUT[pipelineId];
       const routes = options.matrixRoutes?.();
       const outputs = routes && input !== undefined ? Object.entries(routes).filter(([, i]) => i === input).map(([o]) => Number(o)) : [];
-      return { online: true, pipelineId: pipelineId.toLowerCase(), currentSlide: state.currentStep + 1, totalSlides: state.totalSteps, ftb: state.fadeToBlack, picMute: null, routedOutputs: outputs };
+      return { online: true, pipelineId: pipelineId.toLowerCase(), currentSlide: state.currentStep + 1, totalSlides: state.totalSteps, ftb: state.fadeToBlack, picMute: lastPicMute, routedOutputs: outputs };
     } catch (error) {
-      if (error instanceof CanvaError && error.status === 502) return { online: false, pipelineId: pipelineId.toLowerCase(), error: error.message };
+      if (error instanceof CanvaError && error.status === 502) return { online: false, picMute: lastPicMute, pipelineId: pipelineId.toLowerCase(), error: error.message };
       return fail(reply, error);
     }
   });

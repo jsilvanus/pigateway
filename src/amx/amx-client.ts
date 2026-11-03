@@ -22,7 +22,7 @@ export interface AmxClient {
   getStatus(): Promise<AmxClientStatus>;
   /** Atlona output (1-5) -> input (null = unknown), read from AMX; null when AMX cannot answer. */
   atlonaRoutes(timeoutMs?: number): Promise<Record<number, number | null> | null>;
-  epsonCommand(target: "proj1" | "proj2", action: "RAW" | "POWER" | "SOURCE", value: string, timeoutMs?: number): Promise<{ success: boolean; message: string }>;
+  epsonCommand(target: "proj1" | "proj2", action: "RAW" | "POWER" | "SOURCE" | "MUTE", value: string, timeoutMs?: number): Promise<{ success: boolean; message: string }>;
   epsonStatus(target: "proj1" | "proj2", timeoutMs?: number): Promise<{ status: number; source: string } | null>;
   close(): Promise<void>;
 }
@@ -57,7 +57,7 @@ export class SimulatedAmxClient implements AmxClient {
     return null;
   }
 
-  async epsonCommand(target: "proj1" | "proj2", action: "RAW" | "POWER" | "SOURCE", value: string): Promise<{ success: boolean; message: string }> {
+  async epsonCommand(target: "proj1" | "proj2", action: "RAW" | "POWER" | "SOURCE" | "MUTE", value: string): Promise<{ success: boolean; message: string }> {
     return { success: true, message: `Simulated ${target} ${action} ${value}` };
   }
 
@@ -301,7 +301,7 @@ export class TcpAmxClient implements AmxClient {
 
   async epsonCommand(
     target: "proj1" | "proj2",
-    action: "RAW" | "POWER" | "SOURCE",
+    action: "RAW" | "POWER" | "SOURCE" | "MUTE",
     value: string,
     timeoutMs = 3000
   ): Promise<{ success: boolean; message: string }> {

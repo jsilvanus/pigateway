@@ -84,6 +84,20 @@ export function registerProjectorRoutes(app: FastifyInstance, amxClient: AmxClie
     return reply.code(200).send({ success: true, target, power: power.toLowerCase() });
   });
 
+  // POST picture mute: the projector shows black while muted (the same state as the touch panel's mute buttons)
+  app.post<{ Params: { target: string }; Body: { muted?: unknown } }>("/api/v1/projectors/:target/picture-mute", async (request, reply) => {
+    const target = parseTarget(request.params.target);
+    if (!target) return reply.code(422).send({ error: { code: "INVALID_TARGET", message: "Target must be proj1 or proj2" } });
+    if (typeof request.body?.muted !== "boolean") {
+      return reply.code(422).send({ error: { code: "INVALID_MUTED", message: "muted must be true or false" } });
+    }
+    const res = await amxClient.epsonCommand(target, "MUTE", request.body.muted ? "ON" : "OFF");
+    if (!res.success) {
+      return reply.code(502).send({ error: { code: "COMMAND_FAILED", message: res.message } });
+    }
+    return reply.code(200).send({ success: true, target, muted: request.body.muted });
+  });
+
   // POST set source
   app.post<{ Params: { target: string }; Body: { source?: unknown } }>("/api/v1/projectors/:target/source", async (request, reply) => {
     const target = parseTarget(request.params.target);
