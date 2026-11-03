@@ -108,10 +108,11 @@ export class CanvaService {
   }
 
   /** Validates the request and starts the job. Resolves with the new task; the work goes on in the background. */
-  start(input: { title?: unknown; pages?: unknown; orientation?: unknown }): { task: CanvaTask; done: Promise<void> } {
+  start(input: { title?: unknown; pages?: unknown; orientation?: unknown; useAt?: unknown }): { task: CanvaTask; done: Promise<void> } {
     const pages = this.#validatePages(input.pages);
     const title = typeof input.title === "string" && input.title.trim() ? input.title.trim().slice(0, 200) : "Canva presentation";
     const orientation = this.#orientation(input.orientation);
+    const useAt = this.#useAt(input.useAt);
     const now = new Date().toISOString();
     const task: CanvaTask = {
       taskId: `ctask_${randomUUID().slice(0, 12)}`,
@@ -131,18 +132,19 @@ export class CanvaService {
     };
     this.#tasks.set(task.taskId, task);
     this.#trim();
-    const done = this.#run(task, pages, orientation).catch((error: unknown) => {
+    const done = this.#run(task, pages, orientation, useAt).catch((error: unknown) => {
       this.#update(task, { state: "failed", error: error instanceof Error ? error.message : String(error) });
       this.#opts.logger?.warn({ taskId: task.taskId, err: task.error }, "canva push failed");
     });
     return { task, done };
   }
 
-  async #run(task: CanvaTask, pages: CanvaPushPage[], orientation: string): Promise<void> {
+  async #run(task: CanvaTask, pages: CanvaPushPage[], orientation: string, useAt: string[]): Promise<void> {
     const item = await this.#pg<{ id: string }>("POST", "/api/v1/pipgm/items/canva", {
       designId: `push-${task.presentationId.replace(/^pres_/, "")}`,
       title: task.title,
-      pageCount: pages.length
+      pageCount: pages.length,
+      ...(useAt.length ? { useAt } : {})
     });
     this.#update(task, { itemId: item.id });
     this.#presentations.set(task.presentationId, { itemId: item.id, taskId: task.taskId });
@@ -211,6 +213,16 @@ export class CanvaService {
     const numbers = new Set(pages.map((p) => p.pageNumber));
     if (numbers.size !== pages.length) throw new CanvaError(422, "DUPLICATE_PAGE_NUMBER", "pageNumber must be unique");
     return pages.sort((a, b) => a.pageNumber - b.pageNumber);
+  }
+
+  /** Service date: one entry or a list in the shared useAt format (day, hour, moment or range). piprogram checks the syntax. */
+  #useAt(raw: unknown): string[] {
+    if (raw === undefined || raw === null || raw === "") return [];
+    const list = Array.isArray(raw) ? raw : [raw];
+    if (list.length > 32 || !list.every((e) => typeof e === "string" && e.trim() && e.length <= 100)) {
+      throw new CanvaError(422, "INVALID_USE_AT", "useAt must be a string or a list of up to 32 strings such as 2026-11-08 or 2026-11-08T10/2026-11-08T12");
+    }
+    return list.map((e: string) => e.trim());
   }
 
   #orientation(raw: unknown): string {

@@ -83,6 +83,13 @@ test("canva push: downloads pages, hands them to piprogram and reports progress 
   assert.deepEqual(routed, [[3, 1], [3, 2]]);
   assert.ok(env.calls.some((c) => c.path === "/api/v1/pipgm/pipelines/PiPGM1/playlist" && (c.body as { cueImmediately: boolean }).cueImmediately));
 
+  routed.length = 0;
+  const viaPi2 = await app.inject({ method: "POST", url: "/api/v1/canva/setup", payload: { presentationId: started.presentationId, pipelineId: "pipgm1", matrixRoute: "landscape_screen", piOutput: "pi2" } });
+  assert.equal(viaPi2.statusCode, 200);
+  assert.deepEqual(routed, [[4, 3]], "pipgm1 sent through the Pi 2 output");
+  const badPi = await app.inject({ method: "POST", url: "/api/v1/canva/setup", payload: { presentationId: started.presentationId, pipelineId: "pipgm1", piOutput: "pi9" } });
+  assert.equal(badPi.statusCode, 422);
+
   const goto = await app.inject({ method: "POST", url: "/api/v1/canva/control", payload: { pipelineId: "pipgm1", action: "gotoPage", page: 3 } });
   assert.equal(goto.json().currentPage, 3);
   const noMute = await app.inject({ method: "POST", url: "/api/v1/canva/control", payload: { action: "picMute", muted: true } });
@@ -151,4 +158,19 @@ test("canva picture mute: setup unblanks both projectors, control mutes them, a 
   assert.equal(bad.statusCode, 502);
   assert.match(bad.json().error.message, /proj2: no answer/);
   assert.equal((await app.inject({ method: "POST", url: "/api/v1/canva/control", payload: { action: "picMute" } })).statusCode, 422);
+});
+
+test("canva push: useAt is passed to piprogram's item, a bad value is refused", async () => {
+  const env = fakeEnvironment();
+  const app = Fastify();
+  registerCanvaRoutes(app, new CanvaService({ piprogramUrl: "http://pg", fetchFn: env.fetchFn, pollMs: 1 }));
+  const page = [{ url: "https://export.canva.com/a.png" }];
+  const res = await app.inject({ method: "POST", url: "/api/v1/canva/push", payload: { pages: page, useAt: "2026-11-08" } });
+  assert.equal(res.statusCode, 202);
+  await untilDone(app, res.json().taskId);
+  const created = env.calls.find((c) => c.path === "/api/v1/pipgm/items/canva")!;
+  assert.deepEqual((created.body as { useAt: string[] }).useAt, ["2026-11-08"]);
+  for (const useAt of [5, [1], ["x".repeat(200)], [""]]) {
+    assert.equal((await app.inject({ method: "POST", url: "/api/v1/canva/push", payload: { pages: page, useAt } })).statusCode, 422, JSON.stringify(useAt));
+  }
 });

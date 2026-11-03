@@ -3,6 +3,8 @@ import { CanvaError, pipelineIdFor, type CanvaService } from "./canva-service.js
 
 /** Where each Pi Program pipeline enters the Atlona (input), and what each route name means (outputs). */
 const PIPELINE_INPUT: Record<string, number> = { PiPGM1: 3, PiPGM2: 4 };
+/** Which Atlona input a pipeline can be sent through: its own by default, or either Pi output on request. */
+const PI_INPUT: Record<string, number> = { pi1: 3, pi2: 4 };
 const ROUTE_OUTPUTS: Record<string, number[]> = {
   both_projectors: [1, 2],
   landscape_screen: [3],
@@ -39,7 +41,7 @@ export function registerCanvaRoutes(app: FastifyInstance, service: CanvaService,
   };
 
   // Step 1: the plugin's export URLs go in, a task comes out (202). The task shows download and preparation progress.
-  app.post<{ Body: { title?: unknown; pages?: unknown; orientation?: unknown } }>("/api/v1/canva/push", async (request, reply) => {
+  app.post<{ Body: { title?: unknown; pages?: unknown; orientation?: unknown; useAt?: unknown } }>("/api/v1/canva/push", async (request, reply) => {
     try {
       const { task } = service.start(request.body ?? {});
       return reply.code(202).header("location", `/api/v1/canva/tasks/${task.taskId}`).send(task);
@@ -55,7 +57,7 @@ export function registerCanvaRoutes(app: FastifyInstance, service: CanvaService,
   });
 
   // Step 2: put a ready presentation on a pipeline and route it to the displays.
-  app.post<{ Body: { presentationId?: unknown; pipelineId?: unknown; matrixRoute?: unknown; unblankProjectors?: unknown; cueSlide?: unknown } }>(
+  app.post<{ Body: { presentationId?: unknown; pipelineId?: unknown; matrixRoute?: unknown; unblankProjectors?: unknown; cueSlide?: unknown; piOutput?: unknown } }>(
     "/api/v1/canva/setup",
     async (request, reply) => {
       try {
@@ -65,6 +67,10 @@ export function registerCanvaRoutes(app: FastifyInstance, service: CanvaService,
         const matrixRoute = String(body.matrixRoute ?? "none");
         if (matrixRoute !== "none" && !ROUTE_OUTPUTS[matrixRoute]) {
           return reply.code(422).send({ error: { code: "INVALID_MATRIX_ROUTE", message: "matrixRoute must be both_projectors, landscape_screen, all_displays or none" } });
+        }
+        const piOutput = body.piOutput === undefined || body.piOutput === null || body.piOutput === "" ? undefined : String(body.piOutput).toLowerCase();
+        if (piOutput !== undefined && PI_INPUT[piOutput] === undefined) {
+          return reply.code(422).send({ error: { code: "INVALID_PI_OUTPUT", message: "piOutput must be pi1 or pi2" } });
         }
         const cueSlide = body.cueSlide === undefined ? 1 : Number(body.cueSlide);
         if (!Number.isInteger(cueSlide) || cueSlide < 1) return reply.code(422).send({ error: { code: "INVALID_CUE_SLIDE", message: "cueSlide must be 1 or more" } });
@@ -83,7 +89,7 @@ export function registerCanvaRoutes(app: FastifyInstance, service: CanvaService,
 
         let routed = false;
         if (matrixRoute !== "none") {
-          const input = PIPELINE_INPUT[pipelineId];
+          const input = piOutput !== undefined ? PI_INPUT[piOutput] : PIPELINE_INPUT[pipelineId];
           if (!options.routeMatrix || input === undefined) {
             warnings.push(`matrixRoute ${matrixRoute} was not applied: no matrix control for ${pipelineId}`);
           } else {
@@ -102,7 +108,7 @@ export function registerCanvaRoutes(app: FastifyInstance, service: CanvaService,
           if (problem) warnings.push(`unblankProjectors was not applied: ${problem}`);
         }
 
-        return { success: true, pipelineId: String(body.pipelineId).toLowerCase(), matrixRoute, routed, picMute: lastPicMute, currentSlide: cueSlide, warnings };
+        return { success: true, pipelineId: String(body.pipelineId).toLowerCase(), matrixRoute, piOutput: piOutput ?? null, routed, picMute: lastPicMute, currentSlide: cueSlide, warnings };
       } catch (error) {
         return fail(reply, error);
       }
