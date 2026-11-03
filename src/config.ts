@@ -35,6 +35,10 @@ export interface AppConfig {
   canvaTunnelPort?: number | undefined;
   /** Browser origins allowed on that listener (PIGATEWAY_CANVA_TUNNEL_CORS_ORIGINS). */
   canvaTunnelCorsOrigins?: string[] | undefined;
+  /** The Canva app id; with canvaAllowedBrands it lets the tunnel listener accept Canva user tokens (PIGATEWAY_CANVA_APP_ID). */
+  canvaAppId?: string | undefined;
+  /** Canva team (brand) ids whose users may use the tunnel listener (PIGATEWAY_CANVA_ALLOWED_BRANDS). */
+  canvaAllowedBrands?: string[] | undefined;
   picanvaApiUrl?: string | undefined;
   pirundownApiUrl?: string | undefined;
   pirundownDesignerApiUrl?: string | undefined;
@@ -240,6 +244,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     canvaDownloadHosts: list(env.PIGATEWAY_CANVA_DOWNLOAD_HOSTS),
     canvaTunnelPort: env.PIGATEWAY_CANVA_TUNNEL_PORT?.trim() ? validPort(env.PIGATEWAY_CANVA_TUNNEL_PORT, 3010, "PIGATEWAY_CANVA_TUNNEL_PORT") : undefined,
     canvaTunnelCorsOrigins: list(env.PIGATEWAY_CANVA_TUNNEL_CORS_ORIGINS),
+    canvaAppId: env.PIGATEWAY_CANVA_APP_ID?.trim() || undefined,
+    canvaAllowedBrands: list(env.PIGATEWAY_CANVA_ALLOWED_BRANDS),
     picanvaApiUrl,
     pirundownApiUrl,
     pirundownDesignerApiUrl,

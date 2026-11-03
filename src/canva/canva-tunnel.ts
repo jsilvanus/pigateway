@@ -2,6 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import Fastify, { type FastifyBaseLogger, type FastifyInstance } from "fastify";
 import { registerCanvaRoutes, type CanvaRoutesOptions } from "./canva-routes.js";
 import type { CanvaService } from "./canva-service.js";
+import { CanvaTeamNotAllowed, type CanvaUserAuth } from "./canva-user-auth.js";
 
 declare module "fastify" {
   interface FastifyInstance {
@@ -14,6 +15,13 @@ export interface CanvaTunnelConfig {
   apiKey?: string | undefined;
   /** Browser origins allowed to call the listener (the Canva app's origin). Nothing else gets CORS headers. */
   corsOrigins?: string[] | undefined;
+  /** Accepts a Canva user token (a JWT) from an allowed team instead of the shared key. Optional. */
+  userAuth?: CanvaUserAuth | undefined;
+}
+
+/** A Canva user token is a JWT: three dot-separated parts. The shared key is never shaped like one. */
+function looksLikeJwt(token: string): boolean {
+  return token.split(".").length === 3;
 }
 
 function sameKey(given: string | undefined, expected: string): boolean {
@@ -52,8 +60,8 @@ export function buildCanvaTunnelApp(
         .header("Vary", "Origin")
         .send();
     }
-    if (!config.apiKey) {
-      return reply.code(503).send({ error: { code: "TUNNEL_NOT_CONFIGURED", message: "PIGATEWAY_API_KEY is not set" } });
+    if (!config.apiKey && !config.userAuth) {
+      return reply.code(503).send({ error: { code: "TUNNEL_NOT_CONFIGURED", message: "Set PIGATEWAY_API_KEY or PIGATEWAY_CANVA_APP_ID" } });
     }
     const header = request.headers.authorization;
     const token = header?.startsWith("Bearer ")
@@ -61,7 +69,18 @@ export function buildCanvaTunnelApp(
       : typeof request.headers["x-api-key"] === "string"
         ? request.headers["x-api-key"].trim()
         : undefined;
-    if (!sameKey(token, config.apiKey)) {
+    if (config.userAuth && token && looksLikeJwt(token)) {
+      try {
+        await config.userAuth.verify(token);
+        return;
+      } catch (err) {
+        if (err instanceof CanvaTeamNotAllowed) {
+          return reply.code(403).send({ error: { code: "TEAM_NOT_ALLOWED", message: "This Canva team may not use the gateway" } });
+        }
+        return reply.code(401).send({ error: { code: "UNAUTHORIZED", message: "Canva user token is not valid" } });
+      }
+    }
+    if (!config.apiKey || !sameKey(token, config.apiKey)) {
       return reply.code(401).send({ error: { code: "UNAUTHORIZED", message: "Valid API key or Bearer token required" } });
     }
   });
