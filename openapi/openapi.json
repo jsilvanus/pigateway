@@ -3544,6 +3544,20 @@
                         }
                       }
                     }
+                  },
+                  "useAt": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ],
+                    "description": "Service date for the presentation, so Pi Program can have it ready: 2026-11-08, 2026-11-08T10, a range 2026-11-08/2026-11-09, or a list."
                   }
                 }
               }
@@ -3660,6 +3674,14 @@
                   "cueSlide": {
                     "type": "integer",
                     "minimum": 1
+                  },
+                  "piOutput": {
+                    "type": "string",
+                    "enum": [
+                      "pi1",
+                      "pi2"
+                    ],
+                    "description": "Send the pipeline through this Pi output (Atlona input 3 or 4). Default: PiPGM1 uses Pi 1, PiPGM2 uses Pi 2."
                   }
                 }
               }
