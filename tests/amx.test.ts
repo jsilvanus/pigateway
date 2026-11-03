@@ -81,7 +81,7 @@ test("AMX TCP: video commands are forwarded and STATUS:ALL merges both sides", a
         assert.match(status, /^STATUS:ALL:/);
         assert.match(status, /hdmi0=hama/);
         assert.match(status, /cam1pwr=standby/, "camera fields come from the gateway, not pimatrix");
-        assert.match(status, /atlona=0\/0\/0\/0\/0/, "atlona comes from the gateway");
+        assert.match(status, /atlona=2\/2\/1\/2\/2/, "atlona comes from the gateway (simulated routes), not from the video side");
       }
     );
   } finally {
