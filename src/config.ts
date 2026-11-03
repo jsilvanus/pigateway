@@ -29,6 +29,8 @@ export interface AppConfig {
   pitallyApiUrl?: string | undefined;
   pimatrixApiUrl?: string | undefined;
   piprogramApiUrl?: string | undefined;
+  piprogramApiKey?: string | undefined;
+  canvaDownloadHosts?: string[] | undefined;
   picanvaApiUrl?: string | undefined;
   pirundownApiUrl?: string | undefined;
   pirundownDesignerApiUrl?: string | undefined;
@@ -230,6 +232,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     pitallyApiUrl,
     pimatrixApiUrl,
     piprogramApiUrl,
+    piprogramApiKey: env.PIGATEWAY_PIPROGRAM_API_KEY?.trim() || undefined,
+    canvaDownloadHosts: list(env.PIGATEWAY_CANVA_DOWNLOAD_HOSTS),
     picanvaApiUrl,
     pirundownApiUrl,
     pirundownDesignerApiUrl,

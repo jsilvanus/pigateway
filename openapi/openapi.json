@@ -3498,6 +3498,434 @@
           }
         }
       }
+    },
+    "/api/v1/canva/push": {
+      "post": {
+        "operationId": "pushCanvaContent",
+        "tags": [
+          "Canva"
+        ],
+        "summary": "Step 1: push exported Canva pages",
+        "description": "Takes the https URLs of the pages exported by the Canva plugin, downloads them, and has Pi Program keep them as a presentation. Answers 202 with a task; poll it for download, unpacking and thumbnail progress and for `ready`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "pages"
+                ],
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "orientation": {
+                    "type": "string",
+                    "description": "landscape, portrait or both separated by a comma (default both)"
+                  },
+                  "pages": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "url"
+                      ],
+                      "properties": {
+                        "pageNumber": {
+                          "type": "integer"
+                        },
+                        "url": {
+                          "type": "string",
+                          "format": "uri"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Task started",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CanvaTask"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid pages or a URL on a host that is not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/canva/tasks/{taskId}": {
+      "get": {
+        "operationId": "getCanvaTask",
+        "tags": [
+          "Canva"
+        ],
+        "summary": "Progress of a Canva push",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The task",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CanvaTask"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown task",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/canva/setup": {
+      "post": {
+        "operationId": "setupCanvaPresentation",
+        "tags": [
+          "Canva"
+        ],
+        "summary": "Step 2: put a ready presentation on a pipeline",
+        "description": "Adds the presentation to the pipeline, cues a slide and routes the Atlona to the chosen displays. Projector picture mute is not applied yet and is reported in `warnings`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "presentationId",
+                  "pipelineId"
+                ],
+                "properties": {
+                  "presentationId": {
+                    "type": "string"
+                  },
+                  "pipelineId": {
+                    "type": "string",
+                    "enum": [
+                      "pipgm1",
+                      "pipgm2",
+                      "pipgm3"
+                    ]
+                  },
+                  "matrixRoute": {
+                    "type": "string",
+                    "enum": [
+                      "both_projectors",
+                      "landscape_screen",
+                      "all_displays",
+                      "none"
+                    ]
+                  },
+                  "unblankProjectors": {
+                    "type": "boolean"
+                  },
+                  "cueSlide": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Armed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "pipelineId": {
+                      "type": "string"
+                    },
+                    "matrixRoute": {
+                      "type": "string"
+                    },
+                    "routed": {
+                      "type": "boolean"
+                    },
+                    "picMute": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "currentSlide": {
+                      "type": "integer"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown presentation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not ready yet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Pi Program not reachable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/canva/control": {
+      "post": {
+        "operationId": "controlCanvaPresentation",
+        "tags": [
+          "Canva"
+        ],
+        "summary": "Step 3: live slide control",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "action"
+                ],
+                "properties": {
+                  "pipelineId": {
+                    "type": "string",
+                    "enum": [
+                      "pipgm1",
+                      "pipgm2",
+                      "pipgm3"
+                    ]
+                  },
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "next",
+                      "prev",
+                      "gotoPage",
+                      "ftb",
+                      "picMute"
+                    ]
+                  },
+                  "page": {
+                    "type": "integer"
+                  },
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "muted": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Done",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "currentPage": {
+                      "type": "integer"
+                    },
+                    "ftb": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "picMute is not available yet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Pi Program not reachable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/canva/status": {
+      "get": {
+        "operationId": "getCanvaStatus",
+        "tags": [
+          "Canva"
+        ],
+        "summary": "Pipeline status for the Canva plugin",
+        "parameters": [
+          {
+            "name": "pipelineId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pipgm1",
+                "pipgm2",
+                "pipgm3"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "online": {
+                      "type": "boolean"
+                    },
+                    "pipelineId": {
+                      "type": "string"
+                    },
+                    "currentSlide": {
+                      "type": "integer"
+                    },
+                    "totalSlides": {
+                      "type": "integer"
+                    },
+                    "ftb": {
+                      "type": "boolean"
+                    },
+                    "picMute": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "routedOutputs": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid pipeline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -4385,6 +4813,86 @@
                 }
               }
             }
+          }
+        }
+      },
+      "CanvaTask": {
+        "type": "object",
+        "description": "Progress of a Canva push: downloading the pages, then Pi Program unpacking them and preparing step pictures and thumbnails.",
+        "properties": {
+          "taskId": {
+            "type": "string"
+          },
+          "presentationId": {
+            "type": "string"
+          },
+          "itemId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "downloading",
+              "unpacking",
+              "preparing",
+              "ready",
+              "failed"
+            ]
+          },
+          "progress": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "pageCount": {
+            "type": "integer"
+          },
+          "downloaded": {
+            "type": "object",
+            "properties": {
+              "done": {
+                "type": "integer"
+              },
+              "total": {
+                "type": "integer"
+              }
+            }
+          },
+          "pictures": {
+            "type": "object",
+            "properties": {
+              "done": {
+                "type": "integer"
+              },
+              "total": {
+                "type": "integer"
+              }
+            }
+          },
+          "saved": {
+            "type": "boolean"
+          },
+          "ready": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
           }
         }
       }

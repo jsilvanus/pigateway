@@ -3,6 +3,8 @@ import { createAmxClient } from "./amx/amx-client.js";
 import { AmxTcpListener, tcpVideoForward, type AmxControl } from "./amx/amx-listener.js";
 import { AtlonaMatrix } from "./amx/atlona.js";
 import { registerProjectorRoutes } from "./amx/projector-routes.js";
+import { CanvaService } from "./canva/canva-service.js";
+import { registerCanvaRoutes } from "./canva/canva-routes.js";
 import { REDACT_PATHS, serializers } from "./log/redact.js";
 import { AtemAdapter } from "./atem/atem-adapter.js";
 import { registerAtemRoutes } from "./atem/atem-routes.js";
@@ -185,6 +187,16 @@ export function buildApp(config: AppConfig): FastifyInstance {
   const matrix = new AtlonaMatrix(amxClient, eventBroker, app.log);
   matrix.register(app, config.mode);
   registerProjectorRoutes(app, amxClient);
+  registerCanvaRoutes(
+    app,
+    new CanvaService({
+      piprogramUrl: config.piprogramApiUrl ?? "http://127.0.0.1:3200",
+      piprogramApiKey: config.piprogramApiKey,
+      downloadHosts: config.canvaDownloadHosts,
+      logger: app.log
+    }),
+    { routeMatrix: (input, output) => matrix.route(input, output, config.mode), matrixRoutes: () => ({ ...matrix.state.routes }) }
+  );
 
   const ecosystemTracker = new EcosystemTracker({
     config,
