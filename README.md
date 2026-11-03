@@ -10,7 +10,7 @@ pnpm run build && pnpm start      # or: pnpm run dev
 pnpm test
 ```
 
-Needs Node 22 or newer (Node 24 on the Pi). `PIGATEWAY_MODE=simulation` (default) fakes the cameras; `production` talks to the hardware and requires `PIGATEWAY_API_KEY`.
+Needs Node 22 or newer (Node 24 on the Pi). `PIGATEWAY_MODE=simulation` (default) fakes the cameras, the ATEM (one M/E, two DSKs, aux), the Atlona matrix (with plausible starting routes) and the Monarch encoder, unless a real host is configured for that device; `production` talks to the hardware and requires `PIGATEWAY_API_KEY`.
 
 ## PiVoice telemetry
 

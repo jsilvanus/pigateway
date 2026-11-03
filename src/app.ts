@@ -6,7 +6,9 @@ import { registerProjectorRoutes } from "./amx/projector-routes.js";
 import { CanvaService } from "./canva/canva-service.js";
 import { registerCanvaRoutes } from "./canva/canva-routes.js";
 import { REDACT_PATHS, serializers } from "./log/redact.js";
-import { AtemAdapter } from "./atem/atem-adapter.js";
+import { AtemAdapter, type AtemClient } from "./atem/atem-adapter.js";
+import { SimulatedAtemClient } from "./simulation/simulated-atem.js";
+import { SimulatedMonarch } from "./simulation/simulated-monarch.js";
 import { registerAtemRoutes } from "./atem/atem-routes.js";
 import { registerEncoderRoutes } from "./encoder/encoder-routes.js";
 import { EncoderService } from "./encoder/encoder-service.js";
@@ -126,11 +128,15 @@ export function buildApp(config: AppConfig): FastifyInstance {
     }
   });
 
-  const atem = new AtemAdapter({ logger: app.log });
+  // Simulation mode with no real device configured: in-memory ATEM and encoder behind the same seams as hardware.
+  const simulateAtem = config.mode === "simulation" && !config.atemHost;
+  const simulateEncoder = config.mode === "simulation" && !config.encoderHost;
+  const atem = new AtemAdapter({ logger: app.log, ...(simulateAtem ? { createClient: () => new SimulatedAtemClient() as unknown as AtemClient } : {}) });
   atem.onStateChange((state) => eventBroker.emit({ type: "atem", data: state }));
   registerAtemRoutes(app, atem);
 
   const encoder = new EncoderService({
+    ...(simulateEncoder ? { device: new SimulatedMonarch() } : {}),
     host: config.encoderHost,
     username: config.encoderUser,
     password: config.encoderPassword,
@@ -185,6 +191,10 @@ export function buildApp(config: AppConfig): FastifyInstance {
   });
   const amxClient = createAmxClient(config.amxSimulated, config.amxMasterHost, config.amxMasterPort, app.log);
   const matrix = new AtlonaMatrix(amxClient, eventBroker, app.log);
+  if (config.mode === "simulation" && !config.amxMasterHost && !config.amxSimulated) {
+    // Plausible starting routes for the simulated matrix (output 5 mirrors output 4).
+    Object.assign(matrix.state.routes, { 1: 2, 2: 2, 3: 1, 4: 2, 5: 2 });
+  }
   matrix.register(app, config.mode);
   registerProjectorRoutes(app, amxClient);
   registerCanvaRoutes(
@@ -360,7 +370,9 @@ export function buildApp(config: AppConfig): FastifyInstance {
       };
       await startFreed();
     }
-    if (config.atemHost) {
+    if (simulateAtem) {
+      void atem.connect("simulated").catch(() => undefined);
+    } else if (config.atemHost) {
       // Not awaited: with the ATEM unreachable the library's connect() can stay pending for good,
       // which would hold up onReady (and so the HTTP listen) and leave nothing keeping the process alive.
       void atem.connect(config.atemHost, config.atemPort).catch((error: unknown) => {
