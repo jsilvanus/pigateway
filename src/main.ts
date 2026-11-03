@@ -48,6 +48,11 @@ async function main(): Promise<void> {
   try {
     const address = await app.listen({ host: config.host, port: config.port });
     app.log.info({ address, mode: config.mode }, "pigateway listening");
+    if (app.canvaTunnel && config.canvaTunnelPort !== undefined) {
+      // Local only: the tunnel (ssh) is the way in, never the LAN.
+      const tunnelAddress = await app.canvaTunnel.listen({ host: "127.0.0.1", port: config.canvaTunnelPort });
+      app.log.info({ address: tunnelAddress }, "pigateway Canva listener");
+    }
     app.log.info(
       {
         event: "startup",

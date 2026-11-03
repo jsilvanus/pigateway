@@ -31,6 +31,10 @@ export interface AppConfig {
   piprogramApiUrl?: string | undefined;
   piprogramApiKey?: string | undefined;
   canvaDownloadHosts?: string[] | undefined;
+  /** Port of the Canva-only listener on 127.0.0.1 (PIGATEWAY_CANVA_TUNNEL_PORT); unset = off. */
+  canvaTunnelPort?: number | undefined;
+  /** Browser origins allowed on that listener (PIGATEWAY_CANVA_TUNNEL_CORS_ORIGINS). */
+  canvaTunnelCorsOrigins?: string[] | undefined;
   picanvaApiUrl?: string | undefined;
   pirundownApiUrl?: string | undefined;
   pirundownDesignerApiUrl?: string | undefined;
@@ -234,6 +238,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     piprogramApiUrl,
     piprogramApiKey: env.PIGATEWAY_PIPROGRAM_API_KEY?.trim() || undefined,
     canvaDownloadHosts: list(env.PIGATEWAY_CANVA_DOWNLOAD_HOSTS),
+    canvaTunnelPort: env.PIGATEWAY_CANVA_TUNNEL_PORT?.trim() ? validPort(env.PIGATEWAY_CANVA_TUNNEL_PORT, 3010, "PIGATEWAY_CANVA_TUNNEL_PORT") : undefined,
+    canvaTunnelCorsOrigins: list(env.PIGATEWAY_CANVA_TUNNEL_CORS_ORIGINS),
     picanvaApiUrl,
     pirundownApiUrl,
     pirundownDesignerApiUrl,
