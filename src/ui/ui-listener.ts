@@ -107,6 +107,10 @@ function cookieValue(request: FastifyRequest, name: string): string | undefined 
 export interface PinAuthOptions {
   pin: string;
   now?: () => number;
+  /** Cookie SameSite. "Strict" for the LAN; "None" for the relay, whose page is served from another site (needs Secure). */
+  sameSite?: "Strict" | "None";
+  /** Set the Secure flag on the session cookie (required with SameSite=None). */
+  secure?: boolean;
   /** Pause after a wrong PIN, to slow guessing. */
   failDelayMs?: number;
 }
@@ -117,6 +121,8 @@ export function createPinAuth(options: PinAuthOptions): UiAuthAdapter {
   const sessions = new Map<string, number>();
   const now = options.now ?? Date.now;
   const failDelayMs = options.failDelayMs ?? 600;
+  const sameSite = options.sameSite ?? "Strict";
+  const secureFlag = options.secure || sameSite === "None" ? "; Secure" : "";
   return {
     async login(credentials) {
       const given = typeof credentials.pin === "string" ? sha256(credentials.pin) : null;
@@ -144,8 +150,8 @@ export function createPinAuth(options: PinAuthOptions): UiAuthAdapter {
       const token = cookieValue(request, UI_COOKIE);
       if (token) sessions.delete(sha256(token).toString("hex"));
     },
-    cookie: (token) => `${UI_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${SESSION_MS / 1000}`,
-    clearCookie: () => `${UI_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0`
+    cookie: (token) => `${UI_COOKIE}=${token}; Path=/; HttpOnly; SameSite=${sameSite}${secureFlag}; Max-Age=${SESSION_MS / 1000}`,
+    clearCookie: () => `${UI_COOKIE}=; Path=/; HttpOnly; SameSite=${sameSite}${secureFlag}; Max-Age=0`
   };
 }
 
