@@ -451,8 +451,10 @@ export function buildUiListener(options: UiListenerOptions): FastifyInstance {
 
   app.post<{ Body: { pin?: unknown } | undefined }>("/ui/api/login", async (request, reply) => {
     const token = await options.auth.login(request.body ?? {});
-    if (!token) return reply.code(401).send({ error: { code: "WRONG_PIN", message: "Wrong PIN" } });
-    return reply.header("Set-Cookie", options.auth.cookie(token)).send({ role: options.role });
+    if (token === null) return reply.code(401).send({ error: { code: "WRONG_PIN", message: "Wrong PIN" } });
+    const cookie = options.auth.cookie(token);
+    if (cookie) reply.header("Set-Cookie", cookie);
+    return reply.send({ role: options.role });
   });
   app.post("/ui/api/logout", async (request, reply) => {
     options.auth.logout(request);
