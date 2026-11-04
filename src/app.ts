@@ -490,6 +490,10 @@ export function buildApp(config: AppConfig): FastifyInstance {
   });
 
   app.get("/api/v1/ecosystem", async () => ecosystemTracker.getSummary());
+  app.get("/api/v1/ui/modules", async () => ({
+    modules: config.uiModules ?? null,
+    restricted: config.uiModules !== undefined,
+  }));
   app.post("/api/v1/ecosystem/probe", async () => ecosystemTracker.probeAll());
 
   app.get("/api/v1/radio-relay", async () => radioRelay.safeLifecycle());

@@ -3,14 +3,16 @@ import Fastify, { type FastifyBaseLogger, type FastifyInstance, type FastifyRequ
 
 /**
  * The picontrol UI listeners. Each is a separate HTTP app that serves only an allowlist of module routes
- * (matrix, pivoice, piencoder, pitube) and nothing else. The role comes from the listener, never from a header:
+ * (pimatrix, pivoice, piencoder, pitube) and nothing else. The role comes from the listener, never from a header:
  * - "lan": PIGATEWAY_UI_PORT on the LAN; operate routes and the setup routes marked `setup`.
  * - "relay": PIGATEWAY_UI_RELAY_PORT on 127.0.0.1, reached only through an ssh tunnel from a public relay; operate routes only.
  * Neither listener can reach the device config, the pitube RTMP ingest or the Canva/transcript routes.
+ *
+ * Module names match piecosystem repo names (e.g. pimatrix, pivoice, piencoder, pitube).
  */
 
 export type UiRole = "lan" | "relay";
-export type UiModule = "matrix" | "pivoice" | "piencoder" | "pitube";
+export type UiModule = "pimatrix" | "pivoice" | "piencoder" | "pitube";
 export type UiMethod = "GET" | "POST" | "PUT";
 
 export interface UiRouteRule {
@@ -23,9 +25,9 @@ export interface UiRouteRule {
 }
 
 export const UI_ROUTES: readonly UiRouteRule[] = [
-  { method: "GET", path: "/api/v1/matrix", module: "matrix" },
-  { method: "POST", path: "/api/v1/matrix/route", module: "matrix" },
-  { method: "PUT", path: "/api/v1/matrix/lock", module: "matrix" },
+  { method: "GET", path: "/api/v1/matrix", module: "pimatrix" },
+  { method: "POST", path: "/api/v1/matrix/route", module: "pimatrix" },
+  { method: "PUT", path: "/api/v1/matrix/lock", module: "pimatrix" },
   { method: "GET", path: "/api/v1/activity/idle-close", module: "pivoice" },
   { method: "POST", path: "/api/v1/activity/session/start", module: "pivoice" },
   { method: "POST", path: "/api/v1/activity/session/stop", module: "pivoice" },
