@@ -90,6 +90,20 @@ test("LAN listener without a PIN serves module routes; relay still needs the PIN
   await relay.app.close();
 });
 
+test("relay cookie is SameSite=None and Secure", async () => {
+  const relay = buildUiListener({
+    role: "relay",
+    auth: createPinAuth({ pin: "123456", failDelayMs: 0, sameSite: "None", secure: true }),
+    forward: async () => ({ statusCode: 200, contentType: "application/json", body: "{}" }),
+    corsOrigins: ["https://keskuskirkko.riihimaenseurakunta.fi"],
+    logger
+  });
+  const res = await relay.inject({ method: "POST", url: "/ui/api/login", payload: { pin: "123456" }, headers: { origin: "https://keskuskirkko.riihimaenseurakunta.fi" } });
+  assert.match(String(res.headers["set-cookie"]), /SameSite=None; Secure/);
+  assert.equal(res.headers["access-control-allow-origin"], "https://keskuskirkko.riihimaenseurakunta.fi");
+  await relay.close();
+});
+
 test("CORS is only for the configured origin, with credentials", async () => {
   const { app } = setup("lan");
   const ok = await app.inject({ method: "OPTIONS", url: "/ui/api/session", headers: { origin: "https://picontrol.example" } });
