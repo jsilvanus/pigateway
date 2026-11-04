@@ -104,6 +104,20 @@ test("relay cookie is SameSite=None and Secure", async () => {
   await relay.close();
 });
 
+test("disabled modules answer 404 on the listener", async () => {
+  const app = buildUiListener({
+    role: "lan",
+    auth: createOpenAuth(),
+    forward: async () => ({ statusCode: 200, contentType: "application/json", body: "{}" }),
+    modules: new Set(["matrix"]),
+    logger
+  });
+  assert.equal((await app.inject({ method: "GET", url: "/api/v1/matrix" })).statusCode, 200);
+  assert.equal((await app.inject({ method: "GET", url: "/api/v1/status" })).statusCode, 404, "pitube is disabled");
+  assert.equal((await app.inject({ method: "POST", url: "/api/v1/encoder/1/start" })).statusCode, 404, "piencoder is disabled");
+  await app.close();
+});
+
 test("CORS is only for the configured origin, with credentials", async () => {
   const { app } = setup("lan");
   const ok = await app.inject({ method: "OPTIONS", url: "/ui/api/session", headers: { origin: "https://picontrol.example" } });

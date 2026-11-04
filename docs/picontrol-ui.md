@@ -17,3 +17,7 @@ allowlist of module routes (`src/ui/ui-listener.ts`, `UI_ROUTES`); everything el
 - Setup routes (`setup: true` in the table) answer on the LAN listener only.
 - Auth is pluggable (`UiAuthAdapter`). The PIN adapter is the first; an OIDC adapter can replace it later without changing the routes.
 - Verified by unit tests only (`tests/ui-listener.test.ts`); not run against the Pi devices.
+
+## Module filter
+
+`PIGATEWAY_UI_MODULES` (comma list: `matrix,pivoice,piencoder,pitube`; unset = all) limits both listeners to those modules. Routes of other modules answer 404. Use the same names as picontrol's `VITE_PICONTROL_MODULES`; names with no gateway route (such as `outputs`) are ignored.
