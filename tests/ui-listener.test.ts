@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import Fastify from "fastify";
-import { buildUiListener, createPinAuth, findUiRoute, type UiRouteRule } from "../src/ui/ui-listener.js";
+import { buildUiListener, createOpenAuth, createPinAuth, findUiRoute, type UiRouteRule } from "../src/ui/ui-listener.js";
 
 const logger = Fastify({ logger: { level: "silent" } }).log;
 
@@ -73,6 +73,21 @@ test("the internet (relay) listener never offers setup routes", async () => {
   assert.equal((await lan.app.inject({ method: "POST", url: "/api/v1/ingest/apply", headers: { cookie: cookieLan }, payload: {} })).statusCode, 404);
   await relay.app.close();
   await lan.app.close();
+});
+
+test("LAN listener without a PIN serves module routes; relay still needs the PIN", async () => {
+  const lan = buildUiListener({
+    role: "lan",
+    auth: createOpenAuth(),
+    forward: async () => ({ statusCode: 200, contentType: "application/json", body: "{}" }),
+    logger
+  });
+  assert.equal((await lan.inject({ method: "GET", url: "/api/v1/matrix" })).statusCode, 200);
+  assert.equal((await lan.inject({ method: "PUT", url: "/api/v1/encoder/1/settings", payload: {} })).statusCode, 200);
+  const relay = setup("relay");
+  assert.equal((await relay.app.inject({ method: "GET", url: "/api/v1/matrix" })).statusCode, 401);
+  await lan.close();
+  await relay.app.close();
 });
 
 test("CORS is only for the configured origin, with credentials", async () => {

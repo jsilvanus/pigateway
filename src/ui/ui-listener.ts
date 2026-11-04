@@ -70,6 +70,23 @@ export interface UiAuthAdapter {
   clearCookie(): string;
 }
 
+/** No PIN: every request is the listener's role. Only for a LAN listener that is trusted (PIGATEWAY_UI_LAN_NO_PIN=true). */
+export function createOpenAuth(): UiAuthAdapter {
+  return {
+    async login() {
+      return "";
+    },
+    authenticate(_request, listenerRole) {
+      return { role: listenerRole };
+    },
+    logout() {
+      // nothing to end
+    },
+    cookie: () => "",
+    clearCookie: () => ""
+  };
+}
+
 export const UI_COOKIE = "picontrol_ui";
 const SESSION_MS = 12 * 60 * 60 * 1000;
 
