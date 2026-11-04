@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import type { AppConfig } from "../config.js";
-import { buildUiListener, createPinAuth, type ForwardedResponse, type UiForward, type UiMethod, type UiRole, type UiRouteRule } from "./ui-listener.js";
+import { buildUiListener, createOpenAuth, createPinAuth, type ForwardedResponse, type UiForward, type UiMethod, type UiRole, type UiRouteRule } from "./ui-listener.js";
 
 export interface UiListenerSpec {
   role: UiRole;
@@ -51,15 +51,17 @@ export function createUiForward(app: FastifyInstance, config: AppConfig): UiForw
 /** The picontrol UI listeners that are switched on by config (none unless PIGATEWAY_UI_PORT or _RELAY_PORT is set). */
 export function createUiListeners(app: FastifyInstance, config: AppConfig): UiListenerSpec[] {
   if (config.uiPort === undefined && config.uiRelayPort === undefined) return [];
-  const auth = createPinAuth({ pin: config.uiPin ?? "" });
+  const pinAuth = config.uiPin ? createPinAuth({ pin: config.uiPin }) : undefined;
   const forward = createUiForward(app, config);
+  // The relay always needs the PIN; the LAN listener needs it unless PIGATEWAY_UI_LAN_NO_PIN=true.
+  const lanAuth = config.uiLanNoPin || !pinAuth ? createOpenAuth() : pinAuth;
   const specs: UiListenerSpec[] = [];
   if (config.uiPort !== undefined) {
-    specs.push({ role: "lan", host: "0.0.0.0", port: config.uiPort, app: buildUiListener({ role: "lan", auth, forward, corsOrigins: config.uiCorsOrigins, logger: app.log }) });
+    specs.push({ role: "lan", host: "0.0.0.0", port: config.uiPort, app: buildUiListener({ role: "lan", auth: lanAuth, forward, corsOrigins: config.uiCorsOrigins, logger: app.log }) });
   }
   if (config.uiRelayPort !== undefined) {
     // Local only: the ssh tunnel from the relay is the way in.
-    specs.push({ role: "relay", host: "127.0.0.1", port: config.uiRelayPort, app: buildUiListener({ role: "relay", auth, forward, corsOrigins: config.uiCorsOrigins, logger: app.log }) });
+    specs.push({ role: "relay", host: "127.0.0.1", port: config.uiRelayPort, app: buildUiListener({ role: "relay", auth: pinAuth ?? createOpenAuth(), forward, corsOrigins: config.uiCorsOrigins, logger: app.log }) });
   }
   app.addHook("onClose", async () => {
     await Promise.all(specs.map((spec) => spec.app.close()));
