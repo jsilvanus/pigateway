@@ -65,8 +65,7 @@ export function createUiListeners(app: FastifyInstance, config: AppConfig): UiLi
     // Local only: the ssh tunnel from the relay is the way in.
     specs.push({ role: "relay", host: "127.0.0.1", port: config.uiRelayPort, app: buildUiListener({ role: "relay", auth: relayAuth, forward, corsOrigins: config.uiCorsOrigins, logger: app.log }) });
   }
-  app.addHook("onClose", async () => {
-    await Promise.all(specs.map((spec) => spec.app.close()));
-  });
+  // No hooks here: this is called after the main app may already be listening, and Fastify refuses addHook then.
+  // The caller closes the listeners (see main.ts).
   return specs;
 }
