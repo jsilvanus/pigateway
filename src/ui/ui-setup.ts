@@ -55,15 +55,16 @@ export function createUiListeners(app: FastifyInstance, config: AppConfig): UiLi
   // The relay's page is on another site (the Pi's own domain), so its cookie is SameSite=None; Secure.
   const relayAuth = config.uiPin ? createPinAuth({ pin: config.uiPin, sameSite: "None", secure: true }) : createOpenAuth();
   const forward = createUiForward(app, config);
+  const modules = config.uiModules ? new Set(config.uiModules) : undefined;
   // The relay always needs the PIN; the LAN listener needs it unless PIGATEWAY_UI_LAN_NO_PIN=true.
   const lanAuth = config.uiLanNoPin || !pinAuth ? createOpenAuth() : pinAuth;
   const specs: UiListenerSpec[] = [];
   if (config.uiPort !== undefined) {
-    specs.push({ role: "lan", host: "0.0.0.0", port: config.uiPort, app: buildUiListener({ role: "lan", auth: lanAuth, forward, corsOrigins: config.uiCorsOrigins, logger: app.log }) });
+    specs.push({ role: "lan", host: "0.0.0.0", port: config.uiPort, app: buildUiListener({ role: "lan", auth: lanAuth, forward, corsOrigins: config.uiCorsOrigins, modules, logger: app.log }) });
   }
   if (config.uiRelayPort !== undefined) {
     // Local only: the ssh tunnel from the relay is the way in.
-    specs.push({ role: "relay", host: "127.0.0.1", port: config.uiRelayPort, app: buildUiListener({ role: "relay", auth: relayAuth, forward, corsOrigins: config.uiCorsOrigins, logger: app.log }) });
+    specs.push({ role: "relay", host: "127.0.0.1", port: config.uiRelayPort, app: buildUiListener({ role: "relay", auth: relayAuth, forward, corsOrigins: config.uiCorsOrigins, modules, logger: app.log }) });
   }
   // No hooks here: this is called after the main app may already be listening, and Fastify refuses addHook then.
   // The caller closes the listeners (see main.ts).

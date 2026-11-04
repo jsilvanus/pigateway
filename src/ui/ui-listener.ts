@@ -169,6 +169,8 @@ export interface UiListenerOptions {
   auth: UiAuthAdapter;
   forward: UiForward;
   corsOrigins?: string[] | undefined;
+  /** Modules this listener serves; undefined = all. A route of a module not in the set answers 404. */
+  modules?: ReadonlySet<string> | undefined;
   logger: FastifyBaseLogger;
 }
 
@@ -228,7 +230,7 @@ export function buildUiListener(options: UiListenerOptions): FastifyInstance {
     url: "/api/v1/*",
     handler: async (request, reply) => {
       const rule = findUiRoute(request.method, request.url);
-      if (!rule) return reply.code(404).send({ error: { code: "NOT_FOUND", message: "Not available on the picontrol UI" } });
+      if (!rule || (options.modules && !options.modules.has(rule.module))) return reply.code(404).send({ error: { code: "NOT_FOUND", message: "Not available on the picontrol UI" } });
       if (!options.auth.authenticate(request, options.role)) {
         return reply.code(401).send({ error: { code: "LOGIN_REQUIRED", message: "Log in with the PIN" } });
       }

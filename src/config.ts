@@ -46,6 +46,8 @@ export interface AppConfig {
   uiPort?: number | undefined;
   /** Relay listener for the picontrol UI, bound to 127.0.0.1 and reached through an ssh tunnel (PIGATEWAY_UI_RELAY_PORT); unset = off. Its role is "internet". */
   uiRelayPort?: number | undefined;
+  /** Modules the UI listeners serve (PIGATEWAY_UI_MODULES, same names as picontrol's VITE_PICONTROL_MODULES); unset = all. */
+  uiModules?: string[] | undefined;
   /** PIN that opens the UI listeners that need one (PIGATEWAY_UI_PIN). */
   uiPin?: string | undefined;
   /** The LAN listener needs no PIN (PIGATEWAY_UI_LAN_NO_PIN=true). The relay always does. */
@@ -263,6 +265,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     uiRelayPort,
     uiPin,
     uiLanNoPin,
+    uiModules: list(env.PIGATEWAY_UI_MODULES),
     uiCorsOrigins: list(env.PIGATEWAY_UI_CORS_ORIGINS),
     pitallyApiUrl,
     pimatrixApiUrl,
