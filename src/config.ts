@@ -40,6 +40,16 @@ export interface AppConfig {
   /** Canva team (brand) ids whose users may use the tunnel listener (PIGATEWAY_CANVA_ALLOWED_BRANDS). */
   canvaAllowedBrands?: string[] | undefined;
   picanvaApiUrl?: string | undefined;
+  /** Bearer token for the pitube API (PIGATEWAY_PITUBE_API_TOKEN), used by the picontrol UI listener only. */
+  pitubeApiToken?: string | undefined;
+  /** LAN listener for the picontrol UI (PIGATEWAY_UI_PORT, 0.0.0.0); unset = off. */
+  uiPort?: number | undefined;
+  /** Relay listener for the picontrol UI, bound to 127.0.0.1 and reached through an ssh tunnel (PIGATEWAY_UI_RELAY_PORT); unset = off. Its role is "internet". */
+  uiRelayPort?: number | undefined;
+  /** PIN that opens both UI listeners (PIGATEWAY_UI_PIN). */
+  uiPin?: string | undefined;
+  /** Browser origins allowed to call the UI listeners with credentials (PIGATEWAY_UI_CORS_ORIGINS). */
+  uiCorsOrigins?: string[] | undefined;
   pirundownApiUrl?: string | undefined;
   pirundownDesignerApiUrl?: string | undefined;
   pispaceApiUrl?: string | undefined;
@@ -210,6 +220,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const pimatrixApiUrl = urlWithScheme(env.PIGATEWAY_PIMATRIX_API_URL, "PIGATEWAY_PIMATRIX_API_URL", ["http:", "https:"]);
   const piprogramApiUrl = urlWithScheme(env.PIGATEWAY_PIPROGRAM_API_URL, "PIGATEWAY_PIPROGRAM_API_URL", ["http:", "https:"]);
   const picanvaApiUrl = urlWithScheme(env.PIGATEWAY_PICANVA_API_URL, "PIGATEWAY_PICANVA_API_URL", ["http:", "https:"]);
+  const pitubeApiToken = env.PIGATEWAY_PITUBE_API_TOKEN?.trim() || undefined;
+  const uiPort = env.PIGATEWAY_UI_PORT?.trim() ? validPort(env.PIGATEWAY_UI_PORT, 3011, "PIGATEWAY_UI_PORT") : undefined;
+  const uiRelayPort = env.PIGATEWAY_UI_RELAY_PORT?.trim() ? validPort(env.PIGATEWAY_UI_RELAY_PORT, 3012, "PIGATEWAY_UI_RELAY_PORT") : undefined;
+  const uiPin = env.PIGATEWAY_UI_PIN?.trim() || undefined;
+  if ((uiPort !== undefined || uiRelayPort !== undefined) && (!uiPin || uiPin.length < 6)) {
+    throw new Error("PIGATEWAY_UI_PIN (at least 6 characters) is required when a picontrol UI listener is enabled");
+  }
   const pirundownApiUrl = urlWithScheme(env.PIGATEWAY_PIRUNDOWN_API_URL, "PIGATEWAY_PIRUNDOWN_API_URL", ["http:", "https:"]);
   const pirundownDesignerApiUrl = urlWithScheme(env.PIGATEWAY_PIRUNDOWN_DESIGNER_API_URL, "PIGATEWAY_PIRUNDOWN_DESIGNER_API_URL", ["http:", "https:"]);
   const pispaceApiUrl = urlWithScheme(env.PIGATEWAY_PISPACE_API_URL, "PIGATEWAY_PISPACE_API_URL", ["http:", "https:"]);
@@ -237,6 +254,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     pisoundApiUrl,
     pisoundApiToken,
     pitubeApiUrl,
+    pitubeApiToken,
+    uiPort,
+    uiRelayPort,
+    uiPin,
+    uiCorsOrigins: list(env.PIGATEWAY_UI_CORS_ORIGINS),
     pitallyApiUrl,
     pimatrixApiUrl,
     piprogramApiUrl,
