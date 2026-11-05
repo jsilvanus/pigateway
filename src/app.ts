@@ -108,7 +108,14 @@ export function buildApp(config: AppConfig): FastifyInstance {
     onSession: (sessionId) => (sessionId && transcriptDelivery?.mode === "sse" ? auditorSse.start(sessionId) : auditorSse.stop()),
     onChange: (state) => eventBroker.emit({ type: "pivoice-activity", data: state })
   });
-  const radioRelay = new RadioRelayClient({ baseUrl: config.radioRelayApiUrl, token: config.radioRelayApiToken, streamName: config.radioRelayStreamName, logger: app.log });
+  const radioRelay = new RadioRelayClient({
+    baseUrl: config.radioRelayApiUrl,
+    token: config.radioRelayApiToken,
+    streamName: config.radioRelayStreamName,
+    mountPoint: config.radioRelayMountPoint,
+    publicUrl: config.radioRelayPublicUrl,
+    logger: app.log
+  });
   const pivoice = new PiVoiceUdpReceiver({
     host: config.pivoiceUdpHost ?? "0.0.0.0",
     port: config.pivoiceUdpPort ?? 3101,

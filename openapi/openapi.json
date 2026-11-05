@@ -1260,6 +1260,43 @@
         }
       }
     },
+    "/api/v1/ui/modules": {
+      "get": {
+        "operationId": "getUiModules",
+        "tags": [
+          "UI"
+        ],
+        "summary": "Allowed UI modules for picontrol listeners",
+        "responses": {
+          "200": {
+            "description": "Configured UI modules list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "modules": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "nullable": true
+                    },
+                    "restricted": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "modules",
+                    "restricted"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/ecosystem": {
       "get": {
         "operationId": "getEcosystem",

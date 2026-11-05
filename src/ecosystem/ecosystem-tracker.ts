@@ -391,7 +391,7 @@ export class EcosystemTracker {
       configured: relayConfigured,
       connecting: false,
       lastSeenAt: null,
-      url: this.#config.radioRelayApiUrl ?? null
+      url: this.#config.radioRelayPublicUrl ?? this.#config.radioRelayApiUrl ?? null
     };
 
     // 10. Video Switcher (PiSwitch / ATEM)

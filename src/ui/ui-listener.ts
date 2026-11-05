@@ -12,7 +12,7 @@ import Fastify, { type FastifyBaseLogger, type FastifyInstance, type FastifyRequ
  */
 
 export type UiRole = "lan" | "relay";
-export type UiModule = "pimatrix" | "pivoice" | "piencoder" | "pitube";
+export type UiModule = "pimatrix" | "pivoice" | "piencoder" | "pitube" | "piradio";
 export type UiMethod = "GET" | "POST" | "PUT";
 
 export interface UiRouteRule {
@@ -41,7 +41,11 @@ export const UI_ROUTES: readonly UiRouteRule[] = [
   { method: "GET", path: "/api/v1/broadcasts/current", module: "pitube" },
   { method: "POST", path: "/api/v1/broadcasts/start", module: "pitube" },
   { method: "POST", path: "/api/v1/broadcasts/stop", module: "pitube" },
-  { method: "POST", path: "/api/v1/broadcasts/stop/request", module: "pitube" }
+  { method: "POST", path: "/api/v1/broadcasts/stop/request", module: "pitube" },
+  { method: "GET", path: "/api/v1/radio-relay", module: "piradio" },
+  { method: "GET", path: "/api/v1/radio-relay/stream", module: "piradio" },
+  { method: "POST", path: "/api/v1/radio-relay/start", module: "piradio" },
+  { method: "POST", path: "/api/v1/radio-relay/stop", module: "piradio" }
 ];
 
 interface CompiledRule extends UiRouteRule {
@@ -52,6 +56,24 @@ const COMPILED: CompiledRule[] = UI_ROUTES.map((rule) => ({
   ...rule,
   pattern: new RegExp(`^${rule.path.replace(/:[^/]+/g, "[^/]+")}$`)
 }));
+
+function isModuleAllowed(ruleModule: string, allowedModules: ReadonlySet<string>): boolean {
+  if (allowedModules.has(ruleModule)) return true;
+  const aliasMap: Record<string, string> = {
+    pimatrix: "matrix",
+    matrix: "pimatrix",
+    pivoice: "voice",
+    voice: "pivoice",
+    pitube: "stream",
+    stream: "pitube",
+    piencoder: "outputs",
+    outputs: "piencoder",
+    piradio: "radio",
+    radio: "piradio"
+  };
+  const alias = aliasMap[ruleModule];
+  return Boolean(alias && allowedModules.has(alias));
+}
 
 /** The rule for a request, or null when the path/method is not on the allowlist. */
 export function findUiRoute(method: string, url: string): UiRouteRule | null {
@@ -232,7 +254,7 @@ export function buildUiListener(options: UiListenerOptions): FastifyInstance {
     url: "/api/v1/*",
     handler: async (request, reply) => {
       const rule = findUiRoute(request.method, request.url);
-      if (!rule || (options.modules && !options.modules.has(rule.module))) return reply.code(404).send({ error: { code: "NOT_FOUND", message: "Not available on the picontrol UI" } });
+      if (!rule || (options.modules && !isModuleAllowed(rule.module, options.modules))) return reply.code(404).send({ error: { code: "NOT_FOUND", message: "Not available on the picontrol UI" } });
       if (!options.auth.authenticate(request, options.role)) {
         return reply.code(401).send({ error: { code: "LOGIN_REQUIRED", message: "Log in with the PIN" } });
       }

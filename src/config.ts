@@ -63,6 +63,8 @@ export interface AppConfig {
   radioRelayApiUrl?: string | undefined;
   radioRelayApiToken?: string | undefined;
   radioRelayStreamName: string;
+  radioRelayMountPoint: string;
+  radioRelayPublicUrl?: string | undefined;
   pivoiceIdleCloseSeconds: number;
   pivoiceStartWhen: "speech" | "speech_or_music";
   /**
@@ -207,6 +209,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const radioRelayApiUrl = urlWithScheme(env.PIGATEWAY_RADIO_RELAY_API_URL, "PIGATEWAY_RADIO_RELAY_API_URL", ["http:", "https:"]);
   const radioRelayApiToken = env.PIGATEWAY_RADIO_RELAY_API_TOKEN?.trim() || undefined;
   if (Boolean(radioRelayApiUrl) !== Boolean(radioRelayApiToken)) throw new Error("PIGATEWAY_RADIO_RELAY_API_URL and PIGATEWAY_RADIO_RELAY_API_TOKEN must be set together");
+  const radioRelayStreamName = env.PIGATEWAY_RADIO_RELAY_STREAM_NAME?.trim() || "stream";
+  const radioRelayMountPoint = env.PIGATEWAY_RADIO_RELAY_MOUNT_POINT?.trim() || (radioRelayStreamName.startsWith("/") ? radioRelayStreamName : `/${radioRelayStreamName}`);
+  const radioRelayPublicUrl = urlWithScheme(env.PIGATEWAY_RADIO_RELAY_PUBLIC_URL, "PIGATEWAY_RADIO_RELAY_PUBLIC_URL", ["http:", "https:"]);
   if (Boolean(pivoiceApiUrl) !== Boolean(pivoiceApiToken)) {
     throw new Error("PIGATEWAY_PIVOICE_API_URL and PIGATEWAY_PIVOICE_API_TOKEN must be set together");
   }
@@ -285,7 +290,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     ecosystemPollIntervalMs,
     radioRelayApiUrl,
     radioRelayApiToken,
-    radioRelayStreamName: env.PIGATEWAY_RADIO_RELAY_STREAM_NAME?.trim() || "stream",
+    radioRelayStreamName,
+    radioRelayMountPoint,
+    radioRelayPublicUrl,
     pivoiceIdleCloseSeconds: validInteger(env.PIGATEWAY_PIVOICE_IDLE_CLOSE_SECONDS, 15, 0, 3600, "PIGATEWAY_PIVOICE_IDLE_CLOSE_SECONDS"),
     pivoiceStartWhen: activityTrigger(env.PIGATEWAY_PIVOICE_START_WHEN),
     transcriptDelivery: transcriptDelivery(env.PIGATEWAY_TRANSCRIPT_DELIVERY),

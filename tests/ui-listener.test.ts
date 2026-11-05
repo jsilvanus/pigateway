@@ -25,7 +25,7 @@ async function login(app: ReturnType<typeof buildUiListener>, pin: string) {
 }
 
 test("allowlist admits module routes and nothing else", () => {
-  assert.equal(findUiRoute("GET", "/api/v1/matrix")?.module, "matrix");
+  assert.equal(findUiRoute("GET", "/api/v1/matrix")?.module, "pimatrix");
   assert.equal(findUiRoute("POST", "/api/v1/encoder/2/start")?.module, "piencoder");
   assert.equal(findUiRoute("POST", "/api/v1/broadcasts/stop/request")?.module, "pitube");
   assert.equal(findUiRoute("POST", "/api/v1/matrix"), null, "method must match");
@@ -51,7 +51,7 @@ test("a valid session is forwarded; the cookie is the only credential", async ()
   assert.match(cookie, /^picontrol_ui=/);
   const ok = await app.inject({ method: "POST", url: "/api/v1/matrix/route", headers: { cookie }, payload: { input: 1, output: 2 } });
   assert.equal(ok.statusCode, 200);
-  assert.deepEqual(calls, ["POST /api/v1/matrix/route matrix"]);
+  assert.deepEqual(calls, ["POST /api/v1/matrix/route pimatrix"]);
   assert.equal((await app.inject({ method: "GET", url: "/api/v1/matrix", headers: { cookie: "picontrol_ui=bogus" } })).statusCode, 401);
   await app.close();
 });
