@@ -26,6 +26,8 @@ import { isIpWhitelisted } from "./ip-whitelist.js";
 import { PiVoiceUdpReceiver } from "./pivoice/telemetry.js";
 import { PiSoundUdpReceiver } from "./pisound/telemetry.js";
 import { PiVoiceActivityCoordinator } from "./pivoice/activity-coordinator.js";
+import { PiVoiceClient } from "./pivoice/client.js";
+import { registerVoiceRoutes } from "./pivoice/voice-routes.js";
 import { RadioRelayClient } from "./radio-relay/radio-relay-client.js";
 import { AuditorSseSource } from "./transcripts/auditor-sse-source.js";
 import { TranscriptHub, transcriptId } from "./transcripts/transcript-hub.js";
@@ -107,6 +109,11 @@ export function buildApp(config: AppConfig): FastifyInstance {
     delivery: transcriptDelivery,
     onSession: (sessionId) => (sessionId && transcriptDelivery?.mode === "sse" ? auditorSse.start(sessionId) : auditorSse.stop()),
     onChange: (state) => eventBroker.emit({ type: "pivoice-activity", data: state })
+  });
+  const pivoiceClient = new PiVoiceClient({
+    baseUrl: config.pivoiceApiUrl,
+    token: config.pivoiceApiToken,
+    logger: app.log
   });
   const radioRelay = new RadioRelayClient({
     baseUrl: config.radioRelayApiUrl,
@@ -516,6 +523,8 @@ export function buildApp(config: AppConfig): FastifyInstance {
     }
     return pivoiceActivity.setIdleCloseSeconds(body.idleCloseSeconds as number);
   });
+
+  registerVoiceRoutes(app, { client: pivoiceClient, transcripts });
 
   app.post("/api/v1/transcripts", async (request, reply) => {
     const body = request.body as { session_id?: unknown; events?: unknown } | undefined;

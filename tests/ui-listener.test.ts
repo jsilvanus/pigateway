@@ -27,7 +27,9 @@ async function login(app: ReturnType<typeof buildUiListener>, pin: string) {
 test("allowlist admits module routes and nothing else", () => {
   assert.equal(findUiRoute("GET", "/api/v1/matrix")?.module, "pimatrix");
   assert.equal(findUiRoute("POST", "/api/v1/encoder/2/start")?.module, "piencoder");
-  assert.equal(findUiRoute("POST", "/api/v1/broadcasts/stop/request")?.module, "pitube");
+  assert.equal(findUiRoute("GET", "/api/v1/voice/status")?.module, "pivoice");
+  assert.equal(findUiRoute("POST", "/api/v1/voice/capture/start")?.module, "pivoice");
+  assert.equal(findUiRoute("GET", "/api/v1/voice/transcripts")?.module, "pivoice");
   assert.equal(findUiRoute("POST", "/api/v1/matrix"), null, "method must match");
   assert.equal(findUiRoute("GET", "/api/v1/canva/status"), null);
   assert.equal(findUiRoute("GET", "/api/v1/cameras"), null);
@@ -128,3 +130,4 @@ test("CORS is only for the configured origin, with credentials", async () => {
   assert.equal(other.statusCode, 403);
   await app.close();
 });
+

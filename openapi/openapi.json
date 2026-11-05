@@ -3889,8 +3889,8 @@
               }
             }
           },
-          "502": {
-            "description": "Pi Program or a projector command failed",
+          "501": {
+            "description": "picMute is not connected",
             "content": {
               "application/json": {
                 "schema": {
@@ -3899,8 +3899,8 @@
               }
             }
           },
-          "501": {
-            "description": "picMute is not connected",
+          "502": {
+            "description": "Pi Program or a projector command failed",
             "content": {
               "application/json": {
                 "schema": {
@@ -4031,6 +4031,224 @@
           },
           "502": {
             "description": "Command failed"
+          }
+        }
+      }
+    },
+    "/api/v1/voice/status": {
+      "get": {
+        "operationId": "getVoiceStatus",
+        "tags": [
+          "PiVoice"
+        ],
+        "summary": "PiVoice status: capture, speech detection, transcription and radio outputs",
+        "responses": {
+          "200": {
+            "description": "PiVoice status payload"
+          }
+        }
+      }
+    },
+    "/api/v1/voice/config": {
+      "get": {
+        "operationId": "getVoiceConfig",
+        "tags": [
+          "PiVoice"
+        ],
+        "summary": "PiVoice configuration",
+        "responses": {
+          "200": {
+            "description": "PiVoice configuration"
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateVoiceConfig",
+        "tags": [
+          "PiVoice"
+        ],
+        "summary": "Update PiVoice configuration",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated configuration"
+          }
+        }
+      }
+    },
+    "/api/v1/voice/capture": {
+      "post": {
+        "operationId": "setVoiceCapture",
+        "tags": [
+          "PiVoice"
+        ],
+        "summary": "Control audio capture (start/stop)",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "start",
+                      "stop"
+                    ]
+                  },
+                  "running": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Capture state"
+          }
+        }
+      }
+    },
+    "/api/v1/voice/capture/start": {
+      "post": {
+        "operationId": "startVoiceCapture",
+        "tags": [
+          "PiVoice"
+        ],
+        "summary": "Start audio capture",
+        "responses": {
+          "200": {
+            "description": "Capture started"
+          }
+        }
+      }
+    },
+    "/api/v1/voice/capture/stop": {
+      "post": {
+        "operationId": "stopVoiceCapture",
+        "tags": [
+          "PiVoice"
+        ],
+        "summary": "Stop audio capture",
+        "responses": {
+          "200": {
+            "description": "Capture stopped"
+          }
+        }
+      }
+    },
+    "/api/v1/voice/transcripts": {
+      "get": {
+        "operationId": "getVoiceTranscripts",
+        "tags": [
+          "PiVoice"
+        ],
+        "summary": "Recent transcripts",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Recent transcripts"
+          }
+        }
+      }
+    },
+    "/api/v1/voice/radio": {
+      "get": {
+        "operationId": "getVoiceRadio",
+        "tags": [
+          "PiVoice"
+        ],
+        "summary": "PiVoice radio targets",
+        "responses": {
+          "200": {
+            "description": "Radio targets"
+          }
+        }
+      }
+    },
+    "/api/v1/voice/radio/{target}/mode": {
+      "put": {
+        "operationId": "setVoiceRadioTargetMode",
+        "tags": [
+          "PiVoice"
+        ],
+        "summary": "Set mode for a radio target",
+        "parameters": [
+          {
+            "name": "target",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "mode"
+                ],
+                "properties": {
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "on",
+                      "off",
+                      "auto"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Mode updated"
+          }
+        }
+      }
+    },
+    "/api/v1/voice/captions": {
+      "get": {
+        "operationId": "getVoiceCaptionsStatus",
+        "tags": [
+          "PiVoice"
+        ],
+        "summary": "Caption delivery status",
+        "responses": {
+          "200": {
+            "description": "Caption status"
           }
         }
       }
