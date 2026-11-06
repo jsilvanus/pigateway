@@ -53,6 +53,17 @@ import { SpatialStatusStore } from "./spatial/spatial-status.js";
 import { registerSpatialRoutes } from "./spatial/spatial-routes.js";
 import { WorldStateAggregator } from "./world/world-state.js";
 import { registerWorldStateRoutes } from "./world/world-routes.js";
+import { PiPoeClient } from "./pipoe/client.js";
+import { registerPoeRoutes } from "./pipoe/poe-routes.js";
+import { PiStorageClient } from "./storage/client.js";
+import { registerStorageRoutes } from "./storage/storage-routes.js";
+import { PiAgentClient } from "./piagent/client.js";
+import { registerAgentRoutes } from "./piagent/agent-routes.js";
+import { PiNotifyClient } from "./notify/client.js";
+import { registerNotifyRoutes } from "./notify/notify-routes.js";
+import { PiPerceptionClient } from "./perception/client.js";
+import { registerPerceptionRoutes } from "./perception/perception-routes.js";
+import { PiSpaceClient } from "./spatial/client.js";
 
 export function buildApp(config: AppConfig): FastifyInstance {
   const app = Fastify({
@@ -97,7 +108,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
         route.url !== "/api/v1/encoder/:number/stop" &&
         route.url !== "/api/v1/encoder/:number/input" &&
         route.url !== "/api/v1/encoder/:number/settings"
-      ) routeTable.add(`${method} ${route.url.replace(/:(\w+)/g, "{$1}")}`);
+      ) routeTable.add(`${method} ${route.url.replace(/:(\w+)/g, "{$1}").replace(/\/\*$/, "/{key}")}`);
     }
   });
   (app as unknown as { routeTable: Set<string> }).routeTable = routeTable;
@@ -159,6 +170,36 @@ export function buildApp(config: AppConfig): FastifyInstance {
   });
   const pidesignerClient = new PiDesignerClient({
     baseUrl: config.pirundownDesignerApiUrl,
+    logger: app.log
+  });
+  const pipoeClient = new PiPoeClient({
+    baseUrl: config.pipoeApiUrl,
+    token: config.pipoeApiKey,
+    logger: app.log
+  });
+  const pistorageClient = new PiStorageClient({
+    baseUrl: config.pistorageApiUrl,
+    token: config.pistorageApiKey,
+    logger: app.log
+  });
+  const piagentClient = new PiAgentClient({
+    baseUrl: config.piagentApiUrl,
+    token: config.piagentApiKey,
+    logger: app.log
+  });
+  const pinotifyClient = new PiNotifyClient({
+    baseUrl: config.pinotifyApiUrl,
+    token: config.pinotifyApiKey,
+    logger: app.log
+  });
+  const piperceptionClient = new PiPerceptionClient({
+    baseUrl: config.piperceptionApiUrl,
+    token: config.piperceptionApiKey,
+    logger: app.log
+  });
+  const pispaceClient = new PiSpaceClient({
+    baseUrl: config.pispaceApiUrl,
+    token: config.pispaceApiKey,
     logger: app.log
   });
   const radioRelay = new RadioRelayClient({
@@ -315,7 +356,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
   registerActionRoutes(app, actionRegistry);
   registerRundownRoutes(app, rundownStore, { pirundownUrl: config.pirundownApiUrl ?? "http://127.0.0.1:3400" });
   const spatialStore = new SpatialStatusStore(eventBroker);
-  registerSpatialRoutes(app, spatialStore);
+  registerSpatialRoutes(app, { store: spatialStore, client: pispaceClient });
   const worldStateAggregator = new WorldStateAggregator({
     eventBroker,
     getSpatial: () => spatialStore.get(),
@@ -577,6 +618,11 @@ export function buildApp(config: AppConfig): FastifyInstance {
   registerGraphicsRoutes(app, { client: pigraphicsClient });
   registerPiPgmRoutes(app, { client: piprogramClient });
   registerDesignerRoutes(app, { client: pidesignerClient });
+  registerPoeRoutes(app, { client: pipoeClient });
+  registerStorageRoutes(app, { client: pistorageClient });
+  registerAgentRoutes(app, { client: piagentClient });
+  registerNotifyRoutes(app, { client: pinotifyClient });
+  registerPerceptionRoutes(app, { client: piperceptionClient, eventBroker });
 
   app.post("/api/v1/transcripts", async (request, reply) => {
     const body = request.body as { session_id?: unknown; events?: unknown } | undefined;
@@ -647,6 +693,15 @@ export function buildApp(config: AppConfig): FastifyInstance {
       unsubscribe();
       unregisterClient?.();
     });
+  });
+
+  app.post<{ Body: { type?: string; data?: unknown } }>("/api/v1/events", async (request, reply) => {
+    const body = request.body;
+    if (!body || typeof body !== "object" || typeof body.type !== "string") {
+      return reply.code(400).send({ error: { code: "invalid_request", message: "body must have { type, data }" } });
+    }
+    eventBroker.emit(body as GatewayEvent);
+    return reply.code(200).send({ ok: true });
   });
 
   return app;

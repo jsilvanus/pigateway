@@ -62,6 +62,17 @@ export interface SpatialZoneEventPayload {
   timestamp: string;
 }
 
+export interface PerceptionEventPayload {
+  cameraId: string;
+  objects: Array<{
+    trackId: number;
+    bbox: { x: number; y: number; w: number; h: number };
+    label?: string | undefined;
+    confidence?: number | undefined;
+  }>;
+  timestamp?: string | undefined;
+}
+
 export type GatewayEvent =
   | { type: "camera"; data: CameraEventPayload }
   | { type: "freed"; data: FreedTelemetry }
@@ -78,6 +89,7 @@ export type GatewayEvent =
   | { type: "rundown"; data: RundownStatusSnapshot }
   | { type: "spatial"; data: SpatialScenePayload }
   | { type: "spatial-zone"; data: SpatialZoneEventPayload }
+  | { type: "perception"; data: PerceptionEventPayload | unknown }
   | { type: "world-state"; data: WorldState }
   | { type: "ready"; data: { status: string; time: string } };
 

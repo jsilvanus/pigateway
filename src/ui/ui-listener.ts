@@ -12,7 +12,7 @@ import Fastify, { type FastifyBaseLogger, type FastifyInstance, type FastifyRequ
  */
 
 export type UiRole = "lan" | "relay";
-export type UiModule = "pimatrix" | "pivoice" | "piencoder" | "pitube" | "piradio" | "pisound" | "pitally" | "pigraphics" | "piprogram" | "pirundown";
+export type UiModule = "pimatrix" | "pivoice" | "piencoder" | "pitube" | "piradio" | "pisound" | "pitally" | "pigraphics" | "piprogram" | "pirundown" | "pipoe" | "pistorage" | "piagent" | "pinotify" | "piperception" | "pispace";
 export type UiMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 export interface UiRouteRule {
@@ -185,6 +185,70 @@ export const UI_ROUTES: readonly UiRouteRule[] = [
   { method: "GET", path: "/api/v1/designer/templates/:id", module: "pirundown" },
   { method: "POST", path: "/api/v1/designer/validate", module: "pirundown" },
   { method: "POST", path: "/api/v1/designer/push", module: "pirundown" },
+
+  // pipoe
+  { method: "GET", path: "/api/v1/poe", module: "pipoe" },
+  { method: "GET", path: "/api/v1/poe/ports/:port", module: "pipoe" },
+  { method: "POST", path: "/api/v1/poe/ports/:port/power", module: "pipoe", setup: true },
+  { method: "POST", path: "/api/v1/poe/ports/:port/cycle", module: "pipoe", setup: true },
+
+  // pistorage
+  { method: "GET", path: "/api/v1/storage/status", module: "pistorage" },
+  { method: "GET", path: "/api/v1/storage/objects", module: "pistorage" },
+  { method: "GET", path: "/api/v1/storage/objects/:key", module: "pistorage" },
+  { method: "PUT", path: "/api/v1/storage/objects/:key", module: "pistorage" },
+  { method: "DELETE", path: "/api/v1/storage/objects/:key", module: "pistorage", setup: true },
+  { method: "POST", path: "/api/v1/storage/signed-urls", module: "pistorage" },
+  { method: "POST", path: "/api/v1/storage/use-at", module: "pistorage" },
+  { method: "POST", path: "/api/v1/storage/spool/flush", module: "pistorage", setup: true },
+  { method: "POST", path: "/api/v1/storage/cache/prune", module: "pistorage", setup: true },
+
+  // piagent
+  { method: "GET", path: "/api/v1/agents", module: "piagent" },
+  { method: "POST", path: "/api/v1/agents", module: "piagent" },
+  { method: "GET", path: "/api/v1/agents/:id", module: "piagent" },
+  { method: "DELETE", path: "/api/v1/agents/:id", module: "piagent", setup: true },
+  { method: "POST", path: "/api/v1/agents/:id/stop", module: "piagent" },
+  { method: "POST", path: "/api/v1/agent/interrupt", module: "piagent" },
+  { method: "POST", path: "/api/v1/chat", module: "piagent" },
+  { method: "POST", path: "/api/v1/messages", module: "piagent" },
+  { method: "GET", path: "/api/v1/messages/inbox/:agentId", module: "piagent" },
+  { method: "POST", path: "/api/v1/messages/ack", module: "piagent" },
+  { method: "POST", path: "/api/v1/messages/broadcast", module: "piagent" },
+  { method: "GET", path: "/api/v1/models", module: "piagent" },
+
+  // pinotify
+  { method: "POST", path: "/api/v1/notify", module: "pinotify" },
+  { method: "GET", path: "/api/v1/notify/contacts", module: "pinotify" },
+  { method: "POST", path: "/api/v1/notify/contacts", module: "pinotify" },
+  { method: "GET", path: "/api/v1/notify/contacts/:slug", module: "pinotify" },
+  { method: "PUT", path: "/api/v1/notify/contacts/:slug", module: "pinotify" },
+  { method: "DELETE", path: "/api/v1/notify/contacts/:slug", module: "pinotify", setup: true },
+  { method: "GET", path: "/api/v1/notify/provider", module: "pinotify" },
+  { method: "PUT", path: "/api/v1/notify/provider", module: "pinotify", setup: true },
+  { method: "DELETE", path: "/api/v1/notify/provider", module: "pinotify", setup: true },
+  { method: "GET", path: "/api/v1/notify/log", module: "pinotify" },
+  { method: "GET", path: "/api/v1/notify/outbox", module: "pinotify" },
+
+  // piperception
+  { method: "GET", path: "/api/v1/perception/streams", module: "piperception" },
+  { method: "POST", path: "/api/v1/perception/streams", module: "piperception", setup: true },
+  { method: "POST", path: "/api/v1/perception/streams/:cameraId/start", module: "piperception", setup: true },
+  { method: "POST", path: "/api/v1/perception/streams/:cameraId/stop", module: "piperception", setup: true },
+  { method: "POST", path: "/api/v1/perception/streams/:cameraId/path", module: "piperception" },
+  { method: "GET", path: "/api/v1/perception/tracks", module: "piperception" },
+  { method: "GET", path: "/api/v1/perception/pusher", module: "piperception" },
+  { method: "POST", path: "/api/v1/perception/events", module: "piperception" },
+
+  // pispace
+  { method: "GET", path: "/api/v1/spatial/venue", module: "pispace" },
+  { method: "GET", path: "/api/v1/spatial/zones", module: "pispace" },
+  { method: "GET", path: "/api/v1/spatial/zones/:zoneId", module: "pispace" },
+  { method: "GET", path: "/api/v1/spatial/occluders", module: "pispace" },
+  { method: "GET", path: "/api/v1/spatial/occluders/:id", module: "pispace" },
+  { method: "POST", path: "/api/v1/spatial/solve-ptz", module: "pispace" },
+  { method: "POST", path: "/api/v1/spatial/project", module: "pispace" },
+  { method: "POST", path: "/api/v1/spatial/triangulate", module: "pispace" },
 ];
 
 interface CompiledRule extends UiRouteRule {

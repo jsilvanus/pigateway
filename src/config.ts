@@ -59,6 +59,16 @@ export interface AppConfig {
   pispaceApiUrl?: string | undefined;
   pigraphicsApiUrl?: string | undefined;
   piperceptionApiUrl?: string | undefined;
+  piperceptionApiKey?: string | undefined;
+  pispaceApiKey?: string | undefined;
+  pipoeApiUrl?: string | undefined;
+  pipoeApiKey?: string | undefined;
+  pistorageApiUrl?: string | undefined;
+  pistorageApiKey?: string | undefined;
+  piagentApiUrl?: string | undefined;
+  piagentApiKey?: string | undefined;
+  pinotifyApiUrl?: string | undefined;
+  pinotifyApiKey?: string | undefined;
   ecosystemPollIntervalMs: number;
   radioRelayApiUrl?: string | undefined;
   radioRelayApiToken?: string | undefined;
@@ -243,6 +253,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const pispaceApiUrl = urlWithScheme(env.PIGATEWAY_PISPACE_API_URL, "PIGATEWAY_PISPACE_API_URL", ["http:", "https:"]);
   const pigraphicsApiUrl = urlWithScheme(env.PIGATEWAY_PIGRAPHICS_API_URL, "PIGATEWAY_PIGRAPHICS_API_URL", ["http:", "https:"]);
   const piperceptionApiUrl = urlWithScheme(env.PIGATEWAY_PIPERCEPTION_API_URL, "PIGATEWAY_PIPERCEPTION_API_URL", ["http:", "https:"]);
+  const pipoeApiUrl = urlWithScheme(env.PIGATEWAY_PIPOE_API_URL, "PIGATEWAY_PIPOE_API_URL", ["http:", "https:"]);
+  const pistorageApiUrl = urlWithScheme(env.PIGATEWAY_PISTORAGE_API_URL, "PIGATEWAY_PISTORAGE_API_URL", ["http:", "https:"]);
+  const piagentApiUrl = urlWithScheme(env.PIGATEWAY_PIAGENT_API_URL, "PIGATEWAY_PIAGENT_API_URL", ["http:", "https:"]);
+  const pinotifyApiUrl = urlWithScheme(env.PIGATEWAY_PINOTIFY_API_URL, "PIGATEWAY_PINOTIFY_API_URL", ["http:", "https:"]);
   const ecosystemPollIntervalMs = validInteger(env.PIGATEWAY_ECOSYSTEM_POLL_INTERVAL_MS, 15000, 0, 3600000, "PIGATEWAY_ECOSYSTEM_POLL_INTERVAL_MS");
 
   return {
@@ -287,6 +301,16 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     pispaceApiUrl,
     pigraphicsApiUrl,
     piperceptionApiUrl,
+    piperceptionApiKey: env.PIGATEWAY_PIPERCEPTION_API_KEY?.trim() || undefined,
+    pispaceApiKey: env.PIGATEWAY_PISPACE_API_KEY?.trim() || undefined,
+    pipoeApiUrl,
+    pipoeApiKey: env.PIGATEWAY_PIPOE_API_KEY?.trim() || undefined,
+    pistorageApiUrl,
+    pistorageApiKey: env.PIGATEWAY_PISTORAGE_API_KEY?.trim() || undefined,
+    piagentApiUrl,
+    piagentApiKey: env.PIGATEWAY_PIAGENT_API_KEY?.trim() || undefined,
+    pinotifyApiUrl,
+    pinotifyApiKey: env.PIGATEWAY_PINOTIFY_API_KEY?.trim() || undefined,
     ecosystemPollIntervalMs,
     radioRelayApiUrl,
     radioRelayApiToken,
