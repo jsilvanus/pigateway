@@ -58,6 +58,7 @@ test("actions endpoint returns catalog of actions with dynamic availability", as
 test("action execution runs camera preset and emits event with actor", async () => {
   const app = buildApp(loadConfig({ PIGATEWAY_MODE: "simulation" }));
   await app.ready();
+  await new Promise((r) => setTimeout(r, 100));
 
   const actionEvents: any[] = [];
   (app as any).eventBroker.subscribe((e: any) => {

@@ -4252,6 +4252,2896 @@
           }
         }
       }
+    },
+    "/api/v1/broadcasts": {
+      "get": {
+        "operationId": "getBroadcasts",
+        "tags": [
+          "PiTube"
+        ],
+        "summary": "List YouTube broadcasts",
+        "responses": {
+          "200": {
+            "description": "List of YouTube broadcasts"
+          }
+        }
+      }
+    },
+    "/api/v1/broadcasts/current": {
+      "get": {
+        "operationId": "getCurrentBroadcast",
+        "tags": [
+          "PiTube"
+        ],
+        "summary": "Get active or currently selected YouTube broadcast",
+        "responses": {
+          "200": {
+            "description": "Current broadcast payload"
+          }
+        }
+      }
+    },
+    "/api/v1/broadcasts/select": {
+      "post": {
+        "operationId": "selectBroadcast",
+        "tags": [
+          "PiTube"
+        ],
+        "summary": "Select a YouTube broadcast as active",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Broadcast selected"
+          }
+        }
+      }
+    },
+    "/api/v1/broadcasts/create": {
+      "post": {
+        "operationId": "createBroadcast",
+        "tags": [
+          "PiTube"
+        ],
+        "summary": "Create a new YouTube live broadcast",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Broadcast created"
+          }
+        }
+      }
+    },
+    "/api/v1/broadcasts/start": {
+      "post": {
+        "operationId": "startBroadcast",
+        "tags": [
+          "PiTube"
+        ],
+        "summary": "Transition YouTube broadcast to live status",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Broadcast started"
+          }
+        }
+      }
+    },
+    "/api/v1/broadcasts/stop/request": {
+      "post": {
+        "operationId": "requestStopBroadcast",
+        "tags": [
+          "PiTube"
+        ],
+        "summary": "Request graceful stop of current broadcast",
+        "responses": {
+          "200": {
+            "description": "Stop requested"
+          }
+        }
+      }
+    },
+    "/api/v1/broadcasts/stop": {
+      "post": {
+        "operationId": "stopBroadcast",
+        "tags": [
+          "PiTube"
+        ],
+        "summary": "Stop YouTube broadcast immediately",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Broadcast stopped"
+          }
+        }
+      }
+    },
+    "/api/v1/broadcasts/{id}": {
+      "patch": {
+        "operationId": "updateBroadcast",
+        "tags": [
+          "PiTube"
+        ],
+        "summary": "Update YouTube broadcast metadata",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Broadcast updated"
+          }
+        }
+      }
+    },
+    "/api/v1/broadcasts/privacy": {
+      "post": {
+        "operationId": "setBroadcastPrivacy",
+        "tags": [
+          "PiTube"
+        ],
+        "summary": "Set privacy status of broadcast",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Privacy updated"
+          }
+        }
+      }
+    },
+    "/api/v1/broadcasts/url": {
+      "get": {
+        "operationId": "getBroadcastUrl",
+        "tags": [
+          "PiTube"
+        ],
+        "summary": "Get watch URL for active broadcast",
+        "responses": {
+          "200": {
+            "description": "Broadcast watch URL"
+          }
+        }
+      }
+    },
+    "/api/v1/broadcasts/thumbnail": {
+      "post": {
+        "operationId": "uploadBroadcastThumbnail",
+        "tags": [
+          "PiTube"
+        ],
+        "summary": "Upload thumbnail image for broadcast",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Thumbnail updated"
+          }
+        }
+      }
+    },
+    "/api/v1/streams": {
+      "get": {
+        "operationId": "getYoutubeStreams",
+        "tags": [
+          "PiTube"
+        ],
+        "summary": "List YouTube video streams",
+        "responses": {
+          "200": {
+            "description": "List of streams"
+          }
+        }
+      }
+    },
+    "/api/v1/streams/create": {
+      "post": {
+        "operationId": "createYoutubeStream",
+        "tags": [
+          "PiTube"
+        ],
+        "summary": "Create a new YouTube stream ingest point",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Stream created"
+          }
+        }
+      }
+    },
+    "/api/v1/ingest/apply": {
+      "post": {
+        "operationId": "applyIngestSettings",
+        "tags": [
+          "PiTube"
+        ],
+        "summary": "Apply YouTube stream ingest credentials to hardware encoder",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ingest settings applied"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/health": {
+      "get": {
+        "operationId": "getYoutubeAuthHealth",
+        "tags": [
+          "PiTube"
+        ],
+        "summary": "Check YouTube OAuth credentials health status",
+        "responses": {
+          "200": {
+            "description": "OAuth health status"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/check": {
+      "post": {
+        "operationId": "checkYoutubeAuth",
+        "tags": [
+          "PiTube"
+        ],
+        "summary": "Verify YouTube authentication token validity",
+        "responses": {
+          "200": {
+            "description": "Auth check result"
+          }
+        }
+      }
+    },
+    "/api/v1/mixes": {
+      "get": {
+        "operationId": "getSoundMixes",
+        "tags": [
+          "PiSound"
+        ],
+        "summary": "Get all audio mixes and channel states",
+        "responses": {
+          "200": {
+            "description": "Audio mixes list"
+          }
+        }
+      }
+    },
+    "/api/v1/mixes/{mixId}": {
+      "get": {
+        "operationId": "getSoundMix",
+        "tags": [
+          "PiSound"
+        ],
+        "summary": "Get specific mix configuration and level",
+        "parameters": [
+          {
+            "name": "mixId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mix configuration"
+          }
+        }
+      }
+    },
+    "/api/v1/mixes/{mixId}/master/volume": {
+      "post": {
+        "operationId": "setSoundMixMasterVolume",
+        "tags": [
+          "PiSound"
+        ],
+        "summary": "Set master volume for mix",
+        "parameters": [
+          {
+            "name": "mixId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Volume updated"
+          }
+        }
+      }
+    },
+    "/api/v1/mixes/{mixId}/master/mute": {
+      "post": {
+        "operationId": "setSoundMixMasterMute",
+        "tags": [
+          "PiSound"
+        ],
+        "summary": "Mute or unmute master output for mix",
+        "parameters": [
+          {
+            "name": "mixId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Mute state updated"
+          }
+        }
+      }
+    },
+    "/api/v1/mixes/{mixId}/channels/{channelId}": {
+      "post": {
+        "operationId": "setSoundMixChannelVolume",
+        "tags": [
+          "PiSound"
+        ],
+        "summary": "Set channel volume within a mix",
+        "parameters": [
+          {
+            "name": "mixId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "channelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Channel volume updated"
+          }
+        }
+      }
+    },
+    "/api/v1/mixes/{mixId}/channels/{channelId}/toggle": {
+      "post": {
+        "operationId": "toggleSoundMixChannel",
+        "tags": [
+          "PiSound"
+        ],
+        "summary": "Toggle channel mute state within a mix",
+        "parameters": [
+          {
+            "name": "mixId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "channelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Channel state toggled"
+          }
+        }
+      }
+    },
+    "/api/v1/reset": {
+      "post": {
+        "operationId": "resetSound",
+        "tags": [
+          "PiSound"
+        ],
+        "summary": "Reset sound mixer DSP and levels to factory/default profile",
+        "responses": {
+          "200": {
+            "description": "Mixer reset"
+          }
+        }
+      }
+    },
+    "/api/v1/mics/{channelId}/solo": {
+      "post": {
+        "operationId": "soloSoundMic",
+        "tags": [
+          "PiSound"
+        ],
+        "summary": "Solo microphone channel",
+        "parameters": [
+          {
+            "name": "channelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Solo state updated"
+          }
+        }
+      }
+    },
+    "/api/v1/mics/{channelId}/mute": {
+      "post": {
+        "operationId": "muteSoundMic",
+        "tags": [
+          "PiSound"
+        ],
+        "summary": "Mute microphone channel across all mixes",
+        "parameters": [
+          {
+            "name": "channelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Mute state updated"
+          }
+        }
+      }
+    },
+    "/api/v1/mics/{channelId}/gain": {
+      "post": {
+        "operationId": "setSoundMicGain",
+        "tags": [
+          "PiSound"
+        ],
+        "summary": "Set analog preamp gain for microphone channel",
+        "parameters": [
+          {
+            "name": "channelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Gain updated"
+          }
+        }
+      }
+    },
+    "/api/v1/presets/{presetId}/recall": {
+      "post": {
+        "operationId": "recallSoundPreset",
+        "tags": [
+          "PiSound"
+        ],
+        "summary": "Recall audio mixer scene preset",
+        "parameters": [
+          {
+            "name": "presetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Preset recalled"
+          }
+        }
+      }
+    },
+    "/api/v1/profiles": {
+      "get": {
+        "operationId": "getSoundProfiles",
+        "tags": [
+          "PiSound"
+        ],
+        "summary": "List saved sound mix profiles",
+        "responses": {
+          "200": {
+            "description": "List of profiles"
+          }
+        }
+      }
+    },
+    "/api/v1/sound/status": {
+      "get": {
+        "operationId": "getSoundStatus",
+        "tags": [
+          "PiSound"
+        ],
+        "summary": "Get PiSound DSP service health and status",
+        "responses": {
+          "200": {
+            "description": "PiSound status"
+          }
+        }
+      }
+    },
+    "/api/v1/lights": {
+      "get": {
+        "operationId": "getTallyLights",
+        "tags": [
+          "PiTally"
+        ],
+        "summary": "List all tally lights and status",
+        "responses": {
+          "200": {
+            "description": "List of tally lights"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createTallyLight",
+        "tags": [
+          "PiTally"
+        ],
+        "summary": "Register or configure a tally light",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tally light registered"
+          }
+        }
+      }
+    },
+    "/api/v1/lights/status": {
+      "get": {
+        "operationId": "getTallyStatus",
+        "tags": [
+          "PiTally"
+        ],
+        "summary": "Get overall PiTally subsystem status",
+        "responses": {
+          "200": {
+            "description": "PiTally subsystem status"
+          }
+        }
+      }
+    },
+    "/api/v1/lights/{id}": {
+      "get": {
+        "operationId": "getTallyLight",
+        "tags": [
+          "PiTally"
+        ],
+        "summary": "Get specific tally light state",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tally light details"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteTallyLight",
+        "tags": [
+          "PiTally"
+        ],
+        "summary": "Remove tally light registration",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tally light removed"
+          }
+        }
+      }
+    },
+    "/api/v1/lights/{id}/state": {
+      "post": {
+        "operationId": "setTallyLightState",
+        "tags": [
+          "PiTally"
+        ],
+        "summary": "Set tally light state explicitly",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tally state updated"
+          }
+        }
+      }
+    },
+    "/api/v1/lights/{id}/cue": {
+      "post": {
+        "operationId": "triggerTallyLightCue",
+        "tags": [
+          "PiTally"
+        ],
+        "summary": "Trigger cue pulse on tally light",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cue triggered"
+          }
+        }
+      }
+    },
+    "/api/v1/lights/{id}/call": {
+      "post": {
+        "operationId": "triggerTallyLightCall",
+        "tags": [
+          "PiTally"
+        ],
+        "summary": "Trigger director call alert on tally light",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Call triggered"
+          }
+        }
+      }
+    },
+    "/api/v1/lights/{id}/hold": {
+      "post": {
+        "operationId": "triggerTallyLightHold",
+        "tags": [
+          "PiTally"
+        ],
+        "summary": "Hold tally light in current state",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Hold triggered"
+          }
+        }
+      }
+    },
+    "/api/v1/lights/{id}/brightness": {
+      "post": {
+        "operationId": "setTallyLightBrightness",
+        "tags": [
+          "PiTally"
+        ],
+        "summary": "Set tally light LED brightness",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Brightness updated"
+          }
+        }
+      }
+    },
+    "/api/v1/lights/{id}/cycle": {
+      "post": {
+        "operationId": "cycleTallyLightMode",
+        "tags": [
+          "PiTally"
+        ],
+        "summary": "Cycle display or color mode on tally light",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mode cycled"
+          }
+        }
+      }
+    },
+    "/api/v1/lights/{id}/segments": {
+      "post": {
+        "operationId": "setTallyLightSegments",
+        "tags": [
+          "PiTally"
+        ],
+        "summary": "Set individual LED segments on tally light",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Segments updated"
+          }
+        }
+      }
+    },
+    "/api/v1/sources": {
+      "get": {
+        "operationId": "getMatrixSources",
+        "tags": [
+          "PiMatrix"
+        ],
+        "summary": "List all video matrix inputs/sources",
+        "responses": {
+          "200": {
+            "description": "List of video sources"
+          }
+        }
+      }
+    },
+    "/api/v1/sources/{sourceId}": {
+      "get": {
+        "operationId": "getMatrixSource",
+        "tags": [
+          "PiMatrix"
+        ],
+        "summary": "Get details of a video matrix source",
+        "parameters": [
+          {
+            "name": "sourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Source details"
+          }
+        }
+      }
+    },
+    "/api/v1/outputs": {
+      "get": {
+        "operationId": "getMatrixOutputs",
+        "tags": [
+          "PiMatrix"
+        ],
+        "summary": "List all video matrix outputs and active routing",
+        "responses": {
+          "200": {
+            "description": "List of matrix outputs"
+          }
+        }
+      }
+    },
+    "/api/v1/outputs/{outputId}/source": {
+      "post": {
+        "operationId": "routeMatrixOutputSource",
+        "tags": [
+          "PiMatrix"
+        ],
+        "summary": "Route a video source to an output",
+        "parameters": [
+          {
+            "name": "outputId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Route updated"
+          }
+        }
+      }
+    },
+    "/api/v1/outputs/multiview": {
+      "get": {
+        "operationId": "getMatrixMultiview",
+        "tags": [
+          "PiMatrix"
+        ],
+        "summary": "Get multiview layout and window assignments",
+        "responses": {
+          "200": {
+            "description": "Multiview state"
+          }
+        }
+      }
+    },
+    "/api/v1/outputs/multiview/layout": {
+      "post": {
+        "operationId": "setMatrixMultiviewLayout",
+        "tags": [
+          "PiMatrix"
+        ],
+        "summary": "Set multiview layout preset (e.g. 2x2, 1+3)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Multiview layout updated"
+          }
+        }
+      }
+    },
+    "/api/v1/outputs/multiview/slot": {
+      "post": {
+        "operationId": "setMatrixMultiviewSlot",
+        "tags": [
+          "PiMatrix"
+        ],
+        "summary": "Assign video source to multiview slot",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Slot assigned"
+          }
+        }
+      }
+    },
+    "/api/v1/outputs/rtsp/source": {
+      "post": {
+        "operationId": "setMatrixRtspSource",
+        "tags": [
+          "PiMatrix"
+        ],
+        "summary": "Select source to stream over RTSP",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "RTSP source selected"
+          }
+        }
+      }
+    },
+    "/api/v1/outputs/rtsp/stream": {
+      "post": {
+        "operationId": "toggleMatrixRtspStream",
+        "tags": [
+          "PiMatrix"
+        ],
+        "summary": "Start or stop RTSP output stream",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "RTSP stream state changed"
+          }
+        }
+      }
+    },
+    "/api/v1/sources/{sourceId}/effects/crop": {
+      "post": {
+        "operationId": "setMatrixSourceCrop",
+        "tags": [
+          "PiMatrix"
+        ],
+        "summary": "Set video cropping on source",
+        "parameters": [
+          {
+            "name": "sourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Crop updated"
+          }
+        }
+      }
+    },
+    "/api/v1/sources/{sourceId}/effects/crop/preset": {
+      "post": {
+        "operationId": "setMatrixSourceCropPreset",
+        "tags": [
+          "PiMatrix"
+        ],
+        "summary": "Apply crop preset to source",
+        "parameters": [
+          {
+            "name": "sourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Crop preset applied"
+          }
+        }
+      }
+    },
+    "/api/v1/sources/{sourceId}/effects/crop/move": {
+      "post": {
+        "operationId": "moveMatrixSourceCrop",
+        "tags": [
+          "PiMatrix"
+        ],
+        "summary": "Pan crop area on source",
+        "parameters": [
+          {
+            "name": "sourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Crop moved"
+          }
+        }
+      }
+    },
+    "/api/v1/sources/{sourceId}/effects/crop/resize": {
+      "post": {
+        "operationId": "resizeMatrixSourceCrop",
+        "tags": [
+          "PiMatrix"
+        ],
+        "summary": "Resize crop region on source",
+        "parameters": [
+          {
+            "name": "sourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Crop resized"
+          }
+        }
+      }
+    },
+    "/api/v1/sources/{sourceId}/effects/ftb": {
+      "post": {
+        "operationId": "setMatrixSourceFtb",
+        "tags": [
+          "PiMatrix"
+        ],
+        "summary": "Set fade-to-black on video source",
+        "parameters": [
+          {
+            "name": "sourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "FTB updated"
+          }
+        }
+      }
+    },
+    "/api/v1/sources/{sourceId}/effects/mute": {
+      "post": {
+        "operationId": "setMatrixSourceMute",
+        "tags": [
+          "PiMatrix"
+        ],
+        "summary": "Mute audio on video source",
+        "parameters": [
+          {
+            "name": "sourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Audio mute updated"
+          }
+        }
+      }
+    },
+    "/api/v1/composites": {
+      "get": {
+        "operationId": "getMatrixComposites",
+        "tags": [
+          "PiMatrix"
+        ],
+        "summary": "List defined video composites / picture-in-picture scenes",
+        "responses": {
+          "200": {
+            "description": "List of composites"
+          }
+        }
+      }
+    },
+    "/api/v1/composites/{id}": {
+      "get": {
+        "operationId": "getMatrixComposite",
+        "tags": [
+          "PiMatrix"
+        ],
+        "summary": "Get details of a video composite",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Composite details"
+          }
+        }
+      }
+    },
+    "/api/v1/composites/{id}/preview.png": {
+      "get": {
+        "operationId": "getMatrixCompositePreview",
+        "tags": [
+          "PiMatrix"
+        ],
+        "summary": "Get PNG preview thumbnail of composite",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "PNG image"
+          }
+        }
+      }
+    },
+    "/api/v1/composites/slide": {
+      "put": {
+        "operationId": "setMatrixCompositeSlide",
+        "tags": [
+          "PiMatrix"
+        ],
+        "summary": "Update slide overlay on active composite",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Composite slide updated"
+          }
+        }
+      }
+    },
+    "/api/v1/composites/{id}/start": {
+      "post": {
+        "operationId": "startMatrixComposite",
+        "tags": [
+          "PiMatrix"
+        ],
+        "summary": "Activate video composite scene",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Composite started"
+          }
+        }
+      }
+    },
+    "/api/v1/composites/{id}/stop": {
+      "post": {
+        "operationId": "stopMatrixComposite",
+        "tags": [
+          "PiMatrix"
+        ],
+        "summary": "Deactivate video composite scene",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Composite stopped"
+          }
+        }
+      }
+    },
+    "/api/v1/quick-options": {
+      "get": {
+        "operationId": "getMatrixQuickOptions",
+        "tags": [
+          "PiMatrix"
+        ],
+        "summary": "List matrix quick option presets",
+        "responses": {
+          "200": {
+            "description": "Quick options list"
+          }
+        }
+      }
+    },
+    "/api/v1/quick-options/{id}/apply": {
+      "post": {
+        "operationId": "applyMatrixQuickOption",
+        "tags": [
+          "PiMatrix"
+        ],
+        "summary": "Apply quick option preset by ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Quick option applied"
+          }
+        }
+      }
+    },
+    "/api/v1/quick-options/number/{number}/apply": {
+      "post": {
+        "operationId": "applyMatrixQuickOptionByNumber",
+        "tags": [
+          "PiMatrix"
+        ],
+        "summary": "Apply quick option preset by numeric index",
+        "parameters": [
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Quick option applied"
+          }
+        }
+      }
+    },
+    "/api/v1/graphics/active": {
+      "get": {
+        "operationId": "getGraphicsActive",
+        "tags": [
+          "PiGraphics"
+        ],
+        "summary": "Get currently active on-air graphic instances",
+        "responses": {
+          "200": {
+            "description": "Active graphics list"
+          }
+        }
+      }
+    },
+    "/api/v1/graphics/active/show": {
+      "post": {
+        "operationId": "showGraphic",
+        "tags": [
+          "PiGraphics"
+        ],
+        "summary": "Render and bring graphic template on air",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Graphic shown"
+          }
+        }
+      }
+    },
+    "/api/v1/graphics/active/hide/{instanceId}": {
+      "post": {
+        "operationId": "hideGraphic",
+        "tags": [
+          "PiGraphics"
+        ],
+        "summary": "Animate and take graphic instance off air",
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Graphic hidden"
+          }
+        }
+      }
+    },
+    "/api/v1/graphics/active/clear": {
+      "post": {
+        "operationId": "clearGraphics",
+        "tags": [
+          "PiGraphics"
+        ],
+        "summary": "Clear all active on-air graphics immediately",
+        "responses": {
+          "200": {
+            "description": "Graphics cleared"
+          }
+        }
+      }
+    },
+    "/api/v1/graphics/bindings": {
+      "get": {
+        "operationId": "getGraphicsBindings",
+        "tags": [
+          "PiGraphics"
+        ],
+        "summary": "Get dynamic template variable bindings",
+        "responses": {
+          "200": {
+            "description": "Variable bindings"
+          }
+        }
+      },
+      "post": {
+        "operationId": "setGraphicsBindings",
+        "tags": [
+          "PiGraphics"
+        ],
+        "summary": "Set dynamic template variable bindings",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Bindings updated"
+          }
+        }
+      }
+    },
+    "/api/v1/graphics/templates": {
+      "get": {
+        "operationId": "getGraphicsTemplates",
+        "tags": [
+          "PiGraphics"
+        ],
+        "summary": "List available HTML graphic templates",
+        "responses": {
+          "200": {
+            "description": "Templates list"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createGraphicsTemplate",
+        "tags": [
+          "PiGraphics"
+        ],
+        "summary": "Save or update graphic template",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Template saved"
+          }
+        }
+      }
+    },
+    "/api/v1/graphics/templates/{id}": {
+      "get": {
+        "operationId": "getGraphicsTemplate",
+        "tags": [
+          "PiGraphics"
+        ],
+        "summary": "Get details and schema of graphic template",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Template details"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteGraphicsTemplate",
+        "tags": [
+          "PiGraphics"
+        ],
+        "summary": "Delete graphic template",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Template deleted"
+          }
+        }
+      }
+    },
+    "/api/v1/graphics/assets": {
+      "get": {
+        "operationId": "getGraphicsAssets",
+        "tags": [
+          "PiGraphics"
+        ],
+        "summary": "List graphics asset files (images/media)",
+        "responses": {
+          "200": {
+            "description": "Assets list"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createGraphicsAsset",
+        "tags": [
+          "PiGraphics"
+        ],
+        "summary": "Upload or register a graphics media asset",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Asset created"
+          }
+        }
+      }
+    },
+    "/api/v1/graphics/assets/{id}": {
+      "get": {
+        "operationId": "getGraphicsAsset",
+        "tags": [
+          "PiGraphics"
+        ],
+        "summary": "Get graphics media asset details",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Asset details"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteGraphicsAsset",
+        "tags": [
+          "PiGraphics"
+        ],
+        "summary": "Delete graphics media asset",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Asset deleted"
+          }
+        }
+      }
+    },
+    "/api/v1/graphics/canva/push": {
+      "post": {
+        "operationId": "pushCanvaGraphic",
+        "tags": [
+          "PiGraphics"
+        ],
+        "summary": "Push Canva graphic overlay to air via keyer",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Canva graphic pushed"
+          }
+        }
+      }
+    },
+    "/api/v1/graphics/canva/off-air": {
+      "post": {
+        "operationId": "offAirCanvaGraphic",
+        "tags": [
+          "PiGraphics"
+        ],
+        "summary": "Take Canva graphic overlay off air",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Canva graphic off air"
+          }
+        }
+      }
+    },
+    "/api/v1/graphics/stream/status": {
+      "get": {
+        "operationId": "getGraphicsStreamStatus",
+        "tags": [
+          "PiGraphics"
+        ],
+        "summary": "Get graphics overlay stream status",
+        "responses": {
+          "200": {
+            "description": "Stream status"
+          }
+        }
+      }
+    },
+    "/api/v1/graphics/stream/start": {
+      "post": {
+        "operationId": "startGraphicsStream",
+        "tags": [
+          "PiGraphics"
+        ],
+        "summary": "Start graphics HTML5 render stream",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Stream started"
+          }
+        }
+      }
+    },
+    "/api/v1/graphics/stream/stop": {
+      "post": {
+        "operationId": "stopGraphicsStream",
+        "tags": [
+          "PiGraphics"
+        ],
+        "summary": "Stop graphics HTML5 render stream",
+        "responses": {
+          "200": {
+            "description": "Stream stopped"
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/pipelines": {
+      "get": {
+        "operationId": "getPipgmPipelines",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "List all PiProgram presentation pipelines",
+        "responses": {
+          "200": {
+            "description": "Pipelines list"
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/pipelines/{pipelineId}": {
+      "get": {
+        "operationId": "getPipgmPipeline",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Get status and state of a presentation pipeline",
+        "parameters": [
+          {
+            "name": "pipelineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pipeline state"
+          }
+        }
+      },
+      "put": {
+        "operationId": "setPipgmPipeline",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Update presentation pipeline settings",
+        "parameters": [
+          {
+            "name": "pipelineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Pipeline updated"
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/pipelines/{pipelineId}/cue": {
+      "post": {
+        "operationId": "cuePipgmPipeline",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Cue item or slide in presentation pipeline",
+        "parameters": [
+          {
+            "name": "pipelineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Pipeline cued"
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/pipelines/{pipelineId}/step": {
+      "post": {
+        "operationId": "stepPipgmPipeline",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Advance or step slide in presentation pipeline",
+        "parameters": [
+          {
+            "name": "pipelineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Step advanced"
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/pipelines/{pipelineId}/play": {
+      "post": {
+        "operationId": "playPipgmPipeline",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Play or resume media playback on pipeline",
+        "parameters": [
+          {
+            "name": "pipelineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Playback started"
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/pipelines/{pipelineId}/pause": {
+      "post": {
+        "operationId": "pausePipgmPipeline",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Pause media playback on pipeline",
+        "parameters": [
+          {
+            "name": "pipelineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Playback paused"
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/pipelines/{pipelineId}/audio": {
+      "post": {
+        "operationId": "setPipgmPipelineAudio",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Configure audio routing or track for pipeline",
+        "parameters": [
+          {
+            "name": "pipelineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Audio updated"
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/pipelines/{pipelineId}/audio/stop": {
+      "post": {
+        "operationId": "stopPipgmPipelineAudio",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Stop audio playback on pipeline",
+        "parameters": [
+          {
+            "name": "pipelineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Audio stopped"
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/audio/kill": {
+      "post": {
+        "operationId": "killPipgmAudio",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Immediately silence and kill all presentation audio",
+        "responses": {
+          "200": {
+            "description": "Audio killed"
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/pipelines/{pipelineId}/playlist": {
+      "put": {
+        "operationId": "setPipgmPipelinePlaylist",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Replace playlist on presentation pipeline",
+        "parameters": [
+          {
+            "name": "pipelineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Playlist replaced"
+          }
+        }
+      },
+      "post": {
+        "operationId": "addToPipgmPipelinePlaylist",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Append item to presentation pipeline playlist",
+        "parameters": [
+          {
+            "name": "pipelineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Item added to playlist"
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/pipelines/{pipelineId}/playlist/{itemId}": {
+      "delete": {
+        "operationId": "removeFromPipgmPipelinePlaylist",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Remove item from presentation pipeline playlist",
+        "parameters": [
+          {
+            "name": "pipelineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Item removed from playlist"
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/items": {
+      "get": {
+        "operationId": "getPipgmItems",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "List presentation library items",
+        "responses": {
+          "200": {
+            "description": "Items list"
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/items/{itemId}": {
+      "get": {
+        "operationId": "getPipgmItem",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Get details of presentation library item",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Item details"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deletePipgmItem",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Delete presentation library item",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Item deleted"
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/items/canva": {
+      "post": {
+        "operationId": "createPipgmCanvaItem",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Register or ingest Canva presentation item",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Canva item registered"
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/items/{itemId}/use-at": {
+      "put": {
+        "operationId": "setPipgmItemUseAt",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Set schedule date/service use-at tag for item",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Schedule tag updated"
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/items/{itemId}/package": {
+      "post": {
+        "operationId": "packagePipgmItem",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Build delivery package for presentation item",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Item packaged"
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/tasks/{taskId}": {
+      "get": {
+        "operationId": "getPipgmTask",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Get background packaging task status",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task status"
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/items/{itemId}/steps": {
+      "get": {
+        "operationId": "getPipgmItemSteps",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Get rendered slide steps for item",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Slide steps"
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/items/{itemId}/prepare": {
+      "post": {
+        "operationId": "preparePipgmItem",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Pre-render and cache slide steps for item",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Item prepared"
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/feeders": {
+      "get": {
+        "operationId": "getPipgmFeeders",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Get status of RTSP video output feeders",
+        "responses": {
+          "200": {
+            "description": "Feeders status"
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/library/storage": {
+      "get": {
+        "operationId": "getPipgmLibraryStorage",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Get PiProgram storage sync and capacity status",
+        "responses": {
+          "200": {
+            "description": "Library storage status"
+          }
+        }
+      }
+    },
+    "/api/v1/designer/state": {
+      "get": {
+        "operationId": "getDesignerState",
+        "tags": [
+          "PiDesigner"
+        ],
+        "summary": "Get current rundown designer session snapshot",
+        "responses": {
+          "200": {
+            "description": "Designer session state"
+          }
+        }
+      },
+      "post": {
+        "operationId": "setDesignerState",
+        "tags": [
+          "PiDesigner"
+        ],
+        "summary": "Set or replace rundown designer state",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Designer state updated"
+          }
+        }
+      }
+    },
+    "/api/v1/designer/items": {
+      "post": {
+        "operationId": "createDesignerItem",
+        "tags": [
+          "PiDesigner"
+        ],
+        "summary": "Add rundown block or item in designer",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Item added"
+          }
+        }
+      }
+    },
+    "/api/v1/designer/items/{id}": {
+      "put": {
+        "operationId": "updateDesignerItem",
+        "tags": [
+          "PiDesigner"
+        ],
+        "summary": "Update item properties in designer",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Item updated"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteDesignerItem",
+        "tags": [
+          "PiDesigner"
+        ],
+        "summary": "Delete item from designer session",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Item deleted"
+          }
+        }
+      }
+    },
+    "/api/v1/designer/metadata": {
+      "patch": {
+        "operationId": "patchDesignerMetadata",
+        "tags": [
+          "PiDesigner"
+        ],
+        "summary": "Update service metadata, hymns, or speakers",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Metadata updated"
+          }
+        }
+      }
+    },
+    "/api/v1/designer/template": {
+      "post": {
+        "operationId": "loadDesignerTemplate",
+        "tags": [
+          "PiDesigner"
+        ],
+        "summary": "Load church calendar liturgy template into designer",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Template loaded"
+          }
+        }
+      }
+    },
+    "/api/v1/designer/agent/chat": {
+      "post": {
+        "operationId": "designerAgentChat",
+        "tags": [
+          "PiDesigner"
+        ],
+        "summary": "Send prompt to AI designer assistant agent",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Agent chat response"
+          }
+        }
+      }
+    },
+    "/api/v1/designer/templates": {
+      "get": {
+        "operationId": "getDesignerTemplates",
+        "tags": [
+          "PiDesigner"
+        ],
+        "summary": "List available rundown liturgy templates",
+        "responses": {
+          "200": {
+            "description": "Templates list"
+          }
+        }
+      }
+    },
+    "/api/v1/designer/templates/{id}": {
+      "get": {
+        "operationId": "getDesignerTemplate",
+        "tags": [
+          "PiDesigner"
+        ],
+        "summary": "Get details of specific rundown liturgy template",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Template details"
+          }
+        }
+      }
+    },
+    "/api/v1/designer/validate": {
+      "post": {
+        "operationId": "validateDesignerRundown",
+        "tags": [
+          "PiDesigner"
+        ],
+        "summary": "Validate YAML or state against Rundown v2 schema",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Validation result"
+          }
+        }
+      }
+    },
+    "/api/v1/designer/push": {
+      "post": {
+        "operationId": "pushDesignerRundown",
+        "tags": [
+          "PiDesigner"
+        ],
+        "summary": "Publish or push validated rundown to active engine",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rundown pushed"
+          }
+        }
+      }
     }
   },
   "components": {

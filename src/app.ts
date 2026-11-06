@@ -28,6 +28,19 @@ import { PiSoundUdpReceiver } from "./pisound/telemetry.js";
 import { PiVoiceActivityCoordinator } from "./pivoice/activity-coordinator.js";
 import { PiVoiceClient } from "./pivoice/client.js";
 import { registerVoiceRoutes } from "./pivoice/voice-routes.js";
+import { PiSoundClient } from "./pisound/client.js";
+import { registerSoundRoutes } from "./pisound/pisound-routes.js";
+import { PiTallyClient } from "./tally/client.js";
+import { registerTallyRoutes } from "./tally/tally-routes.js";
+import { PiTubeClient } from "./youtube/client.js";
+import { PiMatrixClient } from "./matrix/client.js";
+import { registerMatrixProxyRoutes } from "./matrix/matrix-proxy-routes.js";
+import { PiGraphicsClient } from "./graphics/client.js";
+import { registerGraphicsRoutes } from "./graphics/graphics-routes.js";
+import { PiProgramClient } from "./pipgm/client.js";
+import { registerPiPgmRoutes } from "./pipgm/pipgm-routes.js";
+import { PiDesignerClient } from "./designer/client.js";
+import { registerDesignerRoutes } from "./designer/designer-routes.js";
 import { RadioRelayClient } from "./radio-relay/radio-relay-client.js";
 import { AuditorSseSource } from "./transcripts/auditor-sse-source.js";
 import { TranscriptHub, transcriptId } from "./transcripts/transcript-hub.js";
@@ -75,6 +88,8 @@ export function buildApp(config: AppConfig): FastifyInstance {
         !route.url.startsWith("/api/v1/video-mixer") &&
         !route.url.startsWith("/api/v1/switch") &&
         !route.url.startsWith("/api/v1/piswitch") &&
+        !route.url.startsWith("/api/v1/youtube/broadcasts") &&
+        !(route.url === "/api/v1/youtube/status" && method === "GET") &&
         route.url !== "/api/v1/encoders" &&
         !route.url.includes("/rtmp/") &&
         route.url !== "/api/v1/encoder/:number" &&
@@ -113,6 +128,37 @@ export function buildApp(config: AppConfig): FastifyInstance {
   const pivoiceClient = new PiVoiceClient({
     baseUrl: config.pivoiceApiUrl,
     token: config.pivoiceApiToken,
+    logger: app.log
+  });
+  const pisoundClient = new PiSoundClient({
+    baseUrl: config.pisoundApiUrl,
+    token: config.pisoundApiToken,
+    logger: app.log
+  });
+  const pitallyClient = new PiTallyClient({
+    baseUrl: config.pitallyApiUrl,
+    logger: app.log
+  });
+  const pitubeClient = new PiTubeClient({
+    baseUrl: config.pitubeApiUrl,
+    token: config.pitubeApiToken,
+    logger: app.log
+  });
+  const pimatrixClient = new PiMatrixClient({
+    baseUrl: config.pimatrixApiUrl,
+    logger: app.log
+  });
+  const pigraphicsClient = new PiGraphicsClient({
+    baseUrl: config.pigraphicsApiUrl,
+    logger: app.log
+  });
+  const piprogramClient = new PiProgramClient({
+    baseUrl: config.piprogramApiUrl,
+    token: config.piprogramApiKey,
+    logger: app.log
+  });
+  const pidesignerClient = new PiDesignerClient({
+    baseUrl: config.pirundownDesignerApiUrl,
     logger: app.log
   });
   const radioRelay = new RadioRelayClient({
@@ -163,7 +209,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
   registerEncoderRoutes(app, encoder, { piencoderUrl: config.piencoderApiUrl });
 
   const youtube = new YoutubeStatusStore({ onChange: (record) => eventBroker.emit({ type: "youtube", data: record }) });
-  registerYoutubeRoutes(app, youtube);
+  registerYoutubeRoutes(app, youtube, pitubeClient);
 
   const cameraService = new CameraService({
     mode: config.mode,
@@ -525,6 +571,12 @@ export function buildApp(config: AppConfig): FastifyInstance {
   });
 
   registerVoiceRoutes(app, { client: pivoiceClient, transcripts });
+  registerSoundRoutes(app, { client: pisoundClient });
+  registerTallyRoutes(app, { client: pitallyClient });
+  registerMatrixProxyRoutes(app, { client: pimatrixClient });
+  registerGraphicsRoutes(app, { client: pigraphicsClient });
+  registerPiPgmRoutes(app, { client: piprogramClient });
+  registerDesignerRoutes(app, { client: pidesignerClient });
 
   app.post("/api/v1/transcripts", async (request, reply) => {
     const body = request.body as { session_id?: unknown; events?: unknown } | undefined;
