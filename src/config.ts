@@ -60,6 +60,10 @@ export interface AppConfig {
   pigraphicsApiUrl?: string | undefined;
   piperceptionApiUrl?: string | undefined;
   piperceptionApiKey?: string | undefined;
+  /** PiPerception 2D screen tracking UDP receiver. */
+  perceptionUdpEnabled: boolean;
+  perceptionUdpHost: string;
+  perceptionUdpPort: number;
   pispaceApiKey?: string | undefined;
   pipoeApiUrl?: string | undefined;
   pipoeApiKey?: string | undefined;
@@ -302,6 +306,14 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     pigraphicsApiUrl,
     piperceptionApiUrl,
     piperceptionApiKey: env.PIGATEWAY_PIPERCEPTION_API_KEY?.trim() || undefined,
+    perceptionUdpEnabled:
+      env.PIGATEWAY_PERCEPTION_UDP_ENABLED === "true"
+        ? true
+        : env.PIGATEWAY_PERCEPTION_UDP_ENABLED === "false"
+          ? false
+          : true,
+    perceptionUdpHost: env.PIGATEWAY_PERCEPTION_UDP_HOST?.trim() || "0.0.0.0",
+    perceptionUdpPort: validPort(env.PIGATEWAY_PERCEPTION_UDP_PORT, 40002, "PIGATEWAY_PERCEPTION_UDP_PORT", true),
     pispaceApiKey: env.PIGATEWAY_PISPACE_API_KEY?.trim() || undefined,
     pipoeApiUrl,
     pipoeApiKey: env.PIGATEWAY_PIPOE_API_KEY?.trim() || undefined,

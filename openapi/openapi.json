@@ -5325,6 +5325,164 @@
         }
       }
     },
+    "/api/v1/perception/feeds": {
+      "get": {
+        "operationId": "getPerceptionFeeds",
+        "tags": [
+          "Perception"
+        ],
+        "summary": "List configured MediaMTX/RTSP camera feeds and ingestion state",
+        "responses": {
+          "200": {
+            "description": "List of camera feeds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/perception/feeds/setup": {
+      "post": {
+        "operationId": "setupPerceptionFeeds",
+        "tags": [
+          "Perception"
+        ],
+        "summary": "Configure one or more camera feeds for ingestion",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Feeds configured"
+          }
+        }
+      }
+    },
+    "/api/v1/perception/feeds/start": {
+      "post": {
+        "operationId": "startAllPerceptionFeeds",
+        "tags": [
+          "Perception"
+        ],
+        "summary": "Start frame ingestion for all configured camera feeds",
+        "responses": {
+          "200": {
+            "description": "All feeds started"
+          }
+        }
+      }
+    },
+    "/api/v1/perception/feeds/stop": {
+      "post": {
+        "operationId": "stopAllPerceptionFeeds",
+        "tags": [
+          "Perception"
+        ],
+        "summary": "Stop frame ingestion for all configured camera feeds",
+        "responses": {
+          "200": {
+            "description": "All feeds stopped"
+          }
+        }
+      }
+    },
+    "/api/v1/perception/feeds/{cameraId}/setup": {
+      "post": {
+        "operationId": "setupPerceptionFeed",
+        "tags": [
+          "Perception"
+        ],
+        "summary": "Configure a specific camera feed",
+        "parameters": [
+          {
+            "name": "cameraId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Feed configured"
+          }
+        }
+      }
+    },
+    "/api/v1/perception/feeds/{cameraId}/start": {
+      "post": {
+        "operationId": "startPerceptionFeed",
+        "tags": [
+          "Perception"
+        ],
+        "summary": "Start frame ingestion for a camera feed",
+        "parameters": [
+          {
+            "name": "cameraId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Feed started"
+          }
+        }
+      }
+    },
+    "/api/v1/perception/feeds/{cameraId}/stop": {
+      "post": {
+        "operationId": "stopPerceptionFeed",
+        "tags": [
+          "Perception"
+        ],
+        "summary": "Stop frame ingestion for a camera feed",
+        "parameters": [
+          {
+            "name": "cameraId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Feed stopped"
+          }
+        }
+      }
+    },
     "/api/v1/perception/pusher": {
       "get": {
         "operationId": "getPerceptionPusher",
@@ -5335,6 +5493,27 @@
         "responses": {
           "200": {
             "description": "Pusher status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/perception/screen-tracks": {
+      "get": {
+        "operationId": "getPerceptionScreenTracks",
+        "tags": [
+          "Perception"
+        ],
+        "summary": "Get real-time 2D screen tracking state across all active feeds",
+        "responses": {
+          "200": {
+            "description": "Screen tracking state by camera feed",
             "content": {
               "application/json": {
                 "schema": {
@@ -5498,6 +5677,20 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/perception/telemetry/udp": {
+      "get": {
+        "operationId": "getPerceptionUdpTelemetry",
+        "tags": [
+          "Perception"
+        ],
+        "summary": "Get UDP telemetry publisher statistics from PiPerception",
+        "responses": {
+          "200": {
+            "description": "UDP telemetry stats"
           }
         }
       }

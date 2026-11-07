@@ -98,4 +98,37 @@ export class PiPerceptionClient {
   async getPusherStats(): Promise<unknown> {
     return this.request("GET", "/api/v1/pusher");
   }
+
+  // --- Feeds lifecycle (MediaMTX / RTSP / ff-fleet) ---
+  async getFeeds(): Promise<unknown> {
+    return this.request("GET", "/api/v1/feeds");
+  }
+
+  async setupFeeds(body: unknown): Promise<unknown> {
+    return this.request("POST", "/api/v1/feeds/setup", body);
+  }
+
+  async setupFeed(cameraId: string, body: unknown): Promise<unknown> {
+    return this.request("POST", `/api/v1/feeds/${encodeURIComponent(cameraId)}/setup`, body);
+  }
+
+  async startFeed(cameraId: string): Promise<unknown> {
+    return this.request("POST", `/api/v1/feeds/${encodeURIComponent(cameraId)}/start`);
+  }
+
+  async stopFeed(cameraId: string): Promise<unknown> {
+    return this.request("POST", `/api/v1/feeds/${encodeURIComponent(cameraId)}/stop`);
+  }
+
+  async startAllFeeds(): Promise<unknown> {
+    return this.request("POST", "/api/v1/feeds/start");
+  }
+
+  async stopAllFeeds(): Promise<unknown> {
+    return this.request("POST", "/api/v1/feeds/stop");
+  }
+
+  async getUdpTelemetryStats(): Promise<unknown> {
+    return this.request("GET", "/api/v1/telemetry/udp");
+  }
 }

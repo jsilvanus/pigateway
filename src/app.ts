@@ -63,6 +63,7 @@ import { PiNotifyClient } from "./notify/client.js";
 import { registerNotifyRoutes } from "./notify/notify-routes.js";
 import { PiPerceptionClient } from "./perception/client.js";
 import { registerPerceptionRoutes } from "./perception/perception-routes.js";
+import { ScreenTrackingUdpReceiver } from "./perception/tracking-receiver.js";
 import { PiSpaceClient } from "./spatial/client.js";
 
 export function buildApp(config: AppConfig): FastifyInstance {
@@ -230,6 +231,15 @@ export function buildApp(config: AppConfig): FastifyInstance {
       eventBroker.emit({ type: "pisound", data: state });
     }
   });
+
+  const trackingReceiver = config.perceptionUdpEnabled
+    ? new ScreenTrackingUdpReceiver({
+        host: config.perceptionUdpHost ?? "0.0.0.0",
+        port: config.perceptionUdpPort ?? 40002,
+        logger: app.log,
+        eventBroker
+      })
+    : undefined;
 
   // Simulation mode with no real device configured: in-memory ATEM and encoder behind the same seams as hardware.
   const simulateAtem = config.mode === "simulation" && !config.atemHost;
@@ -464,6 +474,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
       };
       await startAmx();
     }
+    if (trackingReceiver) await safely("screen-tracking-udp", () => trackingReceiver.start());
     if (config.amxMasterHost) await safely("atlona-polling", () => matrix.startPolling());
     await safely("encoder", () => encoder.start());
     if (freedReceiver) {
@@ -499,6 +510,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
     await Promise.allSettled([
       pivoice.stop(),
       pisound.stop(),
+      trackingReceiver ? trackingReceiver.stop() : Promise.resolve(),
       pivoiceActivity.close(),
       atem.disconnect(),
       cameraService.close(),
@@ -622,7 +634,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
   registerStorageRoutes(app, { client: pistorageClient });
   registerAgentRoutes(app, { client: piagentClient });
   registerNotifyRoutes(app, { client: pinotifyClient });
-  registerPerceptionRoutes(app, { client: piperceptionClient, eventBroker });
+  registerPerceptionRoutes(app, { client: piperceptionClient, eventBroker, trackingReceiver });
 
   app.post("/api/v1/transcripts", async (request, reply) => {
     const body = request.body as { session_id?: unknown; events?: unknown } | undefined;
