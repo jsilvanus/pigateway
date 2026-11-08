@@ -140,10 +140,16 @@ export interface FreedReceiverStats {
   port: number;
 }
 
+export interface FreedForwardTarget {
+  host: string;
+  port: number;
+}
+
 export interface FreedUdpReceiverOptions {
   host: string;
   port: number;
   allowedIps?: string[] | undefined;
+  forwardTargets?: FreedForwardTarget[] | undefined;
   eventBroker?: GatewayEventBroker | undefined;
   logger?: FastifyBaseLogger | undefined;
 }
@@ -215,6 +221,16 @@ export class FreedUdpReceiver {
       this.stats.decoded += 1;
 
       this.telemetryByCamId.set(telemetry.camId, telemetry);
+
+      if (this.options.forwardTargets?.length) {
+        for (const target of this.options.forwardTargets) {
+          socket.send(buf, target.port, target.host, (err) => {
+            if (err) {
+              this.options.logger?.warn({ err, target }, "FreeD pass-through forward failed");
+            }
+          });
+        }
+      }
 
       this.options.eventBroker?.emit({
         type: "freed",

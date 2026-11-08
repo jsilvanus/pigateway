@@ -71,7 +71,7 @@ test("receiver stores valid telemetry, rejects other senders, and marks state st
       sender.send(packet(), receiver.getBoundPort(), "127.0.0.1", (error) => error ? reject(error) : resolve());
     });
     await send();
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    for (let i = 0; i < 20 && !receiver.getState().connected; i++) await new Promise((r) => setTimeout(r, 10));
     assert.equal(receiver.getState().connected, true);
     assert.equal(receiver.getState().classification, "speech");
     assert.equal(receiver.getState().rmsDbfs, -42.125);

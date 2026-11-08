@@ -40,15 +40,45 @@ export interface AppConfig {
   /** Canva team (brand) ids whose users may use the tunnel listener (PIGATEWAY_CANVA_ALLOWED_BRANDS). */
   canvaAllowedBrands?: string[] | undefined;
   picanvaApiUrl?: string | undefined;
+  /** Bearer token for the pitube API (PIGATEWAY_PITUBE_API_TOKEN), used by the picontrol UI listener only. */
+  pitubeApiToken?: string | undefined;
+  /** LAN listener for the picontrol UI (PIGATEWAY_UI_PORT, 0.0.0.0); unset = off. */
+  uiPort?: number | undefined;
+  /** Relay listener for the picontrol UI, bound to 127.0.0.1 and reached through an ssh tunnel (PIGATEWAY_UI_RELAY_PORT); unset = off. Its role is "internet". */
+  uiRelayPort?: number | undefined;
+  /** Modules the UI listeners serve (PIGATEWAY_UI_MODULES, same names as picontrol's VITE_PICONTROL_MODULES); unset = all. */
+  uiModules?: string[] | undefined;
+  /** PIN that opens the UI listeners that need one (PIGATEWAY_UI_PIN). */
+  uiPin?: string | undefined;
+  /** The LAN listener needs no PIN (PIGATEWAY_UI_LAN_NO_PIN=true). The relay always does. */
+  uiLanNoPin?: boolean | undefined;
+  /** Browser origins allowed to call the UI listeners with credentials (PIGATEWAY_UI_CORS_ORIGINS). */
+  uiCorsOrigins?: string[] | undefined;
   pirundownApiUrl?: string | undefined;
   pirundownDesignerApiUrl?: string | undefined;
   pispaceApiUrl?: string | undefined;
   pigraphicsApiUrl?: string | undefined;
   piperceptionApiUrl?: string | undefined;
+  piperceptionApiKey?: string | undefined;
+  /** PiPerception 2D screen tracking UDP receiver. */
+  perceptionUdpEnabled: boolean;
+  perceptionUdpHost: string;
+  perceptionUdpPort: number;
+  pispaceApiKey?: string | undefined;
+  pipoeApiUrl?: string | undefined;
+  pipoeApiKey?: string | undefined;
+  pistorageApiUrl?: string | undefined;
+  pistorageApiKey?: string | undefined;
+  piagentApiUrl?: string | undefined;
+  piagentApiKey?: string | undefined;
+  pinotifyApiUrl?: string | undefined;
+  pinotifyApiKey?: string | undefined;
   ecosystemPollIntervalMs: number;
   radioRelayApiUrl?: string | undefined;
   radioRelayApiToken?: string | undefined;
   radioRelayStreamName: string;
+  radioRelayMountPoint: string;
+  radioRelayPublicUrl?: string | undefined;
   pivoiceIdleCloseSeconds: number;
   pivoiceStartWhen: "speech" | "speech_or_music";
   /**
@@ -90,6 +120,7 @@ export interface AppConfig {
   freedUdpHost: string;
   freedUdpPort: number;
   freedAllowedHosts?: string[] | undefined;
+  freedForwardTargets?: Array<{ host: string; port: number }> | undefined;
   /** picam standalone controller service URL (PIGATEWAY_PICAM_API_URL). */
   picamApiUrl?: string | undefined;
   /** piencoder multi-unit hardware encoder service URL (PIGATEWAY_PIENCODER_API_URL). */
@@ -147,6 +178,23 @@ function list(value: string | undefined): string[] | undefined {
   return items && items.length > 0 ? items : undefined;
 }
 
+function parseForwardTargets(raw?: string | undefined): Array<{ host: string; port: number }> | undefined {
+  if (!raw?.trim()) return undefined;
+  const items = raw
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((item) => {
+      const colon = item.lastIndexOf(":");
+      if (colon > 0) {
+        return { host: item.slice(0, colon), port: Number.parseInt(item.slice(colon + 1), 10) };
+      }
+      return { host: "127.0.0.1", port: Number.parseInt(item, 10) };
+    })
+    .filter((target) => Number.isInteger(target.port) && target.port > 0 && target.port <= 65535);
+  return items.length > 0 ? items : undefined;
+}
+
 /** Camera CGI login from PREFIX_USER and PREFIX_PASSWORD. Both or neither. */
 function cameraLogin(env: NodeJS.ProcessEnv, prefix: string): { user: string; password: string } | undefined {
   const user = env[`${prefix}_USER`]?.trim() || undefined;
@@ -193,6 +241,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const radioRelayApiUrl = urlWithScheme(env.PIGATEWAY_RADIO_RELAY_API_URL, "PIGATEWAY_RADIO_RELAY_API_URL", ["http:", "https:"]);
   const radioRelayApiToken = env.PIGATEWAY_RADIO_RELAY_API_TOKEN?.trim() || undefined;
   if (Boolean(radioRelayApiUrl) !== Boolean(radioRelayApiToken)) throw new Error("PIGATEWAY_RADIO_RELAY_API_URL and PIGATEWAY_RADIO_RELAY_API_TOKEN must be set together");
+  const radioRelayStreamName = env.PIGATEWAY_RADIO_RELAY_STREAM_NAME?.trim() || "stream";
+  const radioRelayMountPoint = env.PIGATEWAY_RADIO_RELAY_MOUNT_POINT?.trim() || (radioRelayStreamName.startsWith("/") ? radioRelayStreamName : `/${radioRelayStreamName}`);
+  const radioRelayPublicUrl = urlWithScheme(env.PIGATEWAY_RADIO_RELAY_PUBLIC_URL, "PIGATEWAY_RADIO_RELAY_PUBLIC_URL", ["http:", "https:"]);
   if (Boolean(pivoiceApiUrl) !== Boolean(pivoiceApiToken)) {
     throw new Error("PIGATEWAY_PIVOICE_API_URL and PIGATEWAY_PIVOICE_API_TOKEN must be set together");
   }
@@ -210,11 +261,24 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const pimatrixApiUrl = urlWithScheme(env.PIGATEWAY_PIMATRIX_API_URL, "PIGATEWAY_PIMATRIX_API_URL", ["http:", "https:"]);
   const piprogramApiUrl = urlWithScheme(env.PIGATEWAY_PIPROGRAM_API_URL, "PIGATEWAY_PIPROGRAM_API_URL", ["http:", "https:"]);
   const picanvaApiUrl = urlWithScheme(env.PIGATEWAY_PICANVA_API_URL, "PIGATEWAY_PICANVA_API_URL", ["http:", "https:"]);
+  const pitubeApiToken = env.PIGATEWAY_PITUBE_API_TOKEN?.trim() || undefined;
+  const uiPort = env.PIGATEWAY_UI_PORT?.trim() ? validPort(env.PIGATEWAY_UI_PORT, 3011, "PIGATEWAY_UI_PORT") : undefined;
+  const uiRelayPort = env.PIGATEWAY_UI_RELAY_PORT?.trim() ? validPort(env.PIGATEWAY_UI_RELAY_PORT, 3012, "PIGATEWAY_UI_RELAY_PORT") : undefined;
+  const uiPin = env.PIGATEWAY_UI_PIN?.trim() || undefined;
+  const uiLanNoPin = env.PIGATEWAY_UI_LAN_NO_PIN === "true";
+  const pinNeeded = uiRelayPort !== undefined || (uiPort !== undefined && !uiLanNoPin);
+  if (pinNeeded && (!uiPin || uiPin.length < 6)) {
+    throw new Error("PIGATEWAY_UI_PIN (at least 6 characters) is required for the picontrol UI relay listener, or for the LAN listener unless PIGATEWAY_UI_LAN_NO_PIN=true");
+  }
   const pirundownApiUrl = urlWithScheme(env.PIGATEWAY_PIRUNDOWN_API_URL, "PIGATEWAY_PIRUNDOWN_API_URL", ["http:", "https:"]);
   const pirundownDesignerApiUrl = urlWithScheme(env.PIGATEWAY_PIRUNDOWN_DESIGNER_API_URL, "PIGATEWAY_PIRUNDOWN_DESIGNER_API_URL", ["http:", "https:"]);
   const pispaceApiUrl = urlWithScheme(env.PIGATEWAY_PISPACE_API_URL, "PIGATEWAY_PISPACE_API_URL", ["http:", "https:"]);
   const pigraphicsApiUrl = urlWithScheme(env.PIGATEWAY_PIGRAPHICS_API_URL, "PIGATEWAY_PIGRAPHICS_API_URL", ["http:", "https:"]);
   const piperceptionApiUrl = urlWithScheme(env.PIGATEWAY_PIPERCEPTION_API_URL, "PIGATEWAY_PIPERCEPTION_API_URL", ["http:", "https:"]);
+  const pipoeApiUrl = urlWithScheme(env.PIGATEWAY_PIPOE_API_URL, "PIGATEWAY_PIPOE_API_URL", ["http:", "https:"]);
+  const pistorageApiUrl = urlWithScheme(env.PIGATEWAY_PISTORAGE_API_URL, "PIGATEWAY_PISTORAGE_API_URL", ["http:", "https:"]);
+  const piagentApiUrl = urlWithScheme(env.PIGATEWAY_PIAGENT_API_URL, "PIGATEWAY_PIAGENT_API_URL", ["http:", "https:"]);
+  const pinotifyApiUrl = urlWithScheme(env.PIGATEWAY_PINOTIFY_API_URL, "PIGATEWAY_PINOTIFY_API_URL", ["http:", "https:"]);
   const ecosystemPollIntervalMs = validInteger(env.PIGATEWAY_ECOSYSTEM_POLL_INTERVAL_MS, 15000, 0, 3600000, "PIGATEWAY_ECOSYSTEM_POLL_INTERVAL_MS");
 
   return {
@@ -237,6 +301,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     pisoundApiUrl,
     pisoundApiToken,
     pitubeApiUrl,
+    pitubeApiToken,
+    uiPort,
+    uiRelayPort,
+    uiPin,
+    uiLanNoPin,
+    uiModules: list(env.PIGATEWAY_UI_MODULES),
+    uiCorsOrigins: list(env.PIGATEWAY_UI_CORS_ORIGINS),
     pitallyApiUrl,
     pimatrixApiUrl,
     piprogramApiUrl,
@@ -252,10 +323,30 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     pispaceApiUrl,
     pigraphicsApiUrl,
     piperceptionApiUrl,
+    piperceptionApiKey: env.PIGATEWAY_PIPERCEPTION_API_KEY?.trim() || undefined,
+    perceptionUdpEnabled:
+      env.PIGATEWAY_PERCEPTION_UDP_ENABLED === "true"
+        ? true
+        : env.PIGATEWAY_PERCEPTION_UDP_ENABLED === "false"
+          ? false
+          : true,
+    perceptionUdpHost: env.PIGATEWAY_PERCEPTION_UDP_HOST?.trim() || "0.0.0.0",
+    perceptionUdpPort: validPort(env.PIGATEWAY_PERCEPTION_UDP_PORT, 40002, "PIGATEWAY_PERCEPTION_UDP_PORT", true),
+    pispaceApiKey: env.PIGATEWAY_PISPACE_API_KEY?.trim() || undefined,
+    pipoeApiUrl,
+    pipoeApiKey: env.PIGATEWAY_PIPOE_API_KEY?.trim() || undefined,
+    pistorageApiUrl,
+    pistorageApiKey: env.PIGATEWAY_PISTORAGE_API_KEY?.trim() || undefined,
+    piagentApiUrl,
+    piagentApiKey: env.PIGATEWAY_PIAGENT_API_KEY?.trim() || undefined,
+    pinotifyApiUrl,
+    pinotifyApiKey: env.PIGATEWAY_PINOTIFY_API_KEY?.trim() || undefined,
     ecosystemPollIntervalMs,
     radioRelayApiUrl,
     radioRelayApiToken,
-    radioRelayStreamName: env.PIGATEWAY_RADIO_RELAY_STREAM_NAME?.trim() || "stream",
+    radioRelayStreamName,
+    radioRelayMountPoint,
+    radioRelayPublicUrl,
     pivoiceIdleCloseSeconds: validInteger(env.PIGATEWAY_PIVOICE_IDLE_CLOSE_SECONDS, 15, 0, 3600, "PIGATEWAY_PIVOICE_IDLE_CLOSE_SECONDS"),
     pivoiceStartWhen: activityTrigger(env.PIGATEWAY_PIVOICE_START_WHEN),
     transcriptDelivery: transcriptDelivery(env.PIGATEWAY_TRANSCRIPT_DELIVERY),
@@ -292,6 +383,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     freedUdpHost: env.PIGATEWAY_FREED_UDP_HOST?.trim() || "0.0.0.0",
     freedUdpPort: validPort(env.PIGATEWAY_FREED_UDP_PORT, 40000, "PIGATEWAY_FREED_UDP_PORT", true),
     freedAllowedHosts: list(env.PIGATEWAY_FREED_ALLOWED_HOSTS),
+    freedForwardTargets: parseForwardTargets(
+      env.PIGATEWAY_FREED_FORWARD_TARGETS ?? (mode === "production" ? "127.0.0.1:40001" : undefined)
+    ),
     picamApiUrl: urlWithScheme(env.PIGATEWAY_PICAM_API_URL, "PIGATEWAY_PICAM_API_URL", ["http:", "https:"]),
     piencoderApiUrl: urlWithScheme(env.PIGATEWAY_PIENCODER_API_URL, "PIGATEWAY_PIENCODER_API_URL", ["http:", "https:"]),
     piembedApiUrl: urlWithScheme(env.PIGATEWAY_PIEMBED_API_URL, "PIGATEWAY_PIEMBED_API_URL", ["http:", "https:"]),

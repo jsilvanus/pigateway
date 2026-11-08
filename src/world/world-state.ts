@@ -98,6 +98,7 @@ export class WorldStateAggregator {
         if (
           evt.type === 'spatial' ||
           evt.type === 'spatial-zone' ||
+          evt.type === 'perception' ||
           evt.type === 'pivoice' ||
           evt.type === 'pisound' ||
           evt.type === 'rundown' ||

@@ -62,6 +62,35 @@ export interface SpatialZoneEventPayload {
   timestamp: string;
 }
 
+export interface ScreenTrackingObject {
+  trackId: number;
+  confidence: number;
+  classId: number;
+  bbox: [ymin: number, xmin: number, ymax: number, xmax: number];
+  rect: { x: number; y: number; w: number; h: number };
+  velocity?: { vx: number; vy: number } | undefined;
+  label?: string | undefined;
+}
+
+export interface ScreenTrackingPayload {
+  cameraId: string;
+  sequence: number;
+  timestampMs: number;
+  objects: ScreenTrackingObject[];
+}
+
+export interface PerceptionEventPayload {
+  cameraId: string;
+  objects: Array<{
+    trackId: number;
+    bbox: { x: number; y: number; w: number; h: number } | [number, number, number, number];
+    label?: string | undefined;
+    confidence?: number | undefined;
+    velocity?: { vx: number; vy: number } | undefined;
+  }>;
+  timestamp?: string | undefined;
+}
+
 export type GatewayEvent =
   | { type: "camera"; data: CameraEventPayload }
   | { type: "freed"; data: FreedTelemetry }
@@ -78,6 +107,8 @@ export type GatewayEvent =
   | { type: "rundown"; data: RundownStatusSnapshot }
   | { type: "spatial"; data: SpatialScenePayload }
   | { type: "spatial-zone"; data: SpatialZoneEventPayload }
+  | { type: "perception"; data: PerceptionEventPayload | unknown }
+  | { type: "screen-tracking"; data: ScreenTrackingPayload }
   | { type: "world-state"; data: WorldState }
   | { type: "ready"; data: { status: string; time: string } };
 

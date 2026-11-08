@@ -378,6 +378,78 @@ export class EcosystemTracker {
       url: this.#config.piperceptionApiUrl ?? "http://127.0.0.1:3202"
     };
 
+    // PiPoE
+    const pipoeConfigured = Boolean(this.#config.pipoeApiUrl);
+    const pipoeAvailable = this.#availableMap.get("pipoe") ?? false;
+    const pipoeInUse = pipoeAvailable || pipoeConfigured;
+    components.pipoe = {
+      id: "pipoe",
+      tab: "poe",
+      name: "PiPoE Power Controller",
+      description: "Network switch PoE port power monitoring and control",
+      active: pipoeInUse,
+      inUse: pipoeInUse,
+      available: pipoeAvailable,
+      configured: pipoeConfigured,
+      connecting: false,
+      lastSeenAt: this.#lastSeenMap.get("pipoe") ?? null,
+      url: this.#config.pipoeApiUrl ?? "http://127.0.0.1:3108"
+    };
+
+    // PiStorage
+    const pistorageConfigured = Boolean(this.#config.pistorageApiUrl);
+    const pistorageAvailable = this.#availableMap.get("pistorage") ?? false;
+    const pistorageInUse = pistorageAvailable || pistorageConfigured;
+    components.pistorage = {
+      id: "pistorage",
+      tab: "storage",
+      name: "PiStorage Object Store",
+      description: "Shared binary object storage, local cache, and spooling",
+      active: pistorageInUse,
+      inUse: pistorageInUse,
+      available: pistorageAvailable,
+      configured: pistorageConfigured,
+      connecting: false,
+      lastSeenAt: this.#lastSeenMap.get("pistorage") ?? null,
+      url: this.#config.pistorageApiUrl ?? "http://127.0.0.1:3700"
+    };
+
+    // PiAgent
+    const piagentConfigured = Boolean(this.#config.piagentApiUrl);
+    const piagentAvailable = this.#availableMap.get("piagent") ?? false;
+    const piagentInUse = piagentAvailable || piagentConfigured;
+    components.piagent = {
+      id: "piagent",
+      tab: "agent",
+      name: "PiAgent Orchestration",
+      description: "Autonomous LLM agents and multi-agent coordination",
+      active: piagentInUse,
+      inUse: piagentInUse,
+      available: piagentAvailable,
+      configured: piagentConfigured,
+      connecting: false,
+      lastSeenAt: this.#lastSeenMap.get("piagent") ?? null,
+      url: this.#config.piagentApiUrl ?? "http://127.0.0.1:3301"
+    };
+
+    // PiNotify
+    const pinotifyConfigured = Boolean(this.#config.pinotifyApiUrl);
+    const pinotifyAvailable = this.#availableMap.get("pinotify") ?? false;
+    const pinotifyInUse = pinotifyAvailable || pinotifyConfigured;
+    components.pinotify = {
+      id: "pinotify",
+      tab: "notify",
+      name: "PiNotify Service",
+      description: "Push notifications, SMS, and email alerts",
+      active: pinotifyInUse,
+      inUse: pinotifyInUse,
+      available: pinotifyAvailable,
+      configured: pinotifyConfigured,
+      connecting: false,
+      lastSeenAt: this.#lastSeenMap.get("pinotify") ?? null,
+      url: this.#config.pinotifyApiUrl ?? "http://127.0.0.1:3109"
+    };
+
     // 9. Radio Relay
     const relayConfigured = Boolean(this.#config.radioRelayApiUrl);
     components.radioRelay = {
@@ -391,7 +463,7 @@ export class EcosystemTracker {
       configured: relayConfigured,
       connecting: false,
       lastSeenAt: null,
-      url: this.#config.radioRelayApiUrl ?? null
+      url: this.#config.radioRelayPublicUrl ?? this.#config.radioRelayApiUrl ?? null
     };
 
     // 10. Video Switcher (PiSwitch / ATEM)
@@ -568,7 +640,11 @@ export class EcosystemTracker {
         { id: "piperception", url: `${this.#config.piperceptionApiUrl ?? "http://127.0.0.1:3202"}/health` },
         { id: "picam", url: `${this.#config.picamApiUrl ?? "http://127.0.0.1:3102"}/health` },
         { id: "piencoder", url: `${this.#config.piencoderApiUrl ?? "http://127.0.0.1:3104"}/health` },
-        { id: "piembed", url: `${this.#config.piembedApiUrl ?? "http://127.0.0.1:3300"}/health` }
+        { id: "piembed", url: `${this.#config.piembedApiUrl ?? "http://127.0.0.1:3300"}/health` },
+        { id: "pipoe", url: `${this.#config.pipoeApiUrl ?? "http://127.0.0.1:3108"}/health` },
+        { id: "pistorage", url: `${this.#config.pistorageApiUrl ?? "http://127.0.0.1:3700"}/health` },
+        { id: "piagent", url: `${this.#config.piagentApiUrl ?? "http://127.0.0.1:3301"}/health` },
+        { id: "pinotify", url: `${this.#config.pinotifyApiUrl ?? "http://127.0.0.1:3109"}/health` }
       ];
 
       const results = await Promise.allSettled(

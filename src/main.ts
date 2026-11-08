@@ -1,5 +1,6 @@
 import { buildApp } from "./app.js";
 import { loadConfig } from "./config.js";
+import { createUiListeners } from "./ui/ui-setup.js";
 
 async function main(): Promise<void> {
   const config = loadConfig();
@@ -45,6 +46,11 @@ async function main(): Promise<void> {
   process.once("SIGINT", () => void shutdown("SIGINT"));
   process.once("SIGTERM", () => void shutdown("SIGTERM"));
 
+  // Built before listen: the close hook must be registered while the app is not yet listening.
+  const uiListeners = createUiListeners(app, config);
+  app.addHook("onClose", async () => {
+    await Promise.all(uiListeners.map((listener) => listener.app.close()));
+  });
   try {
     const address = await app.listen({ host: config.host, port: config.port });
     app.log.info({ address, mode: config.mode }, "pigateway listening");
@@ -52,6 +58,11 @@ async function main(): Promise<void> {
       // Local only: the tunnel (ssh) is the way in, never the LAN.
       const tunnelAddress = await app.canvaTunnel.listen({ host: "127.0.0.1", port: config.canvaTunnelPort });
       app.log.info({ address: tunnelAddress }, "pigateway Canva listener");
+    }
+    for (const listener of uiListeners) {
+      // The picontrol UI listeners: LAN (PIGATEWAY_UI_PORT) and relay on 127.0.0.1 (PIGATEWAY_UI_RELAY_PORT).
+      const uiAddress = await listener.app.listen({ host: listener.host, port: listener.port });
+      app.log.info({ address: uiAddress, role: listener.role }, "pigateway picontrol UI listener");
     }
     app.log.info(
       {

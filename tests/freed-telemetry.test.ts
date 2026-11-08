@@ -90,3 +90,53 @@ test("FreedUdpReceiver receives datagrams and emits SSE events", async (t) => {
   assert.ok(cached);
   assert.equal(cached.pan, 90.0);
 });
+
+test("FreedUdpReceiver forwards datagrams to configured forward targets", async (t) => {
+  // Setup a destination socket that receives forwarded datagrams
+  const forwardTargetSocket = dgram.createSocket("udp4");
+  t.after(() => forwardTargetSocket.close());
+  await new Promise<void>((resolve) => forwardTargetSocket.bind(0, "127.0.0.1", () => resolve()));
+  const forwardTargetPort = forwardTargetSocket.address().port;
+
+  const forwardedPackets: Buffer[] = [];
+  forwardTargetSocket.on("message", (buf) => {
+    forwardedPackets.push(buf);
+  });
+
+  const receiver = new FreedUdpReceiver({
+    host: "127.0.0.1",
+    port: 0,
+    forwardTargets: [{ host: "127.0.0.1", port: forwardTargetPort }]
+  });
+
+  await receiver.start();
+  t.after(async () => {
+    await receiver.stop();
+  });
+
+  const packet = encodeFreedPacket({
+    camId: 1,
+    panDeg: -15.5,
+    tiltDeg: 3.2,
+    zoom: 8000
+  });
+
+  const client = dgram.createSocket("udp4");
+  t.after(() => client.close());
+
+  await new Promise<void>((resolve, reject) => {
+    client.send(packet, receiver.getBoundPort(), "127.0.0.1", (err) => {
+      if (err) reject(err);
+      else resolve();
+    });
+  });
+
+  await new Promise((r) => setTimeout(r, 50));
+
+  assert.equal(forwardedPackets.length, 1);
+  assert.equal(forwardedPackets[0]!.length, 29);
+  const decoded = decodeFreedPacket(forwardedPackets[0]!);
+  assert.ok(decoded);
+  assert.equal(decoded.camId, 1);
+  assert.equal(decoded.pan, -15.5);
+});

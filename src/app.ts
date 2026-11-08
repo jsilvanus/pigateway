@@ -26,6 +26,21 @@ import { isIpWhitelisted } from "./ip-whitelist.js";
 import { PiVoiceUdpReceiver } from "./pivoice/telemetry.js";
 import { PiSoundUdpReceiver } from "./pisound/telemetry.js";
 import { PiVoiceActivityCoordinator } from "./pivoice/activity-coordinator.js";
+import { PiVoiceClient } from "./pivoice/client.js";
+import { registerVoiceRoutes } from "./pivoice/voice-routes.js";
+import { PiSoundClient } from "./pisound/client.js";
+import { registerSoundRoutes } from "./pisound/pisound-routes.js";
+import { PiTallyClient } from "./tally/client.js";
+import { registerTallyRoutes } from "./tally/tally-routes.js";
+import { PiTubeClient } from "./youtube/client.js";
+import { PiMatrixClient } from "./matrix/client.js";
+import { registerMatrixProxyRoutes } from "./matrix/matrix-proxy-routes.js";
+import { PiGraphicsClient } from "./graphics/client.js";
+import { registerGraphicsRoutes } from "./graphics/graphics-routes.js";
+import { PiProgramClient } from "./pipgm/client.js";
+import { registerPiPgmRoutes } from "./pipgm/pipgm-routes.js";
+import { PiDesignerClient } from "./designer/client.js";
+import { registerDesignerRoutes } from "./designer/designer-routes.js";
 import { RadioRelayClient } from "./radio-relay/radio-relay-client.js";
 import { AuditorSseSource } from "./transcripts/auditor-sse-source.js";
 import { TranscriptHub, transcriptId } from "./transcripts/transcript-hub.js";
@@ -38,6 +53,18 @@ import { SpatialStatusStore } from "./spatial/spatial-status.js";
 import { registerSpatialRoutes } from "./spatial/spatial-routes.js";
 import { WorldStateAggregator } from "./world/world-state.js";
 import { registerWorldStateRoutes } from "./world/world-routes.js";
+import { PiPoeClient } from "./pipoe/client.js";
+import { registerPoeRoutes } from "./pipoe/poe-routes.js";
+import { PiStorageClient } from "./storage/client.js";
+import { registerStorageRoutes } from "./storage/storage-routes.js";
+import { PiAgentClient } from "./piagent/client.js";
+import { registerAgentRoutes } from "./piagent/agent-routes.js";
+import { PiNotifyClient } from "./notify/client.js";
+import { registerNotifyRoutes } from "./notify/notify-routes.js";
+import { PiPerceptionClient } from "./perception/client.js";
+import { registerPerceptionRoutes } from "./perception/perception-routes.js";
+import { ScreenTrackingUdpReceiver } from "./perception/tracking-receiver.js";
+import { PiSpaceClient } from "./spatial/client.js";
 
 export function buildApp(config: AppConfig): FastifyInstance {
   const app = Fastify({
@@ -73,6 +100,8 @@ export function buildApp(config: AppConfig): FastifyInstance {
         !route.url.startsWith("/api/v1/video-mixer") &&
         !route.url.startsWith("/api/v1/switch") &&
         !route.url.startsWith("/api/v1/piswitch") &&
+        !route.url.startsWith("/api/v1/youtube/broadcasts") &&
+        !(route.url === "/api/v1/youtube/status" && method === "GET") &&
         route.url !== "/api/v1/encoders" &&
         !route.url.includes("/rtmp/") &&
         route.url !== "/api/v1/encoder/:number" &&
@@ -80,7 +109,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
         route.url !== "/api/v1/encoder/:number/stop" &&
         route.url !== "/api/v1/encoder/:number/input" &&
         route.url !== "/api/v1/encoder/:number/settings"
-      ) routeTable.add(`${method} ${route.url.replace(/:(\w+)/g, "{$1}")}`);
+      ) routeTable.add(`${method} ${route.url.replace(/:(\w+)/g, "{$1}").replace(/\/\*$/, "/{key}")}`);
     }
   });
   (app as unknown as { routeTable: Set<string> }).routeTable = routeTable;
@@ -108,7 +137,80 @@ export function buildApp(config: AppConfig): FastifyInstance {
     onSession: (sessionId) => (sessionId && transcriptDelivery?.mode === "sse" ? auditorSse.start(sessionId) : auditorSse.stop()),
     onChange: (state) => eventBroker.emit({ type: "pivoice-activity", data: state })
   });
-  const radioRelay = new RadioRelayClient({ baseUrl: config.radioRelayApiUrl, token: config.radioRelayApiToken, streamName: config.radioRelayStreamName, logger: app.log });
+  const pivoiceClient = new PiVoiceClient({
+    baseUrl: config.pivoiceApiUrl,
+    token: config.pivoiceApiToken,
+    logger: app.log
+  });
+  const pisoundClient = new PiSoundClient({
+    baseUrl: config.pisoundApiUrl,
+    token: config.pisoundApiToken,
+    logger: app.log
+  });
+  const pitallyClient = new PiTallyClient({
+    baseUrl: config.pitallyApiUrl,
+    logger: app.log
+  });
+  const pitubeClient = new PiTubeClient({
+    baseUrl: config.pitubeApiUrl,
+    token: config.pitubeApiToken,
+    logger: app.log
+  });
+  const pimatrixClient = new PiMatrixClient({
+    baseUrl: config.pimatrixApiUrl,
+    logger: app.log
+  });
+  const pigraphicsClient = new PiGraphicsClient({
+    baseUrl: config.pigraphicsApiUrl,
+    logger: app.log
+  });
+  const piprogramClient = new PiProgramClient({
+    baseUrl: config.piprogramApiUrl,
+    token: config.piprogramApiKey,
+    logger: app.log
+  });
+  const pidesignerClient = new PiDesignerClient({
+    baseUrl: config.pirundownDesignerApiUrl,
+    logger: app.log
+  });
+  const pipoeClient = new PiPoeClient({
+    baseUrl: config.pipoeApiUrl,
+    token: config.pipoeApiKey,
+    logger: app.log
+  });
+  const pistorageClient = new PiStorageClient({
+    baseUrl: config.pistorageApiUrl,
+    token: config.pistorageApiKey,
+    logger: app.log
+  });
+  const piagentClient = new PiAgentClient({
+    baseUrl: config.piagentApiUrl,
+    token: config.piagentApiKey,
+    logger: app.log
+  });
+  const pinotifyClient = new PiNotifyClient({
+    baseUrl: config.pinotifyApiUrl,
+    token: config.pinotifyApiKey,
+    logger: app.log
+  });
+  const piperceptionClient = new PiPerceptionClient({
+    baseUrl: config.piperceptionApiUrl,
+    token: config.piperceptionApiKey,
+    logger: app.log
+  });
+  const pispaceClient = new PiSpaceClient({
+    baseUrl: config.pispaceApiUrl,
+    token: config.pispaceApiKey,
+    logger: app.log
+  });
+  const radioRelay = new RadioRelayClient({
+    baseUrl: config.radioRelayApiUrl,
+    token: config.radioRelayApiToken,
+    streamName: config.radioRelayStreamName,
+    mountPoint: config.radioRelayMountPoint,
+    publicUrl: config.radioRelayPublicUrl,
+    logger: app.log
+  });
   const pivoice = new PiVoiceUdpReceiver({
     host: config.pivoiceUdpHost ?? "0.0.0.0",
     port: config.pivoiceUdpPort ?? 3101,
@@ -130,6 +232,15 @@ export function buildApp(config: AppConfig): FastifyInstance {
     }
   });
 
+  const trackingReceiver = config.perceptionUdpEnabled
+    ? new ScreenTrackingUdpReceiver({
+        host: config.perceptionUdpHost ?? "0.0.0.0",
+        port: config.perceptionUdpPort ?? 40002,
+        logger: app.log,
+        eventBroker
+      })
+    : undefined;
+
   // Simulation mode with no real device configured: in-memory ATEM and encoder behind the same seams as hardware.
   const simulateAtem = config.mode === "simulation" && !config.atemHost;
   const simulateEncoder = config.mode === "simulation" && !config.encoderHost;
@@ -149,7 +260,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
   registerEncoderRoutes(app, encoder, { piencoderUrl: config.piencoderApiUrl });
 
   const youtube = new YoutubeStatusStore({ onChange: (record) => eventBroker.emit({ type: "youtube", data: record }) });
-  registerYoutubeRoutes(app, youtube);
+  registerYoutubeRoutes(app, youtube, pitubeClient);
 
   const cameraService = new CameraService({
     mode: config.mode,
@@ -181,6 +292,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
         host: config.freedUdpHost,
         port: config.freedUdpPort,
         allowedIps: config.freedAllowedHosts,
+        forwardTargets: config.freedForwardTargets,
         eventBroker,
         logger: app.log
       })
@@ -255,7 +367,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
   registerActionRoutes(app, actionRegistry);
   registerRundownRoutes(app, rundownStore, { pirundownUrl: config.pirundownApiUrl ?? "http://127.0.0.1:3400" });
   const spatialStore = new SpatialStatusStore(eventBroker);
-  registerSpatialRoutes(app, spatialStore);
+  registerSpatialRoutes(app, { store: spatialStore, client: pispaceClient });
   const worldStateAggregator = new WorldStateAggregator({
     eventBroker,
     getSpatial: () => spatialStore.get(),
@@ -363,6 +475,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
       };
       await startAmx();
     }
+    if (trackingReceiver) await safely("screen-tracking-udp", () => trackingReceiver.start());
     if (config.amxMasterHost) await safely("atlona-polling", () => matrix.startPolling());
     await safely("encoder", () => encoder.start());
     if (freedReceiver) {
@@ -398,6 +511,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
     await Promise.allSettled([
       pivoice.stop(),
       pisound.stop(),
+      trackingReceiver ? trackingReceiver.stop() : Promise.resolve(),
       pivoiceActivity.close(),
       atem.disconnect(),
       cameraService.close(),
@@ -490,6 +604,10 @@ export function buildApp(config: AppConfig): FastifyInstance {
   });
 
   app.get("/api/v1/ecosystem", async () => ecosystemTracker.getSummary());
+  app.get("/api/v1/ui/modules", async () => ({
+    modules: config.uiModules ?? null,
+    restricted: config.uiModules !== undefined,
+  }));
   app.post("/api/v1/ecosystem/probe", async () => ecosystemTracker.probeAll());
 
   app.get("/api/v1/radio-relay", async () => radioRelay.safeLifecycle());
@@ -505,6 +623,19 @@ export function buildApp(config: AppConfig): FastifyInstance {
     }
     return pivoiceActivity.setIdleCloseSeconds(body.idleCloseSeconds as number);
   });
+
+  registerVoiceRoutes(app, { client: pivoiceClient, transcripts });
+  registerSoundRoutes(app, { client: pisoundClient });
+  registerTallyRoutes(app, { client: pitallyClient });
+  registerMatrixProxyRoutes(app, { client: pimatrixClient });
+  registerGraphicsRoutes(app, { client: pigraphicsClient });
+  registerPiPgmRoutes(app, { client: piprogramClient });
+  registerDesignerRoutes(app, { client: pidesignerClient });
+  registerPoeRoutes(app, { client: pipoeClient });
+  registerStorageRoutes(app, { client: pistorageClient });
+  registerAgentRoutes(app, { client: piagentClient });
+  registerNotifyRoutes(app, { client: pinotifyClient });
+  registerPerceptionRoutes(app, { client: piperceptionClient, eventBroker, trackingReceiver });
 
   app.post("/api/v1/transcripts", async (request, reply) => {
     const body = request.body as { session_id?: unknown; events?: unknown } | undefined;
@@ -575,6 +706,15 @@ export function buildApp(config: AppConfig): FastifyInstance {
       unsubscribe();
       unregisterClient?.();
     });
+  });
+
+  app.post<{ Body: { type?: string; data?: unknown } }>("/api/v1/events", async (request, reply) => {
+    const body = request.body;
+    if (!body || typeof body !== "object" || typeof body.type !== "string") {
+      return reply.code(400).send({ error: { code: "invalid_request", message: "body must have { type, data }" } });
+    }
+    eventBroker.emit(body as GatewayEvent);
+    return reply.code(200).send({ ok: true });
   });
 
   return app;
