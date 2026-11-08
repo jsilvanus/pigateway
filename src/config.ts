@@ -120,6 +120,7 @@ export interface AppConfig {
   freedUdpHost: string;
   freedUdpPort: number;
   freedAllowedHosts?: string[] | undefined;
+  freedForwardTargets?: Array<{ host: string; port: number }> | undefined;
   /** picam standalone controller service URL (PIGATEWAY_PICAM_API_URL). */
   picamApiUrl?: string | undefined;
   /** piencoder multi-unit hardware encoder service URL (PIGATEWAY_PIENCODER_API_URL). */
@@ -175,6 +176,23 @@ function validInteger(value: string | undefined, fallback: number, min: number, 
 function list(value: string | undefined): string[] | undefined {
   const items = value?.split(",").map((s) => s.trim()).filter(Boolean);
   return items && items.length > 0 ? items : undefined;
+}
+
+function parseForwardTargets(raw?: string | undefined): Array<{ host: string; port: number }> | undefined {
+  if (!raw?.trim()) return undefined;
+  const items = raw
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((item) => {
+      const colon = item.lastIndexOf(":");
+      if (colon > 0) {
+        return { host: item.slice(0, colon), port: Number.parseInt(item.slice(colon + 1), 10) };
+      }
+      return { host: "127.0.0.1", port: Number.parseInt(item, 10) };
+    })
+    .filter((target) => Number.isInteger(target.port) && target.port > 0 && target.port <= 65535);
+  return items.length > 0 ? items : undefined;
 }
 
 /** Camera CGI login from PREFIX_USER and PREFIX_PASSWORD. Both or neither. */
@@ -365,6 +383,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     freedUdpHost: env.PIGATEWAY_FREED_UDP_HOST?.trim() || "0.0.0.0",
     freedUdpPort: validPort(env.PIGATEWAY_FREED_UDP_PORT, 40000, "PIGATEWAY_FREED_UDP_PORT", true),
     freedAllowedHosts: list(env.PIGATEWAY_FREED_ALLOWED_HOSTS),
+    freedForwardTargets: parseForwardTargets(
+      env.PIGATEWAY_FREED_FORWARD_TARGETS ?? (mode === "production" ? "127.0.0.1:40001" : undefined)
+    ),
     picamApiUrl: urlWithScheme(env.PIGATEWAY_PICAM_API_URL, "PIGATEWAY_PICAM_API_URL", ["http:", "https:"]),
     piencoderApiUrl: urlWithScheme(env.PIGATEWAY_PIENCODER_API_URL, "PIGATEWAY_PIENCODER_API_URL", ["http:", "https:"]),
     piembedApiUrl: urlWithScheme(env.PIGATEWAY_PIEMBED_API_URL, "PIGATEWAY_PIEMBED_API_URL", ["http:", "https:"]),

@@ -292,6 +292,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
         host: config.freedUdpHost,
         port: config.freedUdpPort,
         allowedIps: config.freedAllowedHosts,
+        forwardTargets: config.freedForwardTargets,
         eventBroker,
         logger: app.log
       })
