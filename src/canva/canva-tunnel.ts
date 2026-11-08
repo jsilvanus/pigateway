@@ -75,6 +75,8 @@ export function buildCanvaTunnelApp(
         return;
       } catch (err) {
         if (err instanceof CanvaTeamNotAllowed) {
+          // The team id is not a secret: logging it lets the operator add the church's team to the allow-list.
+          request.log.warn({ event: "canva_team_refused", brandId: err.brandId }, "Canva team not on PIGATEWAY_CANVA_ALLOWED_BRANDS");
           return reply.code(403).send({ error: { code: "TEAM_NOT_ALLOWED", message: "This Canva team may not use the gateway" } });
         }
         return reply.code(401).send({ error: { code: "UNAUTHORIZED", message: "Canva user token is not valid" } });

@@ -13,7 +13,7 @@ export interface CanvaUserAuth {
 
 /** The token is genuine, but its team is not on the allow-list. */
 export class CanvaTeamNotAllowed extends Error {
-  constructor(brandId: string) {
+  constructor(public readonly brandId: string) {
     super(`Canva team ${brandId} is not allowed on this gateway`);
     this.name = "CanvaTeamNotAllowed";
   }
