@@ -5716,16 +5716,81 @@
         }
       }
     },
+    "/api/v1/pipgm/assets/{assetId}": {
+      "get": {
+        "operationId": "getPipgmAsset",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Asset bytes with the stored MIME type",
+        "parameters": [
+          {
+            "name": "assetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Asset bytes",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/pipgm/audio/kill": {
       "post": {
         "operationId": "killPipgmAudio",
         "tags": [
           "PiProgram"
         ],
-        "summary": "Immediately silence and kill all presentation audio",
+        "summary": "Kill switch: stop, disarm and mute every feed",
         "responses": {
           "200": {
-            "description": "Audio killed"
+            "description": "All pipelines after the kill",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         }
       }
@@ -5736,24 +5801,64 @@
         "tags": [
           "PiProgram"
         ],
-        "summary": "Get status of RTSP video output feeders",
+        "summary": "Status of the RTSP feed publishers",
         "responses": {
           "200": {
-            "description": "Feeders status"
+            "description": "Feeders status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         }
       }
     },
     "/api/v1/pipgm/items": {
       "get": {
-        "operationId": "getPipgmItems",
+        "operationId": "listPipgmItems",
         "tags": [
           "PiProgram"
         ],
-        "summary": "List presentation library items",
+        "summary": "Library items",
         "responses": {
           "200": {
-            "description": "Items list"
+            "description": "Items",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         }
       }
@@ -5764,7 +5869,7 @@
         "tags": [
           "PiProgram"
         ],
-        "summary": "Register or ingest Canva presentation item",
+        "summary": "Create or push a Canva item (LAN only)",
         "requestBody": {
           "required": true,
           "content": {
@@ -5777,7 +5882,203 @@
         },
         "responses": {
           "200": {
-            "description": "Canva item registered"
+            "description": "Created item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/items/hymn": {
+      "post": {
+        "operationId": "createPipgmHymnItem",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Create a hymn item",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/items/media": {
+      "post": {
+        "operationId": "createPipgmMediaItem",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Create a video, image or audio item from base64 (LAN only)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/items/pptx": {
+      "post": {
+        "operationId": "createPipgmPptxItem",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Create a PPTX item (LAN only)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/items/youtube": {
+      "post": {
+        "operationId": "createPipgmYouTubeItem",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Create a YouTube item (LAN only)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         }
       }
@@ -5788,7 +6089,7 @@
         "tags": [
           "PiProgram"
         ],
-        "summary": "Get details of presentation library item",
+        "summary": "Library item",
         "parameters": [
           {
             "name": "itemId",
@@ -5801,7 +6102,27 @@
         ],
         "responses": {
           "200": {
-            "description": "Item details"
+            "description": "Item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         }
       },
@@ -5810,7 +6131,7 @@
         "tags": [
           "PiProgram"
         ],
-        "summary": "Delete presentation library item",
+        "summary": "Remove a library item and its files (LAN only)",
         "parameters": [
           {
             "name": "itemId",
@@ -5822,19 +6143,32 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Item deleted"
+          "204": {
+            "description": "Removed"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/v1/pipgm/items/{itemId}/package": {
+    "/api/v1/pipgm/items/{itemId}/canva/export-package": {
       "post": {
-        "operationId": "packagePipgmItem",
+        "operationId": "uploadPipgmCanvaPackage",
         "tags": [
           "PiProgram"
         ],
-        "summary": "Build delivery package for presentation item",
+        "summary": "Deliver exported Canva pages as a zip (application/zip) or JSON; answers 202 with a task (LAN only)",
         "parameters": [
           {
             "name": "itemId",
@@ -5843,6 +6177,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "orientation",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "landscape, portrait or both separated by a comma"
           }
         ],
         "requestBody": {
@@ -5852,23 +6195,49 @@
               "schema": {
                 "type": "object"
               }
+            },
+            "application/zip": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
             }
           }
         },
         "responses": {
-          "200": {
-            "description": "Item packaged"
+          "202": {
+            "description": "Accepted; Location is the task URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PipgmTask"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         }
       }
     },
     "/api/v1/pipgm/items/{itemId}/prepare": {
       "post": {
-        "operationId": "preparePipgmItem",
+        "operationId": "preparePipgmItemSteps",
         "tags": [
           "PiProgram"
         ],
-        "summary": "Pre-render and cache slide steps for item",
+        "summary": "Render pictures and thumbnails of every step, in the background (LAN only)",
         "parameters": [
           {
             "name": "itemId",
@@ -5880,7 +6249,7 @@
           }
         ],
         "requestBody": {
-          "required": true,
+          "required": false,
           "content": {
             "application/json": {
               "schema": {
@@ -5890,19 +6259,32 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "Item prepared"
+          "202": {
+            "description": "Started or already running"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         }
       }
     },
     "/api/v1/pipgm/items/{itemId}/steps": {
       "get": {
-        "operationId": "getPipgmItemSteps",
+        "operationId": "listPipgmItemSteps",
         "tags": [
           "PiProgram"
         ],
-        "summary": "Get rendered slide steps for item",
+        "summary": "Steps and which have a prepared picture",
         "parameters": [
           {
             "name": "itemId",
@@ -5911,11 +6293,175 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "orientation",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "landscape",
+                "portrait"
+              ]
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Slide steps"
+            "description": "Steps",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/items/{itemId}/steps/{step}/image.png": {
+      "get": {
+        "operationId": "getPipgmStepImage",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Prepared picture of a step",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "step",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "orientation",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "landscape",
+                "portrait"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "PNG",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/items/{itemId}/steps/{step}/thumbnail.jpg": {
+      "get": {
+        "operationId": "getPipgmStepThumbnail",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Prepared thumbnail (320 px JPEG) of a step",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "step",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "orientation",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "landscape",
+                "portrait"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JPEG",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         }
       }
@@ -5926,7 +6472,7 @@
         "tags": [
           "PiProgram"
         ],
-        "summary": "Set schedule date/service use-at tag for item",
+        "summary": "Set when an item is meant to be used (LAN only)",
         "parameters": [
           {
             "name": "itemId",
@@ -5949,7 +6495,27 @@
         },
         "responses": {
           "200": {
-            "description": "Schedule tag updated"
+            "description": "Item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         }
       }
@@ -5960,24 +6526,74 @@
         "tags": [
           "PiProgram"
         ],
-        "summary": "Get PiProgram storage sync and capacity status",
+        "summary": "Whether the library is kept in pistorage and which items are unsaved",
         "responses": {
           "200": {
-            "description": "Library storage status"
+            "description": "Storage status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         }
       }
     },
     "/api/v1/pipgm/pipelines": {
       "get": {
-        "operationId": "getPipgmPipelines",
+        "operationId": "listPipgmPipelines",
         "tags": [
           "PiProgram"
         ],
-        "summary": "List all PiProgram presentation pipelines",
+        "summary": "List pipelines (snapshots)",
+        "parameters": [
+          {
+            "name": "includeHidden",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Pipelines list"
+            "description": "All pipelines",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         }
       }
@@ -5988,70 +6604,68 @@
         "tags": [
           "PiProgram"
         ],
-        "summary": "Get status and state of a presentation pipeline",
+        "summary": "Pipeline snapshot",
         "parameters": [
           {
             "name": "pipelineId",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "PiPGM1",
+                "PiPGM2",
+                "PiPGM3"
+              ]
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Pipeline state"
-          }
-        }
-      },
-      "put": {
-        "operationId": "setPipgmPipeline",
-        "tags": [
-          "PiProgram"
-        ],
-        "summary": "Update presentation pipeline settings",
-        "parameters": [
-          {
-            "name": "pipelineId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object"
+            "description": "Pipeline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
               }
             }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Pipeline updated"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         }
       }
     },
     "/api/v1/pipgm/pipelines/{pipelineId}/audio": {
       "post": {
-        "operationId": "setPipgmPipelineAudio",
+        "operationId": "setPipgmAudio",
         "tags": [
           "PiProgram"
         ],
-        "summary": "Configure audio routing or track for pipeline",
+        "summary": "Arm or disarm sound, volume (LAN only)",
         "parameters": [
           {
             "name": "pipelineId",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "PiPGM1",
+                "PiPGM2",
+                "PiPGM3"
+              ]
             }
           }
         ],
@@ -6067,49 +6681,335 @@
         },
         "responses": {
           "200": {
-            "description": "Audio updated"
+            "description": "Pipeline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/pipelines/{pipelineId}/audio/play": {
+      "post": {
+        "operationId": "playPipgmAudio",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Play an audio item on the feed; needs sound armed (LAN only)",
+        "parameters": [
+          {
+            "name": "pipelineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PiPGM1",
+                "PiPGM2",
+                "PiPGM3"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Pipeline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         }
       }
     },
     "/api/v1/pipgm/pipelines/{pipelineId}/audio/stop": {
       "post": {
-        "operationId": "stopPipgmPipelineAudio",
+        "operationId": "stopPipgmAudio",
         "tags": [
           "PiProgram"
         ],
-        "summary": "Stop audio playback on pipeline",
+        "summary": "Stop the feed's audio track; stays armed",
         "parameters": [
           {
             "name": "pipelineId",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "PiPGM1",
+                "PiPGM2",
+                "PiPGM3"
+              ]
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Audio stopped"
+            "description": "Pipeline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/pipelines/{pipelineId}/basic-image": {
+      "put": {
+        "operationId": "setPipgmBasicImage",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Image shown when nothing else is active (LAN only)",
+        "parameters": [
+          {
+            "name": "pipelineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PiPGM1",
+                "PiPGM2",
+                "PiPGM3"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Pipeline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/pipelines/{pipelineId}/config": {
+      "put": {
+        "operationId": "updatePipgmConfig",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Orientation, hidden, linked, fade duration (LAN only)",
+        "parameters": [
+          {
+            "name": "pipelineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PiPGM1",
+                "PiPGM2",
+                "PiPGM3"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Pipeline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/pipelines/{pipelineId}/control": {
+      "post": {
+        "operationId": "controlPipgm",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "next, prev, gotoStep, gotoItem, play, pause, stop, restart",
+        "parameters": [
+          {
+            "name": "pipelineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PiPGM1",
+                "PiPGM2",
+                "PiPGM3"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Pipeline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         }
       }
     },
     "/api/v1/pipgm/pipelines/{pipelineId}/cue": {
       "post": {
-        "operationId": "cuePipgmPipeline",
+        "operationId": "cuePipgm",
         "tags": [
           "PiProgram"
         ],
-        "summary": "Cue item or slide in presentation pipeline",
+        "summary": "Legacy: goto item and/or step (control gotoItem, gotoStep)",
         "parameters": [
           {
             "name": "pipelineId",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "PiPGM1",
+                "PiPGM2",
+                "PiPGM3"
+              ]
             }
           }
         ],
@@ -6125,125 +7025,285 @@
         },
         "responses": {
           "200": {
-            "description": "Pipeline cued"
+            "description": "Pipeline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/pipelines/{pipelineId}/frame.png": {
+      "get": {
+        "operationId": "getPipgmFrame",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Current stage as PNG",
+        "parameters": [
+          {
+            "name": "pipelineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PiPGM1",
+                "PiPGM2",
+                "PiPGM3"
+              ]
+            }
+          },
+          {
+            "name": "width",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 16,
+              "maximum": 3840
+            }
+          },
+          {
+            "name": "height",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 16,
+              "maximum": 3840
+            }
+          },
+          {
+            "name": "alpha",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The stage as a PNG",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/pipelines/{pipelineId}/ftb": {
+      "post": {
+        "operationId": "setPipgmFadeToBlack",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Fade to black on or off, or toggle",
+        "parameters": [
+          {
+            "name": "pipelineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PiPGM1",
+                "PiPGM2",
+                "PiPGM3"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Pipeline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         }
       }
     },
     "/api/v1/pipgm/pipelines/{pipelineId}/pause": {
       "post": {
-        "operationId": "pausePipgmPipeline",
+        "operationId": "pausePipgm",
         "tags": [
           "PiProgram"
         ],
-        "summary": "Pause media playback on pipeline",
+        "summary": "Legacy: pause (control pause)",
         "parameters": [
           {
             "name": "pipelineId",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "PiPGM1",
+                "PiPGM2",
+                "PiPGM3"
+              ]
             }
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "Playback paused"
+            "description": "Pipeline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         }
       }
     },
     "/api/v1/pipgm/pipelines/{pipelineId}/play": {
       "post": {
-        "operationId": "playPipgmPipeline",
+        "operationId": "playPipgm",
         "tags": [
           "PiProgram"
         ],
-        "summary": "Play or resume media playback on pipeline",
+        "summary": "Legacy: play (control play)",
         "parameters": [
           {
             "name": "pipelineId",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "PiPGM1",
+                "PiPGM2",
+                "PiPGM3"
+              ]
             }
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "Playback started"
+            "description": "Pipeline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         }
       }
     },
     "/api/v1/pipgm/pipelines/{pipelineId}/playlist": {
-      "put": {
-        "operationId": "setPipgmPipelinePlaylist",
-        "tags": [
-          "PiProgram"
-        ],
-        "summary": "Replace playlist on presentation pipeline",
-        "parameters": [
-          {
-            "name": "pipelineId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Playlist replaced"
-          }
-        }
-      },
       "post": {
-        "operationId": "addToPipgmPipelinePlaylist",
+        "operationId": "addPipgmPlaylistItem",
         "tags": [
           "PiProgram"
         ],
-        "summary": "Append item to presentation pipeline playlist",
+        "summary": "Add a library item to the feed's playlist",
         "parameters": [
           {
             "name": "pipelineId",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "PiPGM1",
+                "PiPGM2",
+                "PiPGM3"
+              ]
             }
           }
         ],
@@ -6259,25 +7319,50 @@
         },
         "responses": {
           "200": {
-            "description": "Item added to playlist"
+            "description": "Pipeline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         }
       }
     },
     "/api/v1/pipgm/pipelines/{pipelineId}/playlist/{itemId}": {
       "delete": {
-        "operationId": "removeFromPipgmPipelinePlaylist",
+        "operationId": "removePipgmPlaylistItem",
         "tags": [
           "PiProgram"
         ],
-        "summary": "Remove item from presentation pipeline playlist",
+        "summary": "Remove an item from the feed's playlist",
         "parameters": [
           {
             "name": "pipelineId",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "PiPGM1",
+                "PiPGM2",
+                "PiPGM3"
+              ]
             }
           },
           {
@@ -6291,41 +7376,76 @@
         ],
         "responses": {
           "200": {
-            "description": "Item removed from playlist"
+            "description": "Pipeline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         }
       }
     },
     "/api/v1/pipgm/pipelines/{pipelineId}/step": {
       "post": {
-        "operationId": "stepPipgmPipeline",
+        "operationId": "stepPipgm",
         "tags": [
           "PiProgram"
         ],
-        "summary": "Advance or step slide in presentation pipeline",
+        "summary": "Legacy: next step (control next)",
         "parameters": [
           {
             "name": "pipelineId",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "PiPGM1",
+                "PiPGM2",
+                "PiPGM3"
+              ]
             }
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "Step advanced"
+            "description": "Pipeline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         }
       }
@@ -6336,7 +7456,7 @@
         "tags": [
           "PiProgram"
         ],
-        "summary": "Get background packaging task status",
+        "summary": "Progress of a package task",
         "parameters": [
           {
             "name": "taskId",
@@ -6349,7 +7469,71 @@
         ],
         "responses": {
           "200": {
-            "description": "Task status"
+            "description": "Task",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PipgmTask"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/tts/prepare": {
+      "post": {
+        "operationId": "preparePipgmSpeech",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Render a phrase to a library audio item (Piper)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Prepared item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         }
       }
@@ -9879,6 +11063,52 @@
             "type": "string"
           }
         }
+      },
+      "PipgmTask": {
+        "type": "object",
+        "description": "Package task (piprogram 1.0 PackageTask)",
+        "properties": {
+          "taskId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "canva-package"
+            ]
+          },
+          "itemId": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "unpacking",
+              "preparing",
+              "ready",
+              "failed"
+            ]
+          },
+          "progress": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "ready": {
+            "type": "boolean"
+          },
+          "saved": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": true
       }
     },
     "responses": {

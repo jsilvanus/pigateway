@@ -44,7 +44,8 @@ export function createUiForward(app: FastifyInstance, config: AppConfig): UiForw
     if (config.apiKey) headers.authorization = `Bearer ${config.apiKey}`;
     if (payload !== undefined) headers["content-type"] = "application/json";
     const res = await app.inject({ method: request.method, url: request.url, headers, ...(payload !== undefined ? { payload } : {}) });
-    return { statusCode: res.statusCode, contentType: String(res.headers["content-type"] ?? JSON_TYPE), body: res.body };
+    // rawPayload keeps binary answers (frames, pictures) as bytes; a string would corrupt them.
+    return { statusCode: res.statusCode, contentType: String(res.headers["content-type"] ?? JSON_TYPE), body: res.rawPayload };
   };
 }
 

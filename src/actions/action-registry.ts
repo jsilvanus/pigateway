@@ -360,35 +360,6 @@ export class ActionRegistry {
       },
     });
 
-    // 6. Presentation / Slides Actions (forwarded to PiProgram)
-    const pipgmComponent = ecosystem.components.piprogram;
-    const pipgmAvailable = Boolean(pipgmComponent?.available || pipgmComponent?.active || this.config.piprogramApiUrl);
-    const pipgmReason = pipgmAvailable ? undefined : "PiProgram presentation service is not available";
-
-    actions.push({
-      id: "pipgm:hymn",
-      domain: "program",
-      name: "Display Hymn Slide",
-      description: "Trigger presentation slide for hymn number",
-      available: pipgmAvailable,
-      unavailableReason: pipgmReason,
-      params: {
-        hymn: { type: "string", required: true, description: "Hymn number (e.g. 332)" },
-      },
-    });
-
-    actions.push({
-      id: "pipgm:slide",
-      domain: "program",
-      name: "Display Slide Item",
-      description: "Switch to specific presentation slide ID",
-      available: pipgmAvailable,
-      unavailableReason: pipgmReason,
-      params: {
-        slide: { type: "string", required: true, description: "Slide ID or index" },
-      },
-    });
-
     // 7. Rundown Actions (forwarded to PiRundown)
     const pirundownComponent = ecosystem.components.pirundown;
     const pirundownAvailable = Boolean(pirundownComponent?.available || pirundownComponent?.active || this.config.pirundownApiUrl || this.config.mode === "simulation");
@@ -737,22 +708,6 @@ export class ActionRegistry {
       }
     }
 
-    // 6. Presentation / PiPGM Domain (forward to PiProgram)
-    if (domain === "pipgm" || domain === "program") {
-      const baseUrl = this.config.piprogramApiUrl ?? "http://127.0.0.1:3200";
-
-      if (op === "hymn") {
-        const hymn = encodeURIComponent(String(params.hymn ?? ""));
-        const res = await this.postJson(`${baseUrl}/api/v1/pipgm/hymn/${hymn}`, {});
-        return { ok: res.ok, action: actionId, target: "pipgm:hymn", result: res.data, error: res.error };
-      }
-
-      if (op === "slide") {
-        const slide = encodeURIComponent(String(params.slide ?? ""));
-        const res = await this.postJson(`${baseUrl}/api/v1/pipgm/slide/${slide}`, {});
-        return { ok: res.ok, action: actionId, target: "pipgm:slide", result: res.data, error: res.error };
-      }
-    }
 
     // 7. Rundown Domain (forward to PiRundown)
     if (domain === "rundown") {
