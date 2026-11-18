@@ -8,7 +8,7 @@ allowlist of module routes (`src/ui/ui-listener.ts`, `UI_ROUTES`); everything el
 | LAN | `PIGATEWAY_UI_PORT` (e.g. 3011) | `0.0.0.0` | `lan`: operate routes and setup routes |
 | Relay | `PIGATEWAY_UI_RELAY_PORT` (e.g. 3012) | `127.0.0.1` | `relay`: operate routes only, reached through an ssh tunnel from a public relay |
 
-- `PIGATEWAY_UI_PIN` (at least 6 characters, required when either listener is on) opens both. `POST /ui/api/login` `{pin}` sets an HttpOnly, SameSite=Strict session cookie for 12 h. A wrong PIN waits 600 ms.
+- `PIGATEWAY_UI_PIN` (at least 6 characters, required when either listener is on) opens both. `POST /ui/api/login` `{pin}` sets an HttpOnly, SameSite=Strict session cookie. A session lasts 24 h from the last request (every request extends it, server side and in the cookie); idle for 24 h means the PIN is asked again, as does `POST /ui/api/logout` (the UI's lock button) or a gateway restart. A wrong PIN waits 600 ms. There is no PIN-free mode: `PIGATEWAY_UI_LAN_NO_PIN` is gone and the gateway refuses to start a UI listener without `PIGATEWAY_UI_PIN`.
 - The role comes from the listener socket, never from a header, so `X-Forwarded-For` and similar headers are ignored.
 - `PIGATEWAY_UI_CORS_ORIGINS`: the picontrol UI origin(s) allowed to call with credentials. Other origins get no CORS headers.
 - Modules: `matrix` (Atlona routes, lock), `pivoice` (session start/stop, idle-close), `piencoder` (list, start, stop), `pitube` (status, current broadcast, start, stop, stop request). pitube is an upstream: `PIGATEWAY_PITUBE_API_URL` and optional `PIGATEWAY_PITUBE_API_TOKEN`. Only the origin of that URL is used.

@@ -77,7 +77,7 @@ test("the internet (relay) listener never offers setup routes", async () => {
   await lan.app.close();
 });
 
-test("LAN listener without a PIN serves module routes; relay still needs the PIN", async () => {
+test("a listener with open auth serves module routes (test adapter only); relay needs the PIN", async () => {
   const lan = buildUiListener({
     role: "lan",
     auth: createOpenAuth(),
@@ -131,3 +131,31 @@ test("CORS is only for the configured origin, with credentials", async () => {
   await app.close();
 });
 
+
+test("session lasts 24 h from the last activity, refreshes on use, and logout locks it", async () => {
+  let t = 1_000_000;
+  const hour = 60 * 60 * 1000;
+  const app = buildUiListener({
+    role: "lan",
+    auth: createPinAuth({ pin: "123456", failDelayMs: 0, now: () => t }),
+    forward: async () => ({ statusCode: 200, contentType: "application/json", body: "{}" }),
+    logger
+  });
+  const login = await app.inject({ method: "POST", url: "/ui/api/login", payload: { pin: "123456" } });
+  const cookie = String(login.headers["set-cookie"]).split(";")[0]!;
+  const get = () => app.inject({ method: "GET", url: "/api/v1/matrix", headers: { cookie } });
+  t += 20 * hour;
+  const active = await get();
+  assert.equal(active.statusCode, 200);
+  assert.match(String(active.headers["set-cookie"]), /Max-Age=86400/, "activity re-issues the cookie");
+  t += 20 * hour; // 40 h since login, 20 h since last activity
+  assert.equal((await get()).statusCode, 200, "activity extended the session");
+  t += 25 * hour; // idle more than 24 h
+  assert.equal((await get()).statusCode, 401);
+  // lock button: logout ends the session at once
+  const again = await app.inject({ method: "POST", url: "/ui/api/login", payload: { pin: "123456" } });
+  const c2 = String(again.headers["set-cookie"]).split(";")[0]!;
+  await app.inject({ method: "POST", url: "/ui/api/logout", headers: { cookie: c2 } });
+  assert.equal((await app.inject({ method: "GET", url: "/api/v1/matrix", headers: { cookie: c2 } })).statusCode, 401);
+  await app.close();
+});
