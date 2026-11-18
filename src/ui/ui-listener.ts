@@ -1,4 +1,5 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import { Readable } from "node:stream";
 import Fastify, { type FastifyBaseLogger, type FastifyInstance, type FastifyRequest } from "fastify";
 
 /**
@@ -459,7 +460,15 @@ export interface ForwardedResponse {
 /** Runs an allowlisted request: in-process for gateway routes, over HTTP for upstream modules (pitube). */
 export type UiForward = (rule: UiRouteRule, request: { method: UiMethod; url: string; body: unknown }) => Promise<ForwardedResponse>;
 
+/** Event types the picontrol UI may receive. Transcripts, rundown, world state, perception and tracking are left out. */
+export const UI_EVENT_TYPES = ["camera", "matrix", "encoder", "atem", "youtube", "pivoice", "pivoice-activity", "pisound", "ecosystem"] as const;
+
+/** Opens the gateway event stream for the UI; the listener passes the query it wants (types are always forced). */
+export type UiEventOpen = (query: string, signal: AbortSignal) => Promise<{ status: number; body: ReadableStream<Uint8Array> | null }>;
+
 export interface UiListenerOptions {
+  /** Opens the live event stream (SSE) from the gateway. Without it the stream answers 404. */
+  openEvents?: UiEventOpen | undefined;
   role: UiRole;
   auth: UiAuthAdapter;
   forward: UiForward;
@@ -529,6 +538,34 @@ export function buildUiListener(options: UiListenerOptions): FastifyInstance {
     const session = options.auth.authenticate(request, options.role);
     if (!session) return reply.code(401).send({ error: { code: "LOGIN_REQUIRED", message: "Log in with the PIN" } });
     return { role: session.role };
+  });
+
+  // Live events (SSE): a read-only stream of a fixed set of event types, session required. The client cannot widen
+  // the set: `types` is always replaced, only a short `client` label is passed on.
+  app.get("/api/v1/events", async (request, reply) => {
+    if (!options.openEvents) return reply.code(404).send({ error: { code: "NOT_FOUND", message: "Not available on the picontrol UI" } });
+    if (!options.auth.authenticate(request, options.role)) {
+      return reply.code(401).send({ error: { code: "LOGIN_REQUIRED", message: "Log in with the PIN" } });
+    }
+    const client = (request.query as { client?: unknown }).client;
+    const params = new URLSearchParams({ types: UI_EVENT_TYPES.join(",") });
+    if (typeof client === "string" && /^[A-Za-z0-9_-]{1,32}$/.test(client)) params.set("client", client);
+    const abort = new AbortController();
+    request.raw.on("close", () => abort.abort());
+    let upstream: Awaited<ReturnType<UiEventOpen>>;
+    try {
+      upstream = await options.openEvents(params.toString(), abort.signal);
+    } catch {
+      return reply.code(502).send({ error: { code: "UPSTREAM_UNAVAILABLE", message: "Event stream not available" } });
+    }
+    if (upstream.status !== 200 || !upstream.body) return reply.code(502).send({ error: { code: "UPSTREAM_UNAVAILABLE", message: "Event stream not available" } });
+    const last = request.headers["last-event-id"];
+    void last; // transcripts are not offered, so there is nothing to replay
+    return reply
+      .header("Content-Type", "text/event-stream")
+      .header("Cache-Control", "no-cache, no-transform")
+      .header("X-Accel-Buffering", "no")
+      .send(Readable.fromWeb(upstream.body as import("node:stream/web").ReadableStream<Uint8Array>));
   });
 
   // Module routes. Anything not on the allowlist answers 404, so the listener does not describe the gateway.
