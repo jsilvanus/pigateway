@@ -186,3 +186,64 @@ test("without a configured piprogram the routes answer 503", async () => {
   assert.equal(res.statusCode, 503);
   await app.close();
 });
+
+test("playlist routes map to the piprogram playlist API", async () => {
+  const { app, seen } = await appWith();
+  const calls: Array<[string, string, unknown?]> = [
+    ["GET", "/api/v1/pipgm/pipelines/PiPGM1/playlist/steps"],
+    ["PUT", "/api/v1/pipgm/pipelines/PiPGM1/playlist/order", { itemIds: ["b", "a"] }],
+    ["POST", "/api/v1/pipgm/pipelines/PiPGM1/playlist/load", { playlistId: "pl_1", mode: "append" }],
+    ["POST", "/api/v1/pipgm/pipelines/PiPGM1/playlist/save", { name: "Sunday" }],
+    ["GET", "/api/v1/pipgm/playlists"],
+    ["POST", "/api/v1/pipgm/playlists", { schema: "piprogram.playlist/1", name: "x", items: [] }],
+    ["POST", "/api/v1/pipgm/playlists/generate", { date: "2026-11-22" }],
+    ["GET", "/api/v1/pipgm/playlists/pl_1"],
+    ["PUT", "/api/v1/pipgm/playlists/pl_1", { schema: "piprogram.playlist/1", name: "y", items: [] }],
+    ["DELETE", "/api/v1/pipgm/playlists/pl_1"]
+  ];
+  for (const [method, url, payload] of calls) {
+    const res = await app.inject({ method: method as "GET", url, ...(payload !== undefined ? { payload: payload as object } : {}) });
+    assert.equal(res.statusCode, 200, `${method} ${url} -> ${res.body}`);
+  }
+  assert.deepEqual(
+    seen.map((c) => `${c.method} ${c.path}`),
+    calls.map(([m, u]) => `${m} ${u}`)
+  );
+  assert.deepEqual(seen[1]?.body, { itemIds: ["b", "a"] });
+  assert.deepEqual(seen[2]?.body, { playlistId: "pl_1", mode: "append" });
+  await app.close();
+});
+
+test("relay: playlists may be read and loaded; save, delete, generate, import, replace and order are LAN only", () => {
+  const rule = (method: string, url: string) => findUiRoute(method, url);
+  const relay = (method: string, url: string) => {
+    const r = rule(method, url);
+    return r !== null && !r.setup;
+  };
+  // relay: allowed
+  assert.ok(relay("GET", "/api/v1/pipgm/pipelines/PiPGM1/playlist/steps"));
+  assert.ok(relay("GET", "/api/v1/pipgm/playlists"));
+  assert.ok(relay("GET", "/api/v1/pipgm/playlists/pl_1"));
+  assert.ok(relay("POST", "/api/v1/pipgm/pipelines/PiPGM1/playlist/load"));
+  assert.ok(relay("POST", "/api/v1/pipgm/pipelines/PiPGM1/control"));
+  assert.ok(relay("POST", "/api/v1/pipgm/audio/kill"));
+  assert.ok(relay("POST", "/api/v1/pipgm/pipelines/PiPGM1/audio/stop"));
+  // on the allowlist (LAN) but not for the relay
+  for (const [m, u] of [
+    ["PUT", "/api/v1/pipgm/pipelines/PiPGM1/playlist/order"],
+    ["POST", "/api/v1/pipgm/pipelines/PiPGM1/playlist/save"],
+    ["POST", "/api/v1/pipgm/playlists"],
+    ["POST", "/api/v1/pipgm/playlists/generate"],
+    ["PUT", "/api/v1/pipgm/playlists/pl_1"],
+    ["DELETE", "/api/v1/pipgm/playlists/pl_1"]
+  ] as const) {
+    const r = rule(m, u);
+    assert.ok(r, `${m} ${u} must be on the allowlist`);
+    assert.equal(r.setup, true, `${m} ${u} must be setup (LAN only)`);
+  }
+  // wrong method or unknown path stays off the allowlist
+  assert.equal(rule("DELETE", "/api/v1/pipgm/playlists"), null);
+  assert.equal(rule("PUT", "/api/v1/pipgm/playlists"), null);
+  assert.equal(rule("GET", "/api/v1/pipgm/pipelines/PiPGM1/playlist/save"), null);
+  assert.equal(rule("GET", "/api/v1/pipgm/pipelines/PiPGM1/playlist/order"), null);
+});

@@ -183,6 +183,48 @@ export class PiProgramClient {
     return this.request("DELETE", `${pipe(pipelineId)}/playlist/${encodeURIComponent(itemId)}`);
   }
 
+  // Playlists: the live playlist of a feed, and saved playlists (piprogram playlist API)
+
+  getPlaylistSteps(pipelineId: string) {
+    return this.request("GET", `${pipe(pipelineId)}/playlist/steps`);
+  }
+
+  setPlaylistOrder(pipelineId: string, body: unknown) {
+    return this.request("PUT", `${pipe(pipelineId)}/playlist/order`, body);
+  }
+
+  loadPlaylist(pipelineId: string, body: unknown) {
+    return this.request("POST", `${pipe(pipelineId)}/playlist/load`, body);
+  }
+
+  savePlaylist(pipelineId: string, body: unknown) {
+    return this.request("POST", `${pipe(pipelineId)}/playlist/save`, body);
+  }
+
+  listSavedPlaylists() {
+    return this.request("GET", "/api/v1/pipgm/playlists");
+  }
+
+  createSavedPlaylist(body: unknown) {
+    return this.request("POST", "/api/v1/pipgm/playlists", body);
+  }
+
+  generatePlaylist(body: unknown) {
+    return this.request("POST", "/api/v1/pipgm/playlists/generate", body);
+  }
+
+  getSavedPlaylist(playlistId: string) {
+    return this.request("GET", `/api/v1/pipgm/playlists/${encodeURIComponent(playlistId)}`);
+  }
+
+  replaceSavedPlaylist(playlistId: string, body: unknown) {
+    return this.request("PUT", `/api/v1/pipgm/playlists/${encodeURIComponent(playlistId)}`, body);
+  }
+
+  deleteSavedPlaylist(playlistId: string) {
+    return this.request("DELETE", `/api/v1/pipgm/playlists/${encodeURIComponent(playlistId)}`);
+  }
+
   // Legacy names (the gateway's /cue, /step, /play, /pause), translated to piprogram 1.0 control actions.
 
   async cuePipeline(pipelineId: string, body: { itemId?: string; stepIndex?: number } | undefined) {
