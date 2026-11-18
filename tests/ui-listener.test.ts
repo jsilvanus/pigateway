@@ -178,3 +178,36 @@ test("trusted LAN addresses skip the PIN; others, spoofed headers and the relay 
   assert.equal((await get("127.0.0.1", { "x-real-ip": "192.168.1.50" })).statusCode, 401);
   await lan.close();
 });
+
+test("event stream: needs a session, always limited to the UI event types, client cannot widen it", async () => {
+  const seen: string[] = [];
+  const app = buildUiListener({
+    role: "lan",
+    auth: createPinAuth({ pin: "123456", failDelayMs: 0 }),
+    forward: async () => ({ statusCode: 200, contentType: "application/json", body: "{}" }),
+    openEvents: async (query) => {
+      seen.push(query);
+      return { status: 200, body: new Response("event: ready\ndata: {}\n\n").body };
+    },
+    logger
+  });
+  assert.equal((await app.inject({ method: "GET", url: "/api/v1/events" })).statusCode, 401, "no session");
+  const login = await app.inject({ method: "POST", url: "/ui/api/login", payload: { pin: "123456" } });
+  const cookie = String(login.headers["set-cookie"]).split(";")[0]!;
+  const res = await app.inject({ method: "GET", url: "/api/v1/events?client=picontrol&types=transcript,perception", headers: { cookie } });
+  assert.equal(res.statusCode, 200);
+  assert.match(String(res.headers["content-type"]), /text\/event-stream/);
+  assert.match(res.body, /event: ready/);
+  const params = new URLSearchParams(seen[0]);
+  assert.equal(params.get("client"), "picontrol");
+  const types = params.get("types")!.split(",");
+  assert.ok(types.includes("matrix") && types.includes("ecosystem"));
+  for (const hidden of ["transcript", "perception", "rundown", "world-state", "screen-tracking"]) assert.ok(!types.includes(hidden), hidden);
+  await app.close();
+});
+
+test("event stream answers 404 when the gateway gave no stream source", async () => {
+  const app = buildUiListener({ role: "lan", auth: createOpenAuth(), forward: async () => ({ statusCode: 200, contentType: "application/json", body: "{}" }), logger });
+  assert.equal((await app.inject({ method: "GET", url: "/api/v1/events" })).statusCode, 404);
+  await app.close();
+});

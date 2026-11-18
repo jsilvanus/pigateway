@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import type { AppConfig } from "../config.js";
-import { buildUiListener, createPinAuth, withTrustedAddresses, type ForwardedResponse, type UiForward, type UiMethod, type UiRole, type UiRouteRule } from "./ui-listener.js";
+import { buildUiListener, createPinAuth, withTrustedAddresses, type ForwardedResponse, type UiEventOpen, type UiForward, type UiMethod, type UiRole, type UiRouteRule } from "./ui-listener.js";
 
 export interface UiListenerSpec {
   role: UiRole;
@@ -58,14 +58,21 @@ export function createUiListeners(app: FastifyInstance, config: AppConfig): UiLi
   // The relay's page is on another site (the Pi's own domain), so its cookie is SameSite=None; Secure.
   const relayAuth = createPinAuth({ pin: config.uiPin, sameSite: "None", secure: true });
   const forward = createUiForward(app, config);
+  // The event stream is read from the gateway's own HTTP port (inject cannot stream), with the key added here.
+  const openEvents: UiEventOpen = async (query, signal) => {
+    const headers: Record<string, string> = { accept: "text/event-stream" };
+    if (config.apiKey) headers.authorization = `Bearer ${config.apiKey}`;
+    const res = await fetch(`http://127.0.0.1:${config.port}/api/v1/events?${query}`, { headers, signal });
+    return { status: res.status, body: res.body };
+  };
   const modules = config.uiModules ? new Set(config.uiModules) : undefined;
   const specs: UiListenerSpec[] = [];
   if (config.uiPort !== undefined) {
-    specs.push({ role: "lan", host: "0.0.0.0", port: config.uiPort, app: buildUiListener({ role: "lan", auth: lanAuth, forward, corsOrigins: config.uiCorsOrigins, modules, logger: app.log }) });
+    specs.push({ role: "lan", host: "0.0.0.0", port: config.uiPort, app: buildUiListener({ role: "lan", auth: lanAuth, forward, openEvents, corsOrigins: config.uiCorsOrigins, modules, logger: app.log }) });
   }
   if (config.uiRelayPort !== undefined) {
     // Local only: the ssh tunnel from the relay is the way in.
-    specs.push({ role: "relay", host: "127.0.0.1", port: config.uiRelayPort, app: buildUiListener({ role: "relay", auth: relayAuth, forward, corsOrigins: config.uiCorsOrigins, modules, logger: app.log }) });
+    specs.push({ role: "relay", host: "127.0.0.1", port: config.uiRelayPort, app: buildUiListener({ role: "relay", auth: relayAuth, forward, openEvents, corsOrigins: config.uiCorsOrigins, modules, logger: app.log }) });
   }
   // No hooks here: this is called after the main app may already be listening, and Fastify refuses addHook then.
   // The caller closes the listeners (see main.ts).
