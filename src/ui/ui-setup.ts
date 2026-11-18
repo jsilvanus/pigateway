@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import type { AppConfig } from "../config.js";
-import { buildUiListener, createPinAuth, type ForwardedResponse, type UiForward, type UiMethod, type UiRole, type UiRouteRule } from "./ui-listener.js";
+import { buildUiListener, createPinAuth, withTrustedAddresses, type ForwardedResponse, type UiForward, type UiMethod, type UiRole, type UiRouteRule } from "./ui-listener.js";
 
 export interface UiListenerSpec {
   role: UiRole;
@@ -54,7 +54,7 @@ export function createUiListeners(app: FastifyInstance, config: AppConfig): UiLi
   if (config.uiPort === undefined && config.uiRelayPort === undefined) return [];
   // config.ts refuses to start without a PIN when a UI listener is on, so a missing PIN here is a bug: fail closed.
   if (!config.uiPin) throw new Error("PIGATEWAY_UI_PIN is required for the picontrol UI listeners");
-  const lanAuth = createPinAuth({ pin: config.uiPin });
+  const lanAuth = withTrustedAddresses(createPinAuth({ pin: config.uiPin }), config.uiLanTrustedIps ?? []);
   // The relay's page is on another site (the Pi's own domain), so its cookie is SameSite=None; Secure.
   const relayAuth = createPinAuth({ pin: config.uiPin, sameSite: "None", secure: true });
   const forward = createUiForward(app, config);

@@ -50,6 +50,8 @@ export interface AppConfig {
   uiModules?: string[] | undefined;
   /** PIN that opens the UI listeners that need one (PIGATEWAY_UI_PIN). */
   uiPin?: string | undefined;
+  /** IPv4 addresses on the LAN listener that skip the PIN (PIGATEWAY_UI_LAN_TRUSTED_IPS, e.g. the operator PC). Never applies to the relay. */
+  uiLanTrustedIps?: string[] | undefined;
   /** Browser origins allowed to call the UI listeners with credentials (PIGATEWAY_UI_CORS_ORIGINS). */
   uiCorsOrigins?: string[] | undefined;
   pirundownApiUrl?: string | undefined;
@@ -268,6 +270,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   if (pinNeeded && (!uiPin || uiPin.length < 6)) {
     throw new Error("PIGATEWAY_UI_PIN (at least 6 characters) is required when a picontrol UI listener (PIGATEWAY_UI_PORT or PIGATEWAY_UI_RELAY_PORT) is on");
   }
+  const uiLanTrustedIps = list(env.PIGATEWAY_UI_LAN_TRUSTED_IPS);
+  for (const ip of uiLanTrustedIps ?? []) {
+    if (!/^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/.test(ip)) throw new Error(`PIGATEWAY_UI_LAN_TRUSTED_IPS: "${ip}" is not an IPv4 address`);
+  }
   const pirundownApiUrl = urlWithScheme(env.PIGATEWAY_PIRUNDOWN_API_URL, "PIGATEWAY_PIRUNDOWN_API_URL", ["http:", "https:"]);
   const pirundownDesignerApiUrl = urlWithScheme(env.PIGATEWAY_PIRUNDOWN_DESIGNER_API_URL, "PIGATEWAY_PIRUNDOWN_DESIGNER_API_URL", ["http:", "https:"]);
   const pispaceApiUrl = urlWithScheme(env.PIGATEWAY_PISPACE_API_URL, "PIGATEWAY_PISPACE_API_URL", ["http:", "https:"]);
@@ -303,6 +309,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     uiPort,
     uiRelayPort,
     uiPin,
+    uiLanTrustedIps,
     uiModules: list(env.PIGATEWAY_UI_MODULES),
     uiCorsOrigins: list(env.PIGATEWAY_UI_CORS_ORIGINS),
     pitallyApiUrl,

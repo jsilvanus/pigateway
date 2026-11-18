@@ -351,6 +351,34 @@ export function createOpenAuth(): UiAuthAdapter {
   };
 }
 
+/**
+ * The client address of a UI request. It is the socket peer. Only when that peer is loopback (the Pi's own nginx in
+ * front of the LAN listener) is X-Real-IP used, because nginx overwrites it with $remote_addr; a LAN host that
+ * connects to the listener directly is not loopback, so its header is ignored. X-Forwarded-For is never read.
+ */
+export function clientAddress(request: FastifyRequest): string {
+  const strip = (a: string): string => a.replace(/^::ffff:/, "");
+  const peer = strip(request.socket.remoteAddress ?? "");
+  if (peer === "127.0.0.1" || peer === "::1") {
+    const real = request.headers["x-real-ip"];
+    if (typeof real === "string" && real.trim()) return strip(real.trim());
+  }
+  return peer;
+}
+
+/** Requests from these addresses count as signed in without a PIN (the operator PC on the LAN listener). */
+export function withTrustedAddresses(inner: UiAuthAdapter, addresses: readonly string[]): UiAuthAdapter {
+  if (addresses.length === 0) return inner;
+  const trusted = new Set(addresses);
+  return {
+    ...inner,
+    authenticate(request, listenerRole) {
+      if (trusted.has(clientAddress(request))) return { role: listenerRole };
+      return inner.authenticate(request, listenerRole);
+    }
+  };
+}
+
 export const UI_COOKIE = "picontrol_ui";
 /** A session lasts 24 h from the last request (sliding), never longer than SESSION_MAX_MS from the login. */
 const SESSION_MS = 24 * 60 * 60 * 1000;
