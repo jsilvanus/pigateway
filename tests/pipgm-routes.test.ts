@@ -35,7 +35,7 @@ test("pipgm-routes proxies pipelines, controls, items, and canva ingestion", asy
         headers: { "content-type": "application/json" }
       });
     }
-    if (pathname === "/api/v1/pipgm/pipelines/PiPGM1/cue") {
+    if (pathname === "/api/v1/pipgm/pipelines/PiPGM1/control") {
       return new Response(JSON.stringify({ ok: true, cued: true }), {
         status: 200,
         headers: { "content-type": "application/json" }
@@ -95,7 +95,8 @@ test("pipgm-routes proxies pipelines, controls, items, and canva ingestion", asy
     calls.map((c) => `${c.method} ${c.path}`),
     [
       "GET /api/v1/pipgm/pipelines",
-      "POST /api/v1/pipgm/pipelines/PiPGM1/cue",
+      "POST /api/v1/pipgm/pipelines/PiPGM1/control",
+      "POST /api/v1/pipgm/pipelines/PiPGM1/control",
       "GET /api/v1/pipgm/items",
       "POST /api/v1/pipgm/items/canva"
     ]

@@ -146,31 +146,43 @@ export const UI_ROUTES: readonly UiRouteRule[] = [
   { method: "POST", path: "/api/v1/graphics/stream/start", module: "pigraphics" },
   { method: "POST", path: "/api/v1/graphics/stream/stop", module: "pigraphics" },
 
-  // piprogram
+  // piprogram (piprogram 1.0 openapi). LAN gets all of it; the relay gets reads, control, ftb, playlist and audio kill/stop.
   { method: "GET", path: "/api/v1/pipgm/pipelines", module: "piprogram" },
   { method: "GET", path: "/api/v1/pipgm/pipelines/:pipelineId", module: "piprogram" },
-  { method: "PUT", path: "/api/v1/pipgm/pipelines/:pipelineId", module: "piprogram" },
+  { method: "GET", path: "/api/v1/pipgm/pipelines/:pipelineId/frame.png", module: "piprogram" },
+  { method: "POST", path: "/api/v1/pipgm/pipelines/:pipelineId/control", module: "piprogram" },
+  { method: "POST", path: "/api/v1/pipgm/pipelines/:pipelineId/ftb", module: "piprogram" },
+  { method: "POST", path: "/api/v1/pipgm/pipelines/:pipelineId/audio/stop", module: "piprogram" },
+  { method: "POST", path: "/api/v1/pipgm/audio/kill", module: "piprogram" },
+  { method: "POST", path: "/api/v1/pipgm/pipelines/:pipelineId/playlist", module: "piprogram" },
+  { method: "DELETE", path: "/api/v1/pipgm/pipelines/:pipelineId/playlist/:itemId", module: "piprogram" },
   { method: "POST", path: "/api/v1/pipgm/pipelines/:pipelineId/cue", module: "piprogram" },
   { method: "POST", path: "/api/v1/pipgm/pipelines/:pipelineId/step", module: "piprogram" },
   { method: "POST", path: "/api/v1/pipgm/pipelines/:pipelineId/play", module: "piprogram" },
   { method: "POST", path: "/api/v1/pipgm/pipelines/:pipelineId/pause", module: "piprogram" },
-  { method: "POST", path: "/api/v1/pipgm/pipelines/:pipelineId/audio", module: "piprogram" },
-  { method: "POST", path: "/api/v1/pipgm/pipelines/:pipelineId/audio/stop", module: "piprogram" },
-  { method: "POST", path: "/api/v1/pipgm/audio/kill", module: "piprogram" },
-  { method: "PUT", path: "/api/v1/pipgm/pipelines/:pipelineId/playlist", module: "piprogram" },
-  { method: "POST", path: "/api/v1/pipgm/pipelines/:pipelineId/playlist", module: "piprogram" },
-  { method: "DELETE", path: "/api/v1/pipgm/pipelines/:pipelineId/playlist/:itemId", module: "piprogram" },
+  { method: "GET", path: "/api/v1/pipgm/feeders", module: "piprogram" },
   { method: "GET", path: "/api/v1/pipgm/items", module: "piprogram" },
   { method: "GET", path: "/api/v1/pipgm/items/:itemId", module: "piprogram" },
-  { method: "DELETE", path: "/api/v1/pipgm/items/:itemId", module: "piprogram", setup: true },
-  { method: "POST", path: "/api/v1/pipgm/items/canva", module: "piprogram" },
-  { method: "PUT", path: "/api/v1/pipgm/items/:itemId/use-at", module: "piprogram" },
-  { method: "POST", path: "/api/v1/pipgm/items/:itemId/package", module: "piprogram" },
-  { method: "GET", path: "/api/v1/pipgm/tasks/:taskId", module: "piprogram" },
   { method: "GET", path: "/api/v1/pipgm/items/:itemId/steps", module: "piprogram" },
-  { method: "POST", path: "/api/v1/pipgm/items/:itemId/prepare", module: "piprogram" },
-  { method: "GET", path: "/api/v1/pipgm/feeders", module: "piprogram" },
+  { method: "GET", path: "/api/v1/pipgm/items/:itemId/steps/:step/image.png", module: "piprogram" },
+  { method: "GET", path: "/api/v1/pipgm/items/:itemId/steps/:step/thumbnail.jpg", module: "piprogram" },
+  { method: "GET", path: "/api/v1/pipgm/assets/:assetId", module: "piprogram" },
+  { method: "GET", path: "/api/v1/pipgm/tasks/:taskId", module: "piprogram" },
   { method: "GET", path: "/api/v1/pipgm/library/storage", module: "piprogram" },
+  { method: "PUT", path: "/api/v1/pipgm/pipelines/:pipelineId/config", module: "piprogram", setup: true },
+  { method: "POST", path: "/api/v1/pipgm/pipelines/:pipelineId/audio", module: "piprogram", setup: true },
+  { method: "POST", path: "/api/v1/pipgm/pipelines/:pipelineId/audio/play", module: "piprogram", setup: true },
+  { method: "POST", path: "/api/v1/pipgm/tts/prepare", module: "piprogram", setup: true },
+  { method: "PUT", path: "/api/v1/pipgm/pipelines/:pipelineId/basic-image", module: "piprogram", setup: true },
+  { method: "DELETE", path: "/api/v1/pipgm/items/:itemId", module: "piprogram", setup: true },
+  { method: "POST", path: "/api/v1/pipgm/items/hymn", module: "piprogram", setup: true },
+  { method: "POST", path: "/api/v1/pipgm/items/youtube", module: "piprogram", setup: true },
+  { method: "POST", path: "/api/v1/pipgm/items/media", module: "piprogram", setup: true },
+  { method: "POST", path: "/api/v1/pipgm/items/pptx", module: "piprogram", setup: true },
+  { method: "POST", path: "/api/v1/pipgm/items/canva", module: "piprogram", setup: true },
+  { method: "PUT", path: "/api/v1/pipgm/items/:itemId/use-at", module: "piprogram", setup: true },
+  { method: "POST", path: "/api/v1/pipgm/items/:itemId/prepare", module: "piprogram", setup: true },
+  { method: "POST", path: "/api/v1/pipgm/items/:itemId/canva/export-package", module: "piprogram", setup: true },
 
   // pirundown-designer
   { method: "GET", path: "/api/v1/designer/state", module: "pirundown" },
@@ -398,7 +410,7 @@ export function createPinAuth(options: PinAuthOptions): UiAuthAdapter {
 export interface ForwardedResponse {
   statusCode: number;
   contentType: string;
-  body: string;
+  body: string | Buffer;
 }
 
 /** Runs an allowlisted request: in-process for gateway routes, over HTTP for upstream modules (pitube). */
@@ -428,7 +440,7 @@ export function buildUiListener(options: UiListenerOptions): FastifyInstance {
       .code(204)
       .header("Access-Control-Allow-Origin", allowed)
       .header("Access-Control-Allow-Credentials", "true")
-      .header("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS")
+      .header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
       .header("Access-Control-Allow-Headers", "Content-Type")
       .header("Access-Control-Max-Age", "600")
       .header("Vary", "Origin")
@@ -468,7 +480,7 @@ export function buildUiListener(options: UiListenerOptions): FastifyInstance {
 
   // Module routes. Anything not on the allowlist answers 404, so the listener does not describe the gateway.
   app.route({
-    method: ["GET", "POST", "PUT"],
+    method: ["GET", "POST", "PUT", "DELETE"],
     url: "/api/v1/*",
     handler: async (request, reply) => {
       const rule = findUiRoute(request.method, request.url);
