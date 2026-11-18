@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import Fastify from "fastify";
-import { buildUiListener, createOpenAuth, createPinAuth, findUiRoute, type UiRouteRule } from "../src/ui/ui-listener.js";
+import { buildUiListener, createOpenAuth, createPinAuth, findUiRoute, withTrustedAddresses, type UiRouteRule } from "../src/ui/ui-listener.js";
 
 const logger = Fastify({ logger: { level: "silent" } }).log;
 
@@ -158,4 +158,23 @@ test("session lasts 24 h from the last activity, refreshes on use, and logout lo
   await app.inject({ method: "POST", url: "/ui/api/logout", headers: { cookie: c2 } });
   assert.equal((await app.inject({ method: "GET", url: "/api/v1/matrix", headers: { cookie: c2 } })).statusCode, 401);
   await app.close();
+});
+
+test("trusted LAN addresses skip the PIN; others, spoofed headers and the relay do not", async () => {
+  const mk = (role: "lan" | "relay", trusted: string[]) => buildUiListener({
+    role,
+    auth: withTrustedAddresses(createPinAuth({ pin: "123456", failDelayMs: 0 }), trusted),
+    forward: async () => ({ statusCode: 200, contentType: "application/json", body: "{}" }),
+    logger
+  });
+  const lan = mk("lan", ["192.168.1.98"]);
+  const get = (remoteAddress: string, headers: Record<string, string> = {}) => lan.inject({ method: "GET", url: "/api/v1/matrix", remoteAddress, headers });
+  assert.equal((await get("192.168.1.98")).statusCode, 200, "trusted socket address");
+  assert.equal((await get("::ffff:192.168.1.98")).statusCode, 200, "mapped IPv4 form");
+  assert.equal((await get("192.168.1.50")).statusCode, 401, "other LAN host");
+  assert.equal((await get("192.168.1.50", { "x-forwarded-for": "192.168.1.98", "x-real-ip": "192.168.1.98" })).statusCode, 401, "headers from a non-loopback peer are ignored");
+  assert.equal((await get("127.0.0.1", { "x-forwarded-for": "192.168.1.98" })).statusCode, 401, "X-Forwarded-For is never read");
+  assert.equal((await get("127.0.0.1", { "x-real-ip": "192.168.1.98" })).statusCode, 200, "nginx on loopback passes the client in X-Real-IP");
+  assert.equal((await get("127.0.0.1", { "x-real-ip": "192.168.1.50" })).statusCode, 401);
+  await lan.close();
 });
