@@ -93,6 +93,48 @@ export function registerPiPgmRoutes(app: FastifyInstance, options: { client: PiP
     }
   );
 
+  app.get<{ Params: { pipelineId: string } }>("/api/v1/pipgm/pipelines/:pipelineId/playlist/steps", async (request, reply) => {
+    return handle(() => client.getPlaylistSteps(request.params.pipelineId), reply);
+  });
+
+  app.put<{ Params: { pipelineId: string } }>("/api/v1/pipgm/pipelines/:pipelineId/playlist/order", async (request, reply) => {
+    return handle(() => client.setPlaylistOrder(request.params.pipelineId, request.body), reply);
+  });
+
+  app.post<{ Params: { pipelineId: string } }>("/api/v1/pipgm/pipelines/:pipelineId/playlist/load", async (request, reply) => {
+    return handle(() => client.loadSavedPlaylist(request.params.pipelineId, request.body), reply);
+  });
+
+  app.post<{ Params: { pipelineId: string } }>("/api/v1/pipgm/pipelines/:pipelineId/playlist/save", async (request, reply) => {
+    return handle(() => client.savePipelinePlaylist(request.params.pipelineId, request.body), reply);
+  });
+
+  // Saved playlists
+  app.get("/api/v1/pipgm/playlists", async (_request, reply) => {
+    return handle(() => client.listSavedPlaylists(), reply);
+  });
+
+  app.post("/api/v1/pipgm/playlists", async (request, reply) => {
+    return handle(() => client.createSavedPlaylist(request.body), reply);
+  });
+
+  // Registered before :playlistId; a static segment wins over a parameter in Fastify.
+  app.post("/api/v1/pipgm/playlists/generate", async (request, reply) => {
+    return handle(() => client.generatePlaylistDraft(request.body), reply);
+  });
+
+  app.get<{ Params: { playlistId: string } }>("/api/v1/pipgm/playlists/:playlistId", async (request, reply) => {
+    return handle(() => client.getSavedPlaylist(request.params.playlistId), reply);
+  });
+
+  app.put<{ Params: { playlistId: string } }>("/api/v1/pipgm/playlists/:playlistId", async (request, reply) => {
+    return handle(() => client.replaceSavedPlaylist(request.params.playlistId, request.body), reply);
+  });
+
+  app.delete<{ Params: { playlistId: string } }>("/api/v1/pipgm/playlists/:playlistId", async (request, reply) => {
+    return handle(() => client.deleteSavedPlaylist(request.params.playlistId), reply);
+  });
+
   // Legacy paths, kept for existing clients; they map to the control action of piprogram 1.0.
   app.post<{ Params: { pipelineId: string } }>("/api/v1/pipgm/pipelines/:pipelineId/cue", async (request, reply) => {
     return handle(() => client.cuePipeline(request.params.pipelineId, request.body as { itemId?: string; stepIndex?: number }), reply);

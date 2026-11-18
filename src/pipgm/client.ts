@@ -183,6 +183,52 @@ export class PiProgramClient {
     return this.request("DELETE", `${pipe(pipelineId)}/playlist/${encodeURIComponent(itemId)}`);
   }
 
+  /** The playlist flattened to one ordered step list (itemId, step, thumbnail or null, active). */
+  getPlaylistSteps(pipelineId: string) {
+    return this.request("GET", `${pipe(pipelineId)}/playlist/steps`);
+  }
+
+  /** Atomic replace or reorder: `{ itemIds: [...] }`. */
+  setPlaylistOrder(pipelineId: string, body: unknown) {
+    return this.request("PUT", `${pipe(pipelineId)}/playlist/order`, body);
+  }
+
+  /** Put a saved playlist on a feed: `{ playlistId, mode?: "replace" | "append", strict? }`. */
+  loadSavedPlaylist(pipelineId: string, body: unknown) {
+    return this.request("POST", `${pipe(pipelineId)}/playlist/load`, body);
+  }
+
+  /** Save a feed's current playlist: `{ name, playlistId? }`. */
+  savePipelinePlaylist(pipelineId: string, body: unknown) {
+    return this.request("POST", `${pipe(pipelineId)}/playlist/save`, body);
+  }
+
+  // Saved playlists (piprogram.playlist/1 documents kept in the library store)
+
+  listSavedPlaylists() {
+    return this.request("GET", "/api/v1/pipgm/playlists");
+  }
+
+  createSavedPlaylist(body: unknown) {
+    return this.request("POST", "/api/v1/pipgm/playlists", body);
+  }
+
+  generatePlaylistDraft(body: unknown) {
+    return this.request("POST", "/api/v1/pipgm/playlists/generate", body);
+  }
+
+  getSavedPlaylist(playlistId: string) {
+    return this.request("GET", `/api/v1/pipgm/playlists/${encodeURIComponent(playlistId)}`);
+  }
+
+  replaceSavedPlaylist(playlistId: string, body: unknown) {
+    return this.request("PUT", `/api/v1/pipgm/playlists/${encodeURIComponent(playlistId)}`, body);
+  }
+
+  deleteSavedPlaylist(playlistId: string) {
+    return this.request("DELETE", `/api/v1/pipgm/playlists/${encodeURIComponent(playlistId)}`);
+  }
+
   // Legacy names (the gateway's /cue, /step, /play, /pause), translated to piprogram 1.0 control actions.
 
   async cuePipeline(pipelineId: string, body: { itemId?: string; stepIndex?: number } | undefined) {

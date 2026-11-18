@@ -10094,6 +10094,500 @@
           }
         }
       }
+    },
+    "/api/v1/pipgm/pipelines/{pipelineId}/playlist/steps": {
+      "get": {
+        "operationId": "listPipgmPlaylistSteps",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "The playlist flattened to ordered steps with thumbnails",
+        "parameters": [
+          {
+            "name": "pipelineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PiPGM1",
+                "PiPGM2",
+                "PiPGM3"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/pipelines/{pipelineId}/playlist/order": {
+      "put": {
+        "operationId": "setPipgmPlaylistOrder",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Replace or reorder the playlist atomically ({itemIds}) (LAN only, not offered on the relay)",
+        "parameters": [
+          {
+            "name": "pipelineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PiPGM1",
+                "PiPGM2",
+                "PiPGM3"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/pipelines/{pipelineId}/playlist/load": {
+      "post": {
+        "operationId": "loadPipgmSavedPlaylist",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Put a saved playlist on a feed; the item on air is kept ({playlistId, mode})",
+        "parameters": [
+          {
+            "name": "pipelineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PiPGM1",
+                "PiPGM2",
+                "PiPGM3"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/pipelines/{pipelineId}/playlist/save": {
+      "post": {
+        "operationId": "savePipgmPlaylist",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Save a feed's current playlist ({name, playlistId?}) (LAN only, not offered on the relay)",
+        "parameters": [
+          {
+            "name": "pipelineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PiPGM1",
+                "PiPGM2",
+                "PiPGM3"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/playlists": {
+      "get": {
+        "operationId": "listPipgmSavedPlaylists",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Saved playlists, newest first",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createPipgmSavedPlaylist",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Save or import a piprogram.playlist/1 document (LAN only, not offered on the relay)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/playlists/generate": {
+      "post": {
+        "operationId": "generatePipgmPlaylistDraft",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Draft playlist for a date from useAt ({date}); nothing is saved (LAN only, not offered on the relay)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/playlists/{playlistId}": {
+      "get": {
+        "operationId": "getPipgmSavedPlaylist",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "One saved playlist",
+        "parameters": [
+          {
+            "name": "playlistId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "replacePipgmSavedPlaylist",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Replace a saved playlist (LAN only, not offered on the relay)",
+        "parameters": [
+          {
+            "name": "playlistId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deletePipgmSavedPlaylist",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Delete a saved playlist (LAN only, not offered on the relay)",
+        "parameters": [
+          {
+            "name": "playlistId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

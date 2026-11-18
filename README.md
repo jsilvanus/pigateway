@@ -39,6 +39,22 @@ Set `PIGATEWAY_PIVOICE_API_URL` (for example `http://127.0.0.1:3106`) and `PIGAT
 
 `GET /health`, `GET /api/v1/status`, `GET /api/v1/ecosystem`, `POST /api/v1/ecosystem/probe`, `GET /api/v1/events`, `/api/v1/atem/*`, `/api/v1/cameras/*`, `/api/v1/activity/idle-close`.
 
+## piprogram playlists
+
+`/api/v1/pipgm/*` proxies piprogram 1.0 (writes carry the gateway's API key). Playlist routes:
+
+| Route | Use | Relay |
+|---|---|---|
+| `GET pipelines/:id/playlist/steps` | playlist as ordered steps with thumbnails | yes |
+| `POST pipelines/:id/playlist/load` | put a saved playlist on a feed (`replace` or `append`; the item on air is kept) | yes |
+| `GET playlists`, `GET playlists/:id` | saved playlists | yes |
+| `POST pipelines/:id/playlist`, `DELETE pipelines/:id/playlist/:itemId` | add or remove one item | yes |
+| `PUT pipelines/:id/playlist/order` | replace or reorder atomically | LAN only |
+| `POST pipelines/:id/playlist/save` | save the feed's playlist | LAN only |
+| `POST playlists` (import), `PUT`/`DELETE playlists/:id`, `POST playlists/generate` | manage and draft playlists | LAN only |
+
+"LAN only" routes are `setup` rules in `UI_ROUTES` (`src/ui/ui-listener.ts`), which the relay listener (3012) refuses. Audio kill and stop stay on the relay.
+
 ## Ecosystem discovery & in-use plugin tracking
 
 PiGateway tracks availability and in-use status of all Pi ecosystem services (`pisound`, `pivoice`, `pitube`, `pitally`, `pimatrix`, `piprogram`, `picanva`, `auditor`, `radioRelay`, and attached devices like ATEM, encoder, and cameras).

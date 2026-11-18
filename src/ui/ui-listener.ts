@@ -146,10 +146,15 @@ export const UI_ROUTES: readonly UiRouteRule[] = [
   { method: "POST", path: "/api/v1/graphics/stream/start", module: "pigraphics" },
   { method: "POST", path: "/api/v1/graphics/stream/stop", module: "pigraphics" },
 
-  // piprogram (piprogram 1.0 openapi). LAN gets all of it; the relay gets reads, control, ftb, playlist and audio kill/stop.
+  // piprogram (piprogram 1.0 openapi). LAN gets all of it; the relay gets reads, control, ftb, playlist add/remove, steps, loading a saved playlist and audio kill/stop.
+  // Save, replace, delete, generate, import (POST /playlists) and reorder are setup: LAN only.
   { method: "GET", path: "/api/v1/pipgm/pipelines", module: "piprogram" },
   { method: "GET", path: "/api/v1/pipgm/pipelines/:pipelineId", module: "piprogram" },
   { method: "GET", path: "/api/v1/pipgm/pipelines/:pipelineId/frame.png", module: "piprogram" },
+  { method: "GET", path: "/api/v1/pipgm/pipelines/:pipelineId/playlist/steps", module: "piprogram" },
+  { method: "POST", path: "/api/v1/pipgm/pipelines/:pipelineId/playlist/load", module: "piprogram" },
+  { method: "GET", path: "/api/v1/pipgm/playlists", module: "piprogram" },
+  { method: "GET", path: "/api/v1/pipgm/playlists/:playlistId", module: "piprogram" },
   { method: "POST", path: "/api/v1/pipgm/pipelines/:pipelineId/control", module: "piprogram" },
   { method: "POST", path: "/api/v1/pipgm/pipelines/:pipelineId/ftb", module: "piprogram" },
   { method: "POST", path: "/api/v1/pipgm/pipelines/:pipelineId/audio/stop", module: "piprogram" },
@@ -170,6 +175,12 @@ export const UI_ROUTES: readonly UiRouteRule[] = [
   { method: "GET", path: "/api/v1/pipgm/tasks/:taskId", module: "piprogram" },
   { method: "GET", path: "/api/v1/pipgm/library/storage", module: "piprogram" },
   { method: "PUT", path: "/api/v1/pipgm/pipelines/:pipelineId/config", module: "piprogram", setup: true },
+  { method: "PUT", path: "/api/v1/pipgm/pipelines/:pipelineId/playlist/order", module: "piprogram", setup: true },
+  { method: "POST", path: "/api/v1/pipgm/pipelines/:pipelineId/playlist/save", module: "piprogram", setup: true },
+  { method: "POST", path: "/api/v1/pipgm/playlists", module: "piprogram", setup: true },
+  { method: "POST", path: "/api/v1/pipgm/playlists/generate", module: "piprogram", setup: true },
+  { method: "PUT", path: "/api/v1/pipgm/playlists/:playlistId", module: "piprogram", setup: true },
+  { method: "DELETE", path: "/api/v1/pipgm/playlists/:playlistId", module: "piprogram", setup: true },
   { method: "POST", path: "/api/v1/pipgm/pipelines/:pipelineId/audio", module: "piprogram", setup: true },
   { method: "POST", path: "/api/v1/pipgm/pipelines/:pipelineId/audio/play", module: "piprogram", setup: true },
   { method: "POST", path: "/api/v1/pipgm/tts/prepare", module: "piprogram", setup: true },

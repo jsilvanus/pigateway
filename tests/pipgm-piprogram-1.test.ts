@@ -186,3 +186,70 @@ test("without a configured piprogram the routes answer 503", async () => {
   assert.equal(res.statusCode, 503);
   await app.close();
 });
+
+test("playlist routes map to the piprogram playlist paths and keep bodies", async () => {
+  const { app, seen } = await appWith();
+  const calls: Array<[string, string, unknown?]> = [
+    ["GET", "/api/v1/pipgm/pipelines/PiPGM1/playlist/steps"],
+    ["PUT", "/api/v1/pipgm/pipelines/PiPGM1/playlist/order", { itemIds: ["b", "a"] }],
+    ["POST", "/api/v1/pipgm/pipelines/PiPGM1/playlist/load", { playlistId: "pl-1", mode: "append" }],
+    ["POST", "/api/v1/pipgm/pipelines/PiPGM1/playlist/save", { name: "Sunday" }],
+    ["GET", "/api/v1/pipgm/playlists"],
+    ["POST", "/api/v1/pipgm/playlists", { schema: "piprogram.playlist/1", name: "X", items: [] }],
+    ["POST", "/api/v1/pipgm/playlists/generate", { date: "2026-11-22" }],
+    ["GET", "/api/v1/pipgm/playlists/pl-1"],
+    ["PUT", "/api/v1/pipgm/playlists/pl-1", { schema: "piprogram.playlist/1", name: "Y", items: [] }],
+    ["DELETE", "/api/v1/pipgm/playlists/pl-1"],
+    // the old single-item remove must still win over the new static segments only for real item ids
+    ["DELETE", "/api/v1/pipgm/pipelines/PiPGM1/playlist/h-1"]
+  ];
+  for (const [method, url, payload] of calls) {
+    const res = await app.inject({ method: method as "GET", url, ...(payload !== undefined ? { payload: payload as object } : {}) });
+    assert.equal(res.statusCode, 200, `${method} ${url} -> ${res.body}`);
+  }
+  assert.deepEqual(
+    seen.map((c) => `${c.method} ${c.path}`),
+    calls.map(([m, u]) => `${m} ${u}`)
+  );
+  assert.deepEqual(seen[1]?.body, { itemIds: ["b", "a"] });
+  assert.deepEqual(seen[2]?.body, { playlistId: "pl-1", mode: "append" });
+  assert.deepEqual(seen[6]?.body, { date: "2026-11-22" });
+  await app.close();
+});
+
+test("playlist rules: relay may read, load and control; save, reorder, generate, import, replace and delete are LAN only", () => {
+  const relay = (method: string, url: string) => {
+    const rule = findUiRoute(method, url);
+    return rule !== null && !rule.setup;
+  };
+  const lan = (method: string, url: string) => findUiRoute(method, url) !== null;
+  const P = "/api/v1/pipgm/pipelines/PiPGM2/playlist";
+  const read: Array<[string, string]> = [
+    ["GET", `${P}/steps`],
+    ["POST", `${P}/load`],
+    ["GET", "/api/v1/pipgm/playlists"],
+    ["GET", "/api/v1/pipgm/playlists/pl-1"],
+    ["POST", `${P}`],
+    ["DELETE", `${P}/h-1`]
+  ];
+  const lanOnly: Array<[string, string]> = [
+    ["PUT", `${P}/order`],
+    ["POST", `${P}/save`],
+    ["POST", "/api/v1/pipgm/playlists"],
+    ["POST", "/api/v1/pipgm/playlists/generate"],
+    ["PUT", "/api/v1/pipgm/playlists/pl-1"],
+    ["DELETE", "/api/v1/pipgm/playlists/pl-1"]
+  ];
+  for (const [m, u] of read) assert.ok(relay(m, u), `relay ${m} ${u}`);
+  for (const [m, u] of lanOnly) {
+    assert.ok(lan(m, u), `lan ${m} ${u} is on the allowlist`);
+    assert.equal(relay(m, u), false, `relay ${m} ${u} must be refused`);
+  }
+  // audio safety actions stay on the relay
+  assert.ok(relay("POST", "/api/v1/pipgm/audio/kill"));
+  assert.ok(relay("POST", "/api/v1/pipgm/pipelines/PiPGM2/audio/stop"));
+  // methods that do not exist stay off the allowlist
+  assert.equal(findUiRoute("PUT", `${P}/steps`), null);
+  assert.equal(findUiRoute("GET", `${P}/order`), null);
+  assert.equal(findUiRoute("DELETE", "/api/v1/pipgm/playlists"), null);
+});
