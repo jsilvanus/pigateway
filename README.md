@@ -37,7 +37,19 @@ Set `PIGATEWAY_PIVOICE_API_URL` (for example `http://127.0.0.1:3106`) and `PIGAT
 
 ## Endpoints
 
-`GET /health`, `GET /api/v1/status`, `GET /api/v1/ecosystem`, `POST /api/v1/ecosystem/probe`, `GET /api/v1/events`, `/api/v1/atem/*`, `/api/v1/cameras/*`, `/api/v1/activity/idle-close`.
+`GET /health`, `GET /api/v1/status`, `GET /api/v1/ecosystem`, `POST /api/v1/ecosystem/probe`, `GET /api/v1/events`, `/api/v1/atem/*`, `/api/v1/cameras/*`, `/api/v1/activity/idle-close`, `/api/v1/pipgm/*` (piprogram).
+
+## piprogram proxy and playlists
+
+`PIGATEWAY_PIPROGRAM_API_URL` and `PIGATEWAY_PIPROGRAM_API_KEY` point at piprogram 1.0; the gateway forwards `/api/v1/pipgm/*` and holds the key, so browsers never see it. Playlist routes:
+
+| Route | LAN UI | Relay UI |
+|---|---|---|
+| `GET pipelines/:id/playlist/steps`, `GET playlists`, `GET playlists/:id` | yes | yes |
+| `POST pipelines/:id/playlist/load`, `control`, `ftb`, playlist add and remove, audio `stop` and `kill` | yes | yes |
+| `PUT pipelines/:id/playlist/order`, `POST pipelines/:id/playlist/save`, `POST playlists` (import), `POST playlists/generate`, `PUT` and `DELETE playlists/:id` | yes | no (`setup`) |
+
+The relay can therefore read, load a saved playlist onto a feed and control it, but cannot change what is stored or reorder the running order. The rules live in `UI_ROUTES` (`src/ui/ui-listener.ts`) and are tested in `tests/pipgm-piprogram-1.test.ts`.
 
 ## Ecosystem discovery & in-use plugin tracking
 
