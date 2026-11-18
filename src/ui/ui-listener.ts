@@ -326,7 +326,7 @@ export function findUiRoute(method: string, url: string): UiRouteRule | null {
 export interface UiAuthAdapter {
   /** A session token for valid credentials, or null. Wrong credentials are slowed down by the adapter. */
   login(credentials: { pin?: unknown }): Promise<string | null>;
-  /** The request's role when it carries a valid session, else null. */
+  /** The request's role when it carries a valid session, else null. A valid session is extended (sliding expiry). */
   authenticate(request: FastifyRequest, listenerRole: UiRole): { role: UiRole } | null;
   logout(request: FastifyRequest): void;
   /** Set-Cookie value for a session token, and the cookie that clears it. */
@@ -334,7 +334,7 @@ export interface UiAuthAdapter {
   clearCookie(): string;
 }
 
-/** No PIN: every request is the listener's role. Only for a LAN listener that is trusted (PIGATEWAY_UI_LAN_NO_PIN=true). */
+/** No PIN: every request is the listener's role. For tests only; the gateway never builds a listener with it. */
 export function createOpenAuth(): UiAuthAdapter {
   return {
     async login() {
@@ -352,7 +352,8 @@ export function createOpenAuth(): UiAuthAdapter {
 }
 
 export const UI_COOKIE = "picontrol_ui";
-const SESSION_MS = 12 * 60 * 60 * 1000;
+/** A session lasts 24 h from the last request (sliding), never longer than SESSION_MAX_MS from the login. */
+const SESSION_MS = 24 * 60 * 60 * 1000;
 
 function sha256(value: string): Buffer {
   return createHash("sha256").update(value).digest();
@@ -408,6 +409,8 @@ export function createPinAuth(options: PinAuthOptions): UiAuthAdapter {
         sessions.delete(key);
         return null;
       }
+      // Activity refreshes the 24 h window.
+      sessions.set(key, now() + SESSION_MS);
       return { role: listenerRole };
     },
     logout(request) {
@@ -469,6 +472,16 @@ export function buildUiListener(options: UiListenerOptions): FastifyInstance {
   });
   app.addHook("onResponse", async (request, reply) => {
     request.log.info({ event: "http_request", method: request.method, route: request.routeOptions?.url ?? "(unmatched)", status: reply.statusCode }, "request");
+  });
+
+  // Activity keeps the browser cookie alive as long as the server-side session (24 h sliding).
+  app.addHook("onSend", async (request, reply, payload) => {
+    const token = cookieValue(request, UI_COOKIE);
+    if (token && reply.statusCode < 400 && !reply.hasHeader("Set-Cookie") && request.url !== "/ui/api/logout") {
+      const cookie = options.auth.cookie(token);
+      if (cookie && options.auth.authenticate(request, options.role)) reply.header("Set-Cookie", cookie);
+    }
+    return payload;
   });
 
   app.get("/health", async () => ({ ok: true, role: options.role }));

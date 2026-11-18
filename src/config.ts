@@ -50,8 +50,6 @@ export interface AppConfig {
   uiModules?: string[] | undefined;
   /** PIN that opens the UI listeners that need one (PIGATEWAY_UI_PIN). */
   uiPin?: string | undefined;
-  /** The LAN listener needs no PIN (PIGATEWAY_UI_LAN_NO_PIN=true). The relay always does. */
-  uiLanNoPin?: boolean | undefined;
   /** Browser origins allowed to call the UI listeners with credentials (PIGATEWAY_UI_CORS_ORIGINS). */
   uiCorsOrigins?: string[] | undefined;
   pirundownApiUrl?: string | undefined;
@@ -265,10 +263,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const uiPort = env.PIGATEWAY_UI_PORT?.trim() ? validPort(env.PIGATEWAY_UI_PORT, 3011, "PIGATEWAY_UI_PORT") : undefined;
   const uiRelayPort = env.PIGATEWAY_UI_RELAY_PORT?.trim() ? validPort(env.PIGATEWAY_UI_RELAY_PORT, 3012, "PIGATEWAY_UI_RELAY_PORT") : undefined;
   const uiPin = env.PIGATEWAY_UI_PIN?.trim() || undefined;
-  const uiLanNoPin = env.PIGATEWAY_UI_LAN_NO_PIN === "true";
-  const pinNeeded = uiRelayPort !== undefined || (uiPort !== undefined && !uiLanNoPin);
+  // Both UI listeners always need the PIN; there is no PIN-free mode.
+  const pinNeeded = uiRelayPort !== undefined || uiPort !== undefined;
   if (pinNeeded && (!uiPin || uiPin.length < 6)) {
-    throw new Error("PIGATEWAY_UI_PIN (at least 6 characters) is required for the picontrol UI relay listener, or for the LAN listener unless PIGATEWAY_UI_LAN_NO_PIN=true");
+    throw new Error("PIGATEWAY_UI_PIN (at least 6 characters) is required when a picontrol UI listener (PIGATEWAY_UI_PORT or PIGATEWAY_UI_RELAY_PORT) is on");
   }
   const pirundownApiUrl = urlWithScheme(env.PIGATEWAY_PIRUNDOWN_API_URL, "PIGATEWAY_PIRUNDOWN_API_URL", ["http:", "https:"]);
   const pirundownDesignerApiUrl = urlWithScheme(env.PIGATEWAY_PIRUNDOWN_DESIGNER_API_URL, "PIGATEWAY_PIRUNDOWN_DESIGNER_API_URL", ["http:", "https:"]);
@@ -305,7 +303,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     uiPort,
     uiRelayPort,
     uiPin,
-    uiLanNoPin,
     uiModules: list(env.PIGATEWAY_UI_MODULES),
     uiCorsOrigins: list(env.PIGATEWAY_UI_CORS_ORIGINS),
     pitallyApiUrl,

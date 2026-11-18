@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import type { AppConfig } from "../config.js";
-import { buildUiListener, createOpenAuth, createPinAuth, type ForwardedResponse, type UiForward, type UiMethod, type UiRole, type UiRouteRule } from "./ui-listener.js";
+import { buildUiListener, createPinAuth, type ForwardedResponse, type UiForward, type UiMethod, type UiRole, type UiRouteRule } from "./ui-listener.js";
 
 export interface UiListenerSpec {
   role: UiRole;
@@ -52,13 +52,13 @@ export function createUiForward(app: FastifyInstance, config: AppConfig): UiForw
 /** The picontrol UI listeners that are switched on by config (none unless PIGATEWAY_UI_PORT or _RELAY_PORT is set). */
 export function createUiListeners(app: FastifyInstance, config: AppConfig): UiListenerSpec[] {
   if (config.uiPort === undefined && config.uiRelayPort === undefined) return [];
-  const pinAuth = config.uiPin ? createPinAuth({ pin: config.uiPin }) : undefined;
+  // config.ts refuses to start without a PIN when a UI listener is on, so a missing PIN here is a bug: fail closed.
+  if (!config.uiPin) throw new Error("PIGATEWAY_UI_PIN is required for the picontrol UI listeners");
+  const lanAuth = createPinAuth({ pin: config.uiPin });
   // The relay's page is on another site (the Pi's own domain), so its cookie is SameSite=None; Secure.
-  const relayAuth = config.uiPin ? createPinAuth({ pin: config.uiPin, sameSite: "None", secure: true }) : createOpenAuth();
+  const relayAuth = createPinAuth({ pin: config.uiPin, sameSite: "None", secure: true });
   const forward = createUiForward(app, config);
   const modules = config.uiModules ? new Set(config.uiModules) : undefined;
-  // The relay always needs the PIN; the LAN listener needs it unless PIGATEWAY_UI_LAN_NO_PIN=true.
-  const lanAuth = config.uiLanNoPin || !pinAuth ? createOpenAuth() : pinAuth;
   const specs: UiListenerSpec[] = [];
   if (config.uiPort !== undefined) {
     specs.push({ role: "lan", host: "0.0.0.0", port: config.uiPort, app: buildUiListener({ role: "lan", auth: lanAuth, forward, corsOrigins: config.uiCorsOrigins, modules, logger: app.log }) });
