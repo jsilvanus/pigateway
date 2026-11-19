@@ -55,6 +55,19 @@ test("matrix-proxy-routes proxies sources, outputs, multiview, crops, composites
   const res4 = await app.inject({ method: "POST", url: "/api/v1/sources/cam1/effects/crop", payload: { crop: [0, 0, 100, 100] } });
   assert.equal(res4.statusCode, 200);
 
+  // pimatrix serves these as PUT; a POST would be a 404 there.
+  const upstream = (path: string) => calls.find((c) => c.path === path)?.method;
+  assert.equal(upstream("/api/v1/outputs/hdmi0/source"), "PUT");
+  assert.equal(upstream("/api/v1/sources/cam1/effects/crop"), "PUT");
+  for (const [url, path] of [
+    ["/api/v1/outputs/multiview/layout", "/api/v1/outputs/multiview/layout"],
+    ["/api/v1/outputs/multiview/slot", "/api/v1/outputs/multiview/slot"],
+    ["/api/v1/outputs/rtsp/source", "/api/v1/outputs/rtsp/source"]
+  ] as const) {
+    await app.inject({ method: "POST", url, payload: {} });
+    assert.equal(upstream(path), "PUT", path);
+  }
+
   const res5 = await app.inject({ method: "GET", url: "/api/v1/composites" });
   assert.equal(res5.statusCode, 200);
 
@@ -62,6 +75,6 @@ test("matrix-proxy-routes proxies sources, outputs, multiview, crops, composites
   assert.equal(res6.statusCode, 200);
   assert.equal(res6.headers["content-type"], "image/png");
 
-  assert.equal(calls.length, 6);
+  assert.equal(calls.length, 9);
   await app.close();
 });
