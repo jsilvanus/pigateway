@@ -12,6 +12,632 @@
     }
   ],
   "paths": {
+    "/api/v1/action-lists": {
+      "get": {
+        "operationId": "listActionLists",
+        "tags": [
+          "Actions"
+        ],
+        "summary": "List saved action lists",
+        "responses": {
+          "200": {
+            "description": "Lists, newest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "createdBy": {
+                            "type": "string",
+                            "enum": [
+                              "canva",
+                              "api"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "expiresAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "singleUse": {
+                            "type": "boolean"
+                          },
+                          "onError": {
+                            "type": "string",
+                            "enum": [
+                              "stop"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "ready",
+                              "expired",
+                              "used",
+                              "running"
+                            ]
+                          },
+                          "routesProjector": {
+                            "type": "boolean",
+                            "description": "Holds a matrix step; the internet relay refuses to run it"
+                          },
+                          "steps": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "action"
+                              ],
+                              "properties": {
+                                "action": {
+                                  "type": "string",
+                                  "description": "An action id from GET /api/v1/actions, e.g. pipgm:playlist-set"
+                                },
+                                "params": {
+                                  "type": "object"
+                                }
+                              }
+                            }
+                          },
+                          "usedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "lastRun": {
+                            "type": [
+                              "object",
+                              "null"
+                            ]
+                          },
+                          "runPath": {
+                            "type": "string",
+                            "description": "/run/<id>, the picontrol page that runs the list"
+                          },
+                          "link": {
+                            "type": "string",
+                            "description": "Full run link; only when PIGATEWAY_PICONTROL_URL is set"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createActionList",
+        "tags": [
+          "Actions"
+        ],
+        "summary": "Save an action list",
+        "description": "A list is an ordered set of registry actions run one after another by POST /api/v1/action-lists/{id}/run. The Canva plugin makes its lists through /api/v1/canva/action-lists, which only accepts pipgm steps and matrix routes of a Pi input to a projector.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "steps"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 120
+                  },
+                  "steps": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 20,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "action"
+                      ],
+                      "properties": {
+                        "action": {
+                          "type": "string",
+                          "description": "An action id from GET /api/v1/actions, e.g. pipgm:playlist-set"
+                        },
+                        "params": {
+                          "type": "object"
+                        }
+                      }
+                    }
+                  },
+                  "singleUse": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "The list can be run once (a failed run does not count)"
+                  },
+                  "ttlSeconds": {
+                    "type": "integer",
+                    "minimum": 30,
+                    "maximum": 86400,
+                    "default": 900,
+                    "description": "How long the list stays valid"
+                  },
+                  "onError": {
+                    "type": "string",
+                    "enum": [
+                      "stop"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "createdBy": {
+                      "type": "string",
+                      "enum": [
+                        "canva",
+                        "api"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "singleUse": {
+                      "type": "boolean"
+                    },
+                    "onError": {
+                      "type": "string",
+                      "enum": [
+                        "stop"
+                      ]
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "ready",
+                        "expired",
+                        "used",
+                        "running"
+                      ]
+                    },
+                    "routesProjector": {
+                      "type": "boolean",
+                      "description": "Holds a matrix step; the internet relay refuses to run it"
+                    },
+                    "steps": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "action"
+                        ],
+                        "properties": {
+                          "action": {
+                            "type": "string",
+                            "description": "An action id from GET /api/v1/actions, e.g. pipgm:playlist-set"
+                          },
+                          "params": {
+                            "type": "object"
+                          }
+                        }
+                      }
+                    },
+                    "usedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "lastRun": {
+                      "type": [
+                        "object",
+                        "null"
+                      ]
+                    },
+                    "runPath": {
+                      "type": "string",
+                      "description": "/run/<id>, the picontrol page that runs the list"
+                    },
+                    "link": {
+                      "type": "string",
+                      "description": "Full run link; only when PIGATEWAY_PICONTROL_URL is set"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/action-lists/{id}": {
+      "get": {
+        "operationId": "getActionList",
+        "tags": [
+          "Actions"
+        ],
+        "summary": "Read an action list and whether it can still run",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "createdBy": {
+                      "type": "string",
+                      "enum": [
+                        "canva",
+                        "api"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "singleUse": {
+                      "type": "boolean"
+                    },
+                    "onError": {
+                      "type": "string",
+                      "enum": [
+                        "stop"
+                      ]
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "ready",
+                        "expired",
+                        "used",
+                        "running"
+                      ]
+                    },
+                    "routesProjector": {
+                      "type": "boolean",
+                      "description": "Holds a matrix step; the internet relay refuses to run it"
+                    },
+                    "steps": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "action"
+                        ],
+                        "properties": {
+                          "action": {
+                            "type": "string",
+                            "description": "An action id from GET /api/v1/actions, e.g. pipgm:playlist-set"
+                          },
+                          "params": {
+                            "type": "object"
+                          }
+                        }
+                      }
+                    },
+                    "usedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "lastRun": {
+                      "type": [
+                        "object",
+                        "null"
+                      ]
+                    },
+                    "runPath": {
+                      "type": "string",
+                      "description": "/run/<id>, the picontrol page that runs the list"
+                    },
+                    "link": {
+                      "type": "string",
+                      "description": "Full run link; only when PIGATEWAY_PICONTROL_URL is set"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteActionList",
+        "tags": [
+          "Actions"
+        ],
+        "summary": "Delete an action list",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "404": {
+            "description": "Unknown list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/action-lists/{id}/run": {
+      "post": {
+        "operationId": "runActionList",
+        "tags": [
+          "Actions"
+        ],
+        "summary": "Run an action list",
+        "description": "Runs the steps in order and stops at the first failure. A single-use list runs once; a failed run can be retried. On the internet relay a list with a matrix step is refused (403).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "All steps ran",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "run": {
+                      "type": "object"
+                    },
+                    "list": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "createdBy": {
+                          "type": "string",
+                          "enum": [
+                            "canva",
+                            "api"
+                          ]
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "expiresAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "singleUse": {
+                          "type": "boolean"
+                        },
+                        "onError": {
+                          "type": "string",
+                          "enum": [
+                            "stop"
+                          ]
+                        },
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "ready",
+                            "expired",
+                            "used",
+                            "running"
+                          ]
+                        },
+                        "routesProjector": {
+                          "type": "boolean",
+                          "description": "Holds a matrix step; the internet relay refuses to run it"
+                        },
+                        "steps": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "action"
+                            ],
+                            "properties": {
+                              "action": {
+                                "type": "string",
+                                "description": "An action id from GET /api/v1/actions, e.g. pipgm:playlist-set"
+                              },
+                              "params": {
+                                "type": "object"
+                              }
+                            }
+                          }
+                        },
+                        "usedAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "lastRun": {
+                          "type": [
+                            "object",
+                            "null"
+                          ]
+                        },
+                        "runPath": {
+                          "type": "string",
+                          "description": "/run/<id>, the picontrol page that runs the list"
+                        },
+                        "link": {
+                          "type": "string",
+                          "description": "Full run link; only when PIGATEWAY_PICONTROL_URL is set"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Routes a projector and was asked for through the relay",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Already used, or running now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "A step failed; the body has the run and the failing step",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/actions": {
       "get": {
         "operationId": "getActions",
@@ -2035,6 +2661,308 @@
           },
           "422": {
             "description": "Invalid zoom action or speed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/canva/action-lists": {
+      "post": {
+        "operationId": "createCanvaActionList",
+        "tags": [
+          "Canva"
+        ],
+        "summary": "Save a Go live list from the Canva plugin",
+        "description": "Only these steps are accepted: pipgm:playlist-set, pipgm:route, pipgm:ftb, pipgm:control, and matrix:route from Pi input 3 or 4 to projector output 1 or 2. Anything else is refused with 422. The plugin cannot run the list; the returned link opens picontrol, which runs it on the church network.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "steps"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 120
+                  },
+                  "steps": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 20,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "action"
+                      ],
+                      "properties": {
+                        "action": {
+                          "type": "string",
+                          "description": "An action id from GET /api/v1/actions, e.g. pipgm:playlist-set"
+                        },
+                        "params": {
+                          "type": "object"
+                        }
+                      }
+                    }
+                  },
+                  "singleUse": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "The list can be run once (a failed run does not count)"
+                  },
+                  "ttlSeconds": {
+                    "type": "integer",
+                    "minimum": 30,
+                    "maximum": 86400,
+                    "default": 900,
+                    "description": "How long the list stays valid"
+                  },
+                  "onError": {
+                    "type": "string",
+                    "enum": [
+                      "stop"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "createdBy": {
+                      "type": "string",
+                      "enum": [
+                        "canva",
+                        "api"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "singleUse": {
+                      "type": "boolean"
+                    },
+                    "onError": {
+                      "type": "string",
+                      "enum": [
+                        "stop"
+                      ]
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "ready",
+                        "expired",
+                        "used",
+                        "running"
+                      ]
+                    },
+                    "routesProjector": {
+                      "type": "boolean",
+                      "description": "Holds a matrix step; the internet relay refuses to run it"
+                    },
+                    "steps": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "action"
+                        ],
+                        "properties": {
+                          "action": {
+                            "type": "string",
+                            "description": "An action id from GET /api/v1/actions, e.g. pipgm:playlist-set"
+                          },
+                          "params": {
+                            "type": "object"
+                          }
+                        }
+                      }
+                    },
+                    "usedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "lastRun": {
+                      "type": [
+                        "object",
+                        "null"
+                      ]
+                    },
+                    "runPath": {
+                      "type": "string",
+                      "description": "/run/<id>, the picontrol page that runs the list"
+                    },
+                    "link": {
+                      "type": "string",
+                      "description": "Full run link; only when PIGATEWAY_PICONTROL_URL is set"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid list or a step that is not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/canva/action-lists/{id}": {
+      "get": {
+        "operationId": "getCanvaActionList",
+        "tags": [
+          "Canva"
+        ],
+        "summary": "Read a list the plugin made",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "createdBy": {
+                      "type": "string",
+                      "enum": [
+                        "canva",
+                        "api"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "singleUse": {
+                      "type": "boolean"
+                    },
+                    "onError": {
+                      "type": "string",
+                      "enum": [
+                        "stop"
+                      ]
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "ready",
+                        "expired",
+                        "used",
+                        "running"
+                      ]
+                    },
+                    "routesProjector": {
+                      "type": "boolean",
+                      "description": "Holds a matrix step; the internet relay refuses to run it"
+                    },
+                    "steps": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "action"
+                        ],
+                        "properties": {
+                          "action": {
+                            "type": "string",
+                            "description": "An action id from GET /api/v1/actions, e.g. pipgm:playlist-set"
+                          },
+                          "params": {
+                            "type": "object"
+                          }
+                        }
+                      }
+                    },
+                    "usedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "lastRun": {
+                      "type": [
+                        "object",
+                        "null"
+                      ]
+                    },
+                    "runPath": {
+                      "type": "string",
+                      "description": "/run/<id>, the picontrol page that runs the list"
+                    },
+                    "link": {
+                      "type": "string",
+                      "description": "Full run link; only when PIGATEWAY_PICONTROL_URL is set"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown list",
             "content": {
               "application/json": {
                 "schema": {

@@ -8,6 +8,9 @@ import type { AppConfig } from "../config.js";
 import type { PanTiltDirection, ZoomAction } from "../camera/visca-protocol.js";
 import type { RundownStore } from "../rundown/rundown-store.js";
 import { VideoSourceRegistry } from "../switcher/video-source-registry.js";
+import type { PiProgramClient } from "../pipgm/client.js";
+import type { PiMatrixClient } from "../matrix/client.js";
+import { PIPGM_CONTROL_ACTIONS, PI_OUTPUTS, normalizeFeed, normalizePiOutput } from "./pipgm-actions.js";
 
 export interface ActionParamDef {
   type: "string" | "number" | "boolean" | "object";
@@ -52,6 +55,10 @@ export interface ActionRegistryOptions {
   fetchFn?: typeof fetch | undefined;
   rundownStore?: RundownStore | undefined;
   sourceRegistry?: VideoSourceRegistry | undefined;
+  /** piprogram, for the pipgm:* actions. Without it they are listed as unavailable. */
+  pipgm?: PiProgramClient | undefined;
+  /** pimatrix, for pipgm:route (a feed to a Pi output). */
+  pimatrix?: PiMatrixClient | undefined;
 }
 
 export class ActionRegistry {
@@ -65,6 +72,8 @@ export class ActionRegistry {
   private readonly fetchFn: typeof fetch;
   readonly sourceRegistry: VideoSourceRegistry;
   private rundownStore?: RundownStore | undefined;
+  private readonly pipgm?: PiProgramClient | undefined;
+  private readonly pimatrix?: PiMatrixClient | undefined;
 
   constructor(options: ActionRegistryOptions) {
     this.config = options.config;
@@ -76,6 +85,8 @@ export class ActionRegistry {
     this.eventBroker = options.eventBroker;
     this.fetchFn = options.fetchFn ?? fetch;
     this.rundownStore = options.rundownStore;
+    this.pipgm = options.pipgm;
+    this.pimatrix = options.pimatrix;
     this.sourceRegistry =
       options.sourceRegistry ??
       new VideoSourceRegistry({ switchMatrixInput: options.config.switchMatrixInput });
@@ -297,6 +308,65 @@ export class ActionRegistry {
       params: {
         input: { type: "number", required: true, description: "Input 1-4" },
         output: { type: "number", required: true, description: "Output 1-4" },
+      },
+    });
+
+
+    // 3b. PiPGM (piprogram) actions
+    const pipgmAvailable = Boolean(this.pipgm?.configured());
+    const pipgmReason = pipgmAvailable ? undefined : "PiProgram is not configured";
+    const feedParam: ActionParamDef = { type: "string", required: true, enum: ["PiPGM1", "PiPGM2", "PiPGM3"], description: "Feed (PiPGM1 to PiPGM3)" };
+    actions.push({
+      id: "pipgm:playlist-set",
+      domain: "pipgm",
+      name: "Set Feed Playlist",
+      description: "Replace a feed's playlist with library items in this order, and optionally save it under a name",
+      available: pipgmAvailable,
+      unavailableReason: pipgmReason,
+      params: {
+        feed: feedParam,
+        itemIds: { type: "object", required: true, description: "Array of library item ids, in play order" },
+        name: { type: "string", required: false, description: "Also save the playlist under this name" },
+      },
+    });
+    actions.push({
+      id: "pipgm:ftb",
+      domain: "pipgm",
+      name: "Feed Fade To Black",
+      description: "Fade a PiPGM feed to black, or bring it back",
+      available: pipgmAvailable,
+      unavailableReason: pipgmReason,
+      params: {
+        feed: feedParam,
+        on: { type: "boolean", required: true, description: "true = black, false = picture" },
+      },
+    });
+    actions.push({
+      id: "pipgm:control",
+      domain: "pipgm",
+      name: "Feed Control",
+      description: "Control a PiPGM feed: next, prev, go to a step or item, play, pause, stop, restart",
+      available: pipgmAvailable,
+      unavailableReason: pipgmReason,
+      params: {
+        feed: feedParam,
+        action: { type: "string", required: true, enum: [...PIPGM_CONTROL_ACTIONS] },
+        stepIndex: { type: "number", required: false, description: "For gotoStep (0-based)" },
+        itemIndex: { type: "number", required: false, description: "For gotoItem (0-based)" },
+        itemId: { type: "string", required: false, description: "For gotoItem, instead of itemIndex" },
+      },
+    });
+    const pimatrixAvailable = Boolean(this.pimatrix?.configured());
+    actions.push({
+      id: "pipgm:route",
+      domain: "pipgm",
+      name: "Route Feed To Pi Output",
+      description: "Send a PiPGM feed to the Pi's HDMI output 1 or 2 (Atlona input 3 or 4)",
+      available: pimatrixAvailable,
+      unavailableReason: pimatrixAvailable ? undefined : "PiMatrix is not configured",
+      params: {
+        feed: feedParam,
+        output: { type: "string", required: true, enum: ["pi1", "pi2"], description: "Pi output" },
       },
     });
 
@@ -671,6 +741,55 @@ export class ActionRegistry {
           return { ok: false, action: actionId, error: res.message ?? "Matrix route failed" };
         }
         return { ok: true, action: actionId, target: "matrix:route", result: { input, output } };
+      }
+    }
+
+    // 3b. PiPGM Domain (piprogram, and pimatrix for pipgm:route)
+    if (domain === "pipgm") {
+      const feed = normalizeFeed(params.feed);
+      if (!feed) return { ok: false, action: actionId, error: "feed must be PiPGM1, PiPGM2 or PiPGM3" };
+
+      if (op === "route") {
+        if (!this.pimatrix?.configured()) return { ok: false, action: actionId, error: "PiMatrix is not available" };
+        const piOutput = normalizePiOutput(params.output);
+        if (!piOutput) return { ok: false, action: actionId, error: "output must be pi1 or pi2" };
+        const hdmi = PI_OUTPUTS[piOutput]!.hdmi;
+        const result = await this.pimatrix.setOutputSource(hdmi, { sourceId: feed });
+        return { ok: true, action: actionId, target: `pipgm:${feed}:route`, result: { feed, output: piOutput, hdmi, routed: result } };
+      }
+
+      if (!this.pipgm?.configured()) return { ok: false, action: actionId, error: "PiProgram is not available" };
+
+      if (op === "playlist-set") {
+        const ids = params.itemIds;
+        if (!Array.isArray(ids) || !ids.every((id) => typeof id === "string" && id.trim() !== "")) {
+          return { ok: false, action: actionId, error: "itemIds must be an array of item ids" };
+        }
+        const order = await this.pipgm.setPlaylistOrder(feed, { itemIds: ids.map((id) => String(id).trim()) });
+        let saved: unknown = undefined;
+        if (typeof params.name === "string" && params.name.trim()) {
+          saved = await this.pipgm.savePlaylist(feed, { name: params.name.trim() });
+        }
+        return { ok: true, action: actionId, target: `pipgm:${feed}:playlist`, result: { feed, itemCount: ids.length, playlist: order, ...(saved !== undefined ? { saved } : {}) } };
+      }
+
+      if (op === "ftb") {
+        if (typeof params.on !== "boolean") return { ok: false, action: actionId, error: "on must be true or false" };
+        const state = await this.pipgm.setFadeToBlack(feed, { fadeToBlack: params.on });
+        return { ok: true, action: actionId, target: `pipgm:${feed}:ftb`, result: state };
+      }
+
+      if (op === "control") {
+        const control = String(params.action ?? "");
+        if (!(PIPGM_CONTROL_ACTIONS as readonly string[]).includes(control)) {
+          return { ok: false, action: actionId, error: `action must be one of: ${PIPGM_CONTROL_ACTIONS.join(", ")}` };
+        }
+        const body: Record<string, unknown> = { action: control };
+        for (const key of ["stepIndex", "itemIndex", "itemId"] as const) {
+          if (params[key] !== undefined) body[key] = params[key];
+        }
+        const state = await this.pipgm.controlPipeline(feed, body);
+        return { ok: true, action: actionId, target: `pipgm:${feed}:control`, result: state };
       }
     }
 

@@ -20,7 +20,7 @@ function notConfigured(module: string): ForwardedResponse {
  * never reaches the browser). pitube is an upstream service, reached over HTTP with its own token.
  */
 export function createUiForward(app: FastifyInstance, config: AppConfig): UiForward {
-  return async (rule: UiRouteRule, request: { method: UiMethod; url: string; body: unknown }): Promise<ForwardedResponse> => {
+  return async (rule: UiRouteRule, request: { method: UiMethod; url: string; body: unknown; role?: UiRole }): Promise<ForwardedResponse> => {
     const payload = request.body === undefined ? undefined : JSON.stringify(request.body);
     if (rule.module === "pitube" && !rule.path.startsWith("/api/v1/youtube/")) {
       if (!config.pitubeApiUrl) return notConfigured("pitube");
@@ -43,6 +43,8 @@ export function createUiForward(app: FastifyInstance, config: AppConfig): UiForw
     const headers: Record<string, string> = {};
     if (config.apiKey) headers.authorization = `Bearer ${config.apiKey}`;
     if (payload !== undefined) headers["content-type"] = "application/json";
+    // The route handlers that depend on who is asking (running an action list) read this. It is set here, from the listener.
+    if (request.role) headers["x-ui-role"] = request.role;
     const res = await app.inject({ method: request.method, url: request.url, headers, ...(payload !== undefined ? { payload } : {}) });
     // rawPayload keeps binary answers (frames, pictures) as bytes; a string would corrupt them.
     return { statusCode: res.statusCode, contentType: String(res.headers["content-type"] ?? JSON_TYPE), body: res.rawPayload };
