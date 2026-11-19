@@ -55,6 +55,10 @@ export interface AppConfig {
   /** Browser origins allowed to call the UI listeners with credentials (PIGATEWAY_UI_CORS_ORIGINS). */
   uiCorsOrigins?: string[] | undefined;
   pirundownApiUrl?: string | undefined;
+  /** Where saved action lists are kept (PIGATEWAY_ACTION_LIST_DIR); unset = memory only. */
+  actionListDir?: string | undefined;
+  /** Base URL of picontrol, for the run link of an action list (PIGATEWAY_PICONTROL_URL). */
+  picontrolUrl?: string | undefined;
   pirundownDesignerApiUrl?: string | undefined;
   pispaceApiUrl?: string | undefined;
   pigraphicsApiUrl?: string | undefined;
@@ -314,6 +318,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     uiCorsOrigins: list(env.PIGATEWAY_UI_CORS_ORIGINS),
     pitallyApiUrl,
     pimatrixApiUrl,
+    actionListDir: env.PIGATEWAY_ACTION_LIST_DIR?.trim() || undefined,
+    picontrolUrl: urlWithScheme(env.PIGATEWAY_PICONTROL_URL, "PIGATEWAY_PICONTROL_URL", ["http:", "https:"]),
     piprogramApiUrl,
     piprogramApiKey: env.PIGATEWAY_PIPROGRAM_API_KEY?.trim() || undefined,
     canvaDownloadHosts: list(env.PIGATEWAY_CANVA_DOWNLOAD_HOSTS),

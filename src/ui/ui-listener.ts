@@ -218,6 +218,10 @@ export const UI_ROUTES: readonly UiRouteRule[] = [
   { method: "GET", path: "/api/v1/pipgm/playlists", module: "piprogram" },
   { method: "GET", path: "/api/v1/pipgm/playlists/:playlistId", module: "piprogram" },
   { method: "POST", path: "/api/v1/pipgm/pipelines/:pipelineId/playlist/load", module: "piprogram" },
+  // Action lists ("Go live" from Canva): read and run. The run route itself refuses a list that routes a projector
+  // for the relay (it reads x-ui-role); making and deleting lists is not offered here.
+  { method: "GET", path: "/api/v1/action-lists/:id", module: "piprogram" },
+  { method: "POST", path: "/api/v1/action-lists/:id/run", module: "piprogram" },
   { method: "PUT", path: "/api/v1/pipgm/pipelines/:pipelineId/playlist/order", module: "piprogram", setup: true },
   { method: "POST", path: "/api/v1/pipgm/pipelines/:pipelineId/playlist/save", module: "piprogram", setup: true },
   { method: "POST", path: "/api/v1/pipgm/playlists", module: "piprogram", setup: true },
@@ -505,7 +509,7 @@ export interface ForwardedResponse {
 }
 
 /** Runs an allowlisted request: in-process for gateway routes, over HTTP for upstream modules (pitube). */
-export type UiForward = (rule: UiRouteRule, request: { method: UiMethod; url: string; body: unknown }) => Promise<ForwardedResponse>;
+export type UiForward = (rule: UiRouteRule, request: { method: UiMethod; url: string; body: unknown; role?: UiRole }) => Promise<ForwardedResponse>;
 
 /** Event types the picontrol UI may receive. Transcripts, rundown, world state, perception and tracking are left out. */
 export const UI_EVENT_TYPES = ["camera", "matrix", "encoder", "atem", "youtube", "pivoice", "pivoice-activity", "pisound", "ecosystem"] as const;
@@ -628,7 +632,7 @@ export function buildUiListener(options: UiListenerOptions): FastifyInstance {
       if ((rule.setup || rule.lanOnly) && options.role !== "lan") {
         return reply.code(403).send({ error: { code: "SETUP_NOT_ON_THIS_LISTENER", message: "Setup is not available through the internet relay" } });
       }
-      const forwarded = await options.forward(rule, { method: request.method as UiMethod, url: request.url, body: request.body });
+      const forwarded = await options.forward(rule, { method: request.method as UiMethod, url: request.url, body: request.body, role: options.role });
       return reply.code(forwarded.statusCode).type(forwarded.contentType).send(forwarded.body);
     }
   });

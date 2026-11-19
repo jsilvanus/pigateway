@@ -1,4 +1,6 @@
 import type { FastifyInstance, FastifyReply } from "fastify";
+import { registerCanvaActionListRoutes } from "../actions/action-list-routes.js";
+import type { ActionListStore } from "../actions/action-lists.js";
 import { CanvaError, pipelineIdFor, type CanvaService } from "./canva-service.js";
 
 /** Where each Pi Program pipeline enters the Atlona (input), and what each route name means (outputs). */
@@ -16,6 +18,8 @@ export interface CanvaRoutesOptions {
   routeMatrix?: ((input: number, output: number) => Promise<{ success: boolean; message?: string | undefined }>) | undefined;
   matrixRoutes?: (() => Record<number, number | null>) | undefined;
   /** Mutes or opens the picture of a projector (Epson picture mute through the AMX). Without it picMute is not available. */
+  /** Where "Go live" lists are kept. Without it the action list routes are not offered. */
+  actionLists?: { store: ActionListStore; picontrolUrl?: string | undefined } | undefined;
   setPictureMute?: ((target: "proj1" | "proj2", muted: boolean) => Promise<{ success: boolean; message?: string | undefined }>) | undefined;
 }
 
@@ -27,6 +31,7 @@ function fail(reply: FastifyReply, error: unknown) {
 }
 
 export function registerCanvaRoutes(app: FastifyInstance, service: CanvaService, options: CanvaRoutesOptions = {}): void {
+  if (options.actionLists) registerCanvaActionListRoutes(app, options.actionLists);
   /** What the plugin last asked for. The projectors do not report it back, so this is not read from them. */
   let lastPicMute: boolean | null = null;
   const applyPictureMute = async (muted: boolean): Promise<string | null> => {

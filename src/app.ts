@@ -47,6 +47,8 @@ import { TranscriptHub, transcriptId } from "./transcripts/transcript-hub.js";
 import { EcosystemTracker } from "./ecosystem/ecosystem-tracker.js";
 import { ActionRegistry } from "./actions/action-registry.js";
 import { registerActionRoutes } from "./actions/action-routes.js";
+import { ActionListStore } from "./actions/action-lists.js";
+import { registerActionListRoutes } from "./actions/action-list-routes.js";
 import { RundownStore } from "./rundown/rundown-store.js";
 import { registerRundownRoutes } from "./rundown/rundown-routes.js";
 import { SpatialStatusStore } from "./spatial/spatial-status.js";
@@ -317,7 +319,9 @@ export function buildApp(config: AppConfig): FastifyInstance {
     downloadHosts: config.canvaDownloadHosts,
     logger: app.log
   });
+  const actionListStore = new ActionListStore({ dir: config.actionListDir });
   const canvaRouteOptions: CanvaRoutesOptions = {
+    actionLists: { store: actionListStore, picontrolUrl: config.picontrolUrl },
     routeMatrix: (input, output) => matrix.route(input, output, config.mode),
     matrixRoutes: () => ({ ...matrix.state.routes }),
     setPictureMute: (target, muted) => amxClient.epsonCommand(target, "MUTE", muted ? "ON" : "OFF")
@@ -362,9 +366,12 @@ export function buildApp(config: AppConfig): FastifyInstance {
     ecosystemTracker,
     eventBroker,
     rundownStore,
+    pipgm: piprogramClient,
+    pimatrix: pimatrixClient,
   });
   rundownStore.setActionRegistry(actionRegistry);
   registerActionRoutes(app, actionRegistry);
+  registerActionListRoutes(app, { store: actionListStore, execute: (request) => actionRegistry.execute(request), picontrolUrl: config.picontrolUrl });
   registerRundownRoutes(app, rundownStore, { pirundownUrl: config.pirundownApiUrl ?? "http://127.0.0.1:3400" });
   const spatialStore = new SpatialStatusStore(eventBroker);
   registerSpatialRoutes(app, { store: spatialStore, client: pispaceClient });
