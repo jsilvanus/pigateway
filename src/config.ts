@@ -28,6 +28,8 @@ export interface AppConfig {
   pitubeApiUrl?: string | undefined;
   pitallyApiUrl?: string | undefined;
   pimatrixApiUrl?: string | undefined;
+  /** Bearer key for pimatrix when it has PIMATRIX_API_KEY set and does not trust this host (PIGATEWAY_PIMATRIX_API_KEY). */
+  pimatrixApiKey?: string | undefined;
   piprogramApiUrl?: string | undefined;
   piprogramApiKey?: string | undefined;
   canvaDownloadHosts?: string[] | undefined;
@@ -318,6 +320,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     uiCorsOrigins: list(env.PIGATEWAY_UI_CORS_ORIGINS),
     pitallyApiUrl,
     pimatrixApiUrl,
+    pimatrixApiKey: env.PIGATEWAY_PIMATRIX_API_KEY?.trim() || undefined,
     actionListDir: env.PIGATEWAY_ACTION_LIST_DIR?.trim() || undefined,
     picontrolUrl: urlWithScheme(env.PIGATEWAY_PICONTROL_URL, "PIGATEWAY_PICONTROL_URL", ["http:", "https:"]),
     piprogramApiUrl,

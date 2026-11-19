@@ -160,6 +160,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
   });
   const pimatrixClient = new PiMatrixClient({
     baseUrl: config.pimatrixApiUrl,
+    token: config.pimatrixApiKey,
     logger: app.log
   });
   const pigraphicsClient = new PiGraphicsClient({
