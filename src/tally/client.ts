@@ -121,4 +121,24 @@ export class PiTallyClient {
   setLightSegments(id: string, data: unknown) {
     return this.request("POST", `/api/v1/lights/${encodeURIComponent(id)}/segments`, data);
   }
+
+  getConditionals() {
+    return this.request("GET", "/api/v1/conditionals");
+  }
+
+  getLightRules(id: string) {
+    return this.request("GET", `/api/v1/lights/${encodeURIComponent(id)}/rules`);
+  }
+
+  setLightRules(id: string, data: unknown) {
+    return this.request("PUT", `/api/v1/lights/${encodeURIComponent(id)}/rules`, data);
+  }
+
+  addLightRule(id: string, data: unknown) {
+    return this.request("POST", `/api/v1/lights/${encodeURIComponent(id)}/rules`, data);
+  }
+
+  deleteLightRule(id: string, ruleId: string) {
+    return this.request("DELETE", `/api/v1/lights/${encodeURIComponent(id)}/rules/${encodeURIComponent(ruleId)}`);
+  }
 }

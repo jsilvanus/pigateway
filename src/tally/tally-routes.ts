@@ -124,4 +124,51 @@ export function registerTallyRoutes(
       return reply.code(error.statusCode ?? 502).send({ error: { code: error.code ?? "pitally_unavailable", message: error.message } });
     }
   });
+
+  // 13. Conditionals catalog
+  app.get("/api/v1/conditionals", async (_request, reply) => {
+    try {
+      return await client.getConditionals();
+    } catch (err: unknown) {
+      const error = err as { statusCode?: number; code?: string; message?: string };
+      return reply.code(error.statusCode ?? 502).send({ error: { code: error.code ?? "pitally_unavailable", message: error.message } });
+    }
+  });
+
+  // 14. Per-light conditional rules
+  app.get<{ Params: { id: string } }>("/api/v1/lights/:id/rules", async (request, reply) => {
+    try {
+      return await client.getLightRules(request.params.id);
+    } catch (err: unknown) {
+      const error = err as { statusCode?: number; code?: string; message?: string };
+      return reply.code(error.statusCode ?? 502).send({ error: { code: error.code ?? "pitally_unavailable", message: error.message } });
+    }
+  });
+
+  app.put<{ Params: { id: string } }>("/api/v1/lights/:id/rules", async (request, reply) => {
+    try {
+      return await client.setLightRules(request.params.id, request.body);
+    } catch (err: unknown) {
+      const error = err as { statusCode?: number; code?: string; message?: string };
+      return reply.code(error.statusCode ?? 502).send({ error: { code: error.code ?? "pitally_unavailable", message: error.message } });
+    }
+  });
+
+  app.post<{ Params: { id: string } }>("/api/v1/lights/:id/rules", async (request, reply) => {
+    try {
+      return await client.addLightRule(request.params.id, request.body);
+    } catch (err: unknown) {
+      const error = err as { statusCode?: number; code?: string; message?: string };
+      return reply.code(error.statusCode ?? 502).send({ error: { code: error.code ?? "pitally_unavailable", message: error.message } });
+    }
+  });
+
+  app.delete<{ Params: { id: string; ruleId: string } }>("/api/v1/lights/:id/rules/:ruleId", async (request, reply) => {
+    try {
+      return await client.deleteLightRule(request.params.id, request.params.ruleId);
+    } catch (err: unknown) {
+      const error = err as { statusCode?: number; code?: string; message?: string };
+      return reply.code(error.statusCode ?? 502).send({ error: { code: error.code ?? "pitally_unavailable", message: error.message } });
+    }
+  });
 }

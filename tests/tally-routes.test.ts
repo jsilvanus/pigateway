@@ -52,6 +52,22 @@ test("tally-routes proxies list, create, state, cue, call, hold, brightness, cyc
   const res5 = await app.inject({ method: "POST", url: "/api/v1/lights/tally01/cycle" });
   assert.equal(res5.statusCode, 200);
 
-  assert.equal(calls.length, 5);
+  const res6 = await app.inject({ method: "GET", url: "/api/v1/conditionals" });
+  assert.equal(res6.statusCode, 200);
+
+  const res7 = await app.inject({
+    method: "PUT",
+    url: "/api/v1/lights/tally01/rules",
+    payload: { rules: [{ id: "yt", when: { type: "youtube-live" }, action: { mode: "pgm" } }] }
+  });
+  assert.equal(res7.statusCode, 200);
+
+  const res8 = await app.inject({ method: "GET", url: "/api/v1/lights/tally01/rules" });
+  assert.equal(res8.statusCode, 200);
+
+  const res9 = await app.inject({ method: "DELETE", url: "/api/v1/lights/tally01/rules/yt" });
+  assert.equal(res9.statusCode, 200);
+
+  assert.equal(calls.length, 9);
   await app.close();
 });
