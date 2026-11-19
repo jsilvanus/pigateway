@@ -32,7 +32,7 @@ test("allowlist admits module routes and nothing else", () => {
   assert.equal(findUiRoute("GET", "/api/v1/voice/transcripts")?.module, "pivoice");
   assert.equal(findUiRoute("POST", "/api/v1/matrix"), null, "method must match");
   assert.equal(findUiRoute("GET", "/api/v1/canva/status"), null);
-  assert.equal(findUiRoute("GET", "/api/v1/cameras"), null);
+  assert.equal(findUiRoute("GET", "/api/v1/cameras")?.lanOnly, true, "cameras: LAN listener only");
   assert.equal(findUiRoute("POST", "/api/v1/broadcasts/start/extra"), null);
   assert.equal(findUiRoute("GET", "/api/v1/broadcasts/current?x=1")?.module, "pitube");
 });
@@ -209,5 +209,39 @@ test("event stream: needs a session, always limited to the UI event types, clien
 test("event stream answers 404 when the gateway gave no stream source", async () => {
   const app = buildUiListener({ role: "lan", auth: createOpenAuth(), forward: async () => ({ statusCode: 200, contentType: "application/json", body: "{}" }), logger });
   assert.equal((await app.inject({ method: "GET", url: "/api/v1/events" })).statusCode, 404);
+  await app.close();
+});
+
+test("the routes behind the Outputs, Cameras and Pipeline tabs are on the allowlist; presets are setup-only", () => {
+  const rule = (m: string, u: string) => findUiRoute(m, u);
+  for (const [m, u] of [
+    ["POST", "/api/v1/outputs/hdmi0/source"], ["POST", "/api/v1/outputs/multiview/layout"], ["POST", "/api/v1/outputs/rtsp/source"],
+    ["POST", "/api/v1/sources/cam1/effects/crop"], ["GET", "/api/v1/effects?includeHidden=true"], ["GET", "/api/v1/ecosystem"],
+    ["GET", "/api/v1/cameras"], ["POST", "/api/v1/cameras/cam1/move"], ["POST", "/api/v1/cameras/cam1/presets/2/recall"],
+    ["GET", "/api/v1/video-mixer"], ["PUT", "/api/v1/video-mixer/program"], ["POST", "/api/v1/video-mixer/cut"], ["POST", "/api/v1/encoder/start"]
+  ] as const) assert.ok(rule(m, u), `${m} ${u}`);
+  assert.equal(rule("POST", "/api/v1/cameras/cam1/presets/2/save")?.setup, true);
+  // camera stream control is LAN-only; free-d and device config stay off the UI listeners
+  assert.equal(rule("POST", "/api/v1/cameras/cam1/stream/start")?.lanOnly, true);
+  assert.equal(rule("POST", "/api/v1/cameras/cam1/freed"), null);
+});
+
+test("camera and ATEM routes are served on the LAN listener and refused on the relay", async () => {
+  for (const [role, expected] of [["lan", 200], ["relay", 403]] as const) {
+    const { app } = setup(role);
+    const login2 = await app.inject({ method: "POST", url: "/ui/api/login", payload: { pin: "123456" } });
+    const cookie = String(login2.headers["set-cookie"]).split(";")[0]!;
+    assert.equal((await app.inject({ method: "GET", url: "/api/v1/cameras", headers: { cookie } })).statusCode, expected, `${role} cameras`);
+    assert.equal((await app.inject({ method: "POST", url: "/api/v1/video-mixer/cut", headers: { cookie } })).statusCode, expected, `${role} atem`);
+    await app.close();
+  }
+});
+
+test("module list and YouTube routes are on the allowlist; the module list ignores the module filter", async () => {
+  assert.equal(findUiRoute("GET", "/api/v1/ui/modules")?.module, "ui");
+  assert.equal(findUiRoute("GET", "/api/v1/youtube/status")?.module, "pitube");
+  assert.equal(findUiRoute("PUT", "/api/v1/youtube/status"), null, "writing the status stays internal");
+  const app = buildUiListener({ role: "lan", auth: createOpenAuth(), forward: async () => ({ statusCode: 200, contentType: "application/json", body: "{}" }), modules: new Set(["matrix"]), logger });
+  assert.equal((await app.inject({ method: "GET", url: "/api/v1/ui/modules" })).statusCode, 200);
   await app.close();
 });

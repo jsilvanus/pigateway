@@ -13,7 +13,7 @@ import Fastify, { type FastifyBaseLogger, type FastifyInstance, type FastifyRequ
  */
 
 export type UiRole = "lan" | "relay";
-export type UiModule = "pimatrix" | "pivoice" | "piencoder" | "pitube" | "piradio" | "pisound" | "pitally" | "pigraphics" | "piprogram" | "pirundown" | "pipoe" | "pistorage" | "piagent" | "pinotify" | "piperception" | "pispace";
+export type UiModule = "pimatrix" | "pivoice" | "piencoder" | "pitube" | "piradio" | "pisound" | "pitally" | "pigraphics" | "piprogram" | "pirundown" | "pipoe" | "pistorage" | "piagent" | "pinotify" | "piperception" | "pispace" | "picam" | "piswitch" | "ui";
 export type UiMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 export interface UiRouteRule {
@@ -23,6 +23,8 @@ export interface UiRouteRule {
   module: UiModule;
   /** Setup and configuration: offered on the LAN listener only. */
   setup?: boolean;
+  /** Operating routes that are offered on the LAN listener only (cameras, ATEM): the internet relay refuses them. */
+  lanOnly?: boolean;
 }
 
 export const UI_ROUTES: readonly UiRouteRule[] = [
@@ -83,6 +85,46 @@ export const UI_ROUTES: readonly UiRouteRule[] = [
   { method: "GET", path: "/api/v1/quick-options", module: "pimatrix" },
   { method: "POST", path: "/api/v1/quick-options/:id/apply", module: "pimatrix" },
   { method: "POST", path: "/api/v1/quick-options/number/:number/apply", module: "pimatrix" },
+
+  // which modules the UI may show (the page reads this at start-up); never filtered by the module list itself
+  { method: "GET", path: "/api/v1/ui/modules", module: "ui" },
+  // YouTube tab through the gateway's own pitube-facing routes (in-process, not the pitube upstream)
+  { method: "GET", path: "/api/v1/youtube/status", module: "pitube" },
+  { method: "GET", path: "/api/v1/youtube/broadcasts", module: "pitube" },
+  { method: "GET", path: "/api/v1/youtube/broadcasts/current", module: "pitube" },
+  { method: "POST", path: "/api/v1/youtube/broadcasts/select", module: "pitube" },
+  { method: "POST", path: "/api/v1/youtube/broadcasts/create", module: "pitube" },
+  { method: "POST", path: "/api/v1/youtube/broadcasts/start", module: "pitube" },
+  { method: "POST", path: "/api/v1/youtube/broadcasts/stop", module: "pitube" },
+  { method: "POST", path: "/api/v1/youtube/broadcasts/stop/request", module: "pitube" },
+  { method: "POST", path: "/api/v1/cameras/:cameraId/stream/start", module: "picam", lanOnly: true },
+  { method: "POST", path: "/api/v1/cameras/:cameraId/stream/stop", module: "picam", lanOnly: true },
+  // picontrol Outputs, Cameras, Pipeline tabs: status, effects, cameras, ATEM, encoder start/stop
+  { method: "GET", path: "/api/v1/effects", module: "pimatrix" },
+  { method: "GET", path: "/api/v1/outputs/rtsp", module: "pimatrix" },
+  { method: "GET", path: "/api/v1/ecosystem", module: "pimatrix" },
+  { method: "POST", path: "/api/v1/ecosystem/probe", module: "pimatrix" },
+  { method: "GET", path: "/api/v1/encoder", module: "piencoder" },
+  { method: "POST", path: "/api/v1/encoder/start", module: "piencoder" },
+  { method: "POST", path: "/api/v1/encoder/stop", module: "piencoder" },
+  { method: "GET", path: "/api/v1/cameras", module: "picam", lanOnly: true },
+  { method: "GET", path: "/api/v1/cameras/:cameraId", module: "picam", lanOnly: true },
+  { method: "POST", path: "/api/v1/cameras/:cameraId/move", module: "picam", lanOnly: true },
+  { method: "POST", path: "/api/v1/cameras/:cameraId/zoom", module: "picam", lanOnly: true },
+  { method: "POST", path: "/api/v1/cameras/:cameraId/focus", module: "picam", lanOnly: true },
+  { method: "POST", path: "/api/v1/cameras/:cameraId/privacy-blur", module: "picam", lanOnly: true },
+  { method: "POST", path: "/api/v1/cameras/:cameraId/smartframe", module: "picam", lanOnly: true },
+  { method: "POST", path: "/api/v1/cameras/:cameraId/presets/:presetId/recall", module: "picam", lanOnly: true },
+  { method: "POST", path: "/api/v1/cameras/:cameraId/presets/:presetId/save", module: "picam", setup: true },
+  { method: "POST", path: "/api/v1/cameras/:cameraId/presets/:presetId/thumbnail", module: "picam", setup: true },
+  { method: "GET", path: "/api/v1/video-mixer", module: "piswitch", lanOnly: true },
+  { method: "PUT", path: "/api/v1/video-mixer/program", module: "piswitch", lanOnly: true },
+  { method: "PUT", path: "/api/v1/video-mixer/preview", module: "piswitch", lanOnly: true },
+  { method: "POST", path: "/api/v1/video-mixer/cut", module: "piswitch", lanOnly: true },
+  { method: "POST", path: "/api/v1/video-mixer/auto", module: "piswitch", lanOnly: true },
+  { method: "POST", path: "/api/v1/video-mixer/ftb", module: "piswitch", lanOnly: true },
+  { method: "PUT", path: "/api/v1/video-mixer/dsk/:dsk/tie", module: "piswitch", lanOnly: true },
+  { method: "PUT", path: "/api/v1/video-mixer/dsk/:dsk/on-air", module: "piswitch", lanOnly: true },
 
   // pisound mixer & channels
   { method: "GET", path: "/api/v1/mixes", module: "pisound" },
@@ -286,11 +328,16 @@ const COMPILED: CompiledRule[] = UI_ROUTES.map((rule) => ({
 }));
 
 function isModuleAllowed(ruleModule: string, allowedModules: ReadonlySet<string>): boolean {
+  if (ruleModule === "ui") return true;
   if (allowedModules.has(ruleModule)) return true;
   const aliasMap: Record<string, string> = {
     pimatrix: "matrix",
     matrix: "pimatrix",
     pivoice: "voice",
+    picam: "cameras",
+    cameras: "picam",
+    piswitch: "atem",
+    atem: "piswitch",
     voice: "pivoice",
     pitube: "stream",
     stream: "pitube",
@@ -320,7 +367,7 @@ function isModuleAllowed(ruleModule: string, allowedModules: ReadonlySet<string>
 export function findUiRoute(method: string, url: string): UiRouteRule | null {
   const path = url.split("?")[0] ?? "";
   const hit = COMPILED.find((rule) => rule.method === method && rule.pattern.test(path));
-  return hit ? { method: hit.method, path: hit.path, module: hit.module, ...(hit.setup ? { setup: true } : {}) } : null;
+  return hit ? { method: hit.method, path: hit.path, module: hit.module, ...(hit.setup ? { setup: true } : {}), ...(hit.lanOnly ? { lanOnly: true } : {}) } : null;
 }
 
 /** Who a request is. Replaceable: the PIN adapter now, an OIDC adapter later. */
@@ -578,7 +625,7 @@ export function buildUiListener(options: UiListenerOptions): FastifyInstance {
       if (!options.auth.authenticate(request, options.role)) {
         return reply.code(401).send({ error: { code: "LOGIN_REQUIRED", message: "Log in with the PIN" } });
       }
-      if (rule.setup && options.role !== "lan") {
+      if ((rule.setup || rule.lanOnly) && options.role !== "lan") {
         return reply.code(403).send({ error: { code: "SETUP_NOT_ON_THIS_LISTENER", message: "Setup is not available through the internet relay" } });
       }
       const forwarded = await options.forward(rule, { method: request.method as UiMethod, url: request.url, body: request.body });

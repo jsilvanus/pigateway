@@ -15,7 +15,7 @@ allowlist of module routes (`src/ui/ui-listener.ts`, `UI_ROUTES`); everything el
 - Modules: `matrix` (Atlona routes, lock), `pivoice` (session start/stop, idle-close), `piencoder` (list, start, stop), `pitube` (status, current broadcast, start, stop, stop request). pitube is an upstream: `PIGATEWAY_PITUBE_API_URL` and optional `PIGATEWAY_PITUBE_API_TOKEN`. Only the origin of that URL is used.
 - Gateway routes run in-process through `app.inject`; the gateway's `PIGATEWAY_API_KEY` is added server side and never sent to the browser.
 - `GET /api/v1/events` (live events, SSE) is streamed on both listeners, session required. The type list is fixed on the server (`UI_EVENT_TYPES`: camera, matrix, encoder, atem, youtube, pivoice, pivoice-activity, pisound, ecosystem); a `types` query from the client is ignored, so transcripts, rundown, world state, perception and tracking never leave through the UI listeners. Behind nginx or Traefik the stream needs buffering off (`X-Accel-Buffering: no` is sent).
-- Not exposed on any UI listener: pitube ingest/RTMP settings, device configuration, Canva, transcripts, cameras, rundown.
+- Not exposed on any UI listener: pitube ingest/RTMP settings, device configuration, Canva, transcripts, rundown. Camera and ATEM (`video-mixer`) operating routes are served on the LAN listener only (`lanOnly`); the relay answers 403.
 - Setup routes (`setup: true` in the table) answer on the LAN listener only.
 - Auth is pluggable (`UiAuthAdapter`). The PIN adapter is the first; an OIDC adapter can replace it later without changing the routes.
 - Verified by unit tests only (`tests/ui-listener.test.ts`); not run against the Pi devices.
