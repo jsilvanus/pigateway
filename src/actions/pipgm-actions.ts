@@ -102,6 +102,10 @@ export function checkCanvaStep(action: string, raw: unknown): StepCheck {
         if (typeof params.itemId !== "string" || !params.itemId.trim()) return { ok: false, error: "itemId must be a string" };
         out.itemId = params.itemId.trim();
       }
+      if (params.entryId !== undefined) {
+        if (typeof params.entryId !== "string" || !params.entryId.trim()) return { ok: false, error: "entryId must be a string" };
+        out.entryId = params.entryId.trim();
+      }
       return { ok: true, params: out };
     }
     default:
