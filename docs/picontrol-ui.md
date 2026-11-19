@@ -23,3 +23,7 @@ allowlist of module routes (`src/ui/ui-listener.ts`, `UI_ROUTES`); everything el
 ## Module filter
 
 `PIGATEWAY_UI_MODULES` (comma list: `matrix,pivoice,piencoder,pitube`; unset = all) limits both listeners to those modules. Routes of other modules answer 404. Use the same names as picontrol's `VITE_PICONTROL_MODULES`; names with no gateway route (such as `outputs`) are ignored.
+
+## piprogram on the relay
+
+Adding content works from outside the church network, behind the PIN: items (hymn, YouTube, media, PPTX, Canva), `use-at`, prepare, playlist order, save, generate and replace. Only deleting items and playlists, feed config, audio arm and play, text to speech and the basic image stay LAN only. The UI listeners accept bodies up to 60 MB for uploads, but a request without a session may not carry more than 256 KB.

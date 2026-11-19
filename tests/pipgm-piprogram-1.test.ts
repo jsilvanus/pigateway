@@ -171,11 +171,10 @@ test("the relay gets reads, control, ftb, playlist and audio kill/stop; LAN-only
   assert.equal(relay("POST", "/api/v1/pipgm/tts/prepare"), false);
   assert.equal(relay("PUT", "/api/v1/pipgm/pipelines/PiPGM1/config"), false);
   assert.equal(relay("PUT", "/api/v1/pipgm/pipelines/PiPGM1/basic-image"), false);
-  assert.equal(relay("POST", "/api/v1/pipgm/items/hymn"), false);
-  assert.equal(relay("POST", "/api/v1/pipgm/items/media"), false);
-  assert.equal(relay("POST", "/api/v1/pipgm/items/canva"), false);
-  assert.equal(relay("PUT", "/api/v1/pipgm/items/h-1/use-at"), false);
-  assert.equal(relay("POST", "/api/v1/pipgm/items/h-1/canva/export-package"), false);
+  // adding content works from outside the church network too (decision of 2026-11-19)
+  for (const [m, u] of [["POST", "/api/v1/pipgm/items/hymn"], ["POST", "/api/v1/pipgm/items/youtube"], ["POST", "/api/v1/pipgm/items/media"], ["POST", "/api/v1/pipgm/items/pptx"], ["POST", "/api/v1/pipgm/items/canva"], ["PUT", "/api/v1/pipgm/items/h-1/use-at"], ["POST", "/api/v1/pipgm/items/h-1/prepare"], ["POST", "/api/v1/pipgm/items/h-1/canva/export-package"]] as const) {
+    assert.ok(relay(m, u), `${m} ${u}`);
+  }
   assert.equal(relay("DELETE", "/api/v1/pipgm/items/h-1"), false);
 });
 
@@ -214,7 +213,7 @@ test("playlist routes map to the piprogram playlist API", async () => {
   await app.close();
 });
 
-test("relay: playlists may be read and loaded; save, delete, generate, import, replace and order are LAN only", () => {
+test("relay: playlists may be read and loaded; content, saving, reordering and generating are allowed; deleting is LAN only", () => {
   const rule = (method: string, url: string) => findUiRoute(method, url);
   const relay = (method: string, url: string) => {
     const r = rule(method, url);
@@ -228,19 +227,17 @@ test("relay: playlists may be read and loaded; save, delete, generate, import, r
   assert.ok(relay("POST", "/api/v1/pipgm/pipelines/PiPGM1/control"));
   assert.ok(relay("POST", "/api/v1/pipgm/audio/kill"));
   assert.ok(relay("POST", "/api/v1/pipgm/pipelines/PiPGM1/audio/stop"));
-  // on the allowlist (LAN) but not for the relay
   for (const [m, u] of [
     ["PUT", "/api/v1/pipgm/pipelines/PiPGM1/playlist/order"],
     ["POST", "/api/v1/pipgm/pipelines/PiPGM1/playlist/save"],
     ["POST", "/api/v1/pipgm/playlists"],
     ["POST", "/api/v1/pipgm/playlists/generate"],
-    ["PUT", "/api/v1/pipgm/playlists/pl_1"],
-    ["DELETE", "/api/v1/pipgm/playlists/pl_1"]
-  ] as const) {
-    const r = rule(m, u);
-    assert.ok(r, `${m} ${u} must be on the allowlist`);
-    assert.equal(r.setup, true, `${m} ${u} must be setup (LAN only)`);
-  }
+    ["PUT", "/api/v1/pipgm/playlists/pl_1"]
+  ] as const) assert.ok(relay(m, u), `${m} ${u}`);
+  // destructive: LAN only
+  const del = rule("DELETE", "/api/v1/pipgm/playlists/pl_1");
+  assert.ok(del);
+  assert.equal(del.setup, true);
   // wrong method or unknown path stays off the allowlist
   assert.equal(rule("DELETE", "/api/v1/pipgm/playlists"), null);
   assert.equal(rule("PUT", "/api/v1/pipgm/playlists"), null);

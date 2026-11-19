@@ -222,11 +222,11 @@ export const UI_ROUTES: readonly UiRouteRule[] = [
   // for the relay (it reads x-ui-role); making and deleting lists is not offered here.
   { method: "GET", path: "/api/v1/action-lists/:id", module: "piprogram" },
   { method: "POST", path: "/api/v1/action-lists/:id/run", module: "piprogram" },
-  { method: "PUT", path: "/api/v1/pipgm/pipelines/:pipelineId/playlist/order", module: "piprogram", setup: true },
-  { method: "POST", path: "/api/v1/pipgm/pipelines/:pipelineId/playlist/save", module: "piprogram", setup: true },
-  { method: "POST", path: "/api/v1/pipgm/playlists", module: "piprogram", setup: true },
-  { method: "POST", path: "/api/v1/pipgm/playlists/generate", module: "piprogram", setup: true },
-  { method: "PUT", path: "/api/v1/pipgm/playlists/:playlistId", module: "piprogram", setup: true },
+  { method: "PUT", path: "/api/v1/pipgm/pipelines/:pipelineId/playlist/order", module: "piprogram" },
+  { method: "POST", path: "/api/v1/pipgm/pipelines/:pipelineId/playlist/save", module: "piprogram" },
+  { method: "POST", path: "/api/v1/pipgm/playlists", module: "piprogram" },
+  { method: "POST", path: "/api/v1/pipgm/playlists/generate", module: "piprogram" },
+  { method: "PUT", path: "/api/v1/pipgm/playlists/:playlistId", module: "piprogram" },
   { method: "DELETE", path: "/api/v1/pipgm/playlists/:playlistId", module: "piprogram", setup: true },
   { method: "PUT", path: "/api/v1/pipgm/pipelines/:pipelineId/config", module: "piprogram", setup: true },
   { method: "POST", path: "/api/v1/pipgm/pipelines/:pipelineId/audio", module: "piprogram", setup: true },
@@ -234,14 +234,14 @@ export const UI_ROUTES: readonly UiRouteRule[] = [
   { method: "POST", path: "/api/v1/pipgm/tts/prepare", module: "piprogram", setup: true },
   { method: "PUT", path: "/api/v1/pipgm/pipelines/:pipelineId/basic-image", module: "piprogram", setup: true },
   { method: "DELETE", path: "/api/v1/pipgm/items/:itemId", module: "piprogram", setup: true },
-  { method: "POST", path: "/api/v1/pipgm/items/hymn", module: "piprogram", setup: true },
-  { method: "POST", path: "/api/v1/pipgm/items/youtube", module: "piprogram", setup: true },
-  { method: "POST", path: "/api/v1/pipgm/items/media", module: "piprogram", setup: true },
-  { method: "POST", path: "/api/v1/pipgm/items/pptx", module: "piprogram", setup: true },
-  { method: "POST", path: "/api/v1/pipgm/items/canva", module: "piprogram", setup: true },
-  { method: "PUT", path: "/api/v1/pipgm/items/:itemId/use-at", module: "piprogram", setup: true },
-  { method: "POST", path: "/api/v1/pipgm/items/:itemId/prepare", module: "piprogram", setup: true },
-  { method: "POST", path: "/api/v1/pipgm/items/:itemId/canva/export-package", module: "piprogram", setup: true },
+  { method: "POST", path: "/api/v1/pipgm/items/hymn", module: "piprogram" },
+  { method: "POST", path: "/api/v1/pipgm/items/youtube", module: "piprogram" },
+  { method: "POST", path: "/api/v1/pipgm/items/media", module: "piprogram" },
+  { method: "POST", path: "/api/v1/pipgm/items/pptx", module: "piprogram" },
+  { method: "POST", path: "/api/v1/pipgm/items/canva", module: "piprogram" },
+  { method: "PUT", path: "/api/v1/pipgm/items/:itemId/use-at", module: "piprogram" },
+  { method: "POST", path: "/api/v1/pipgm/items/:itemId/prepare", module: "piprogram" },
+  { method: "POST", path: "/api/v1/pipgm/items/:itemId/canva/export-package", module: "piprogram" },
 
   // pirundown-designer
   { method: "GET", path: "/api/v1/designer/state", module: "pirundown" },
@@ -530,12 +530,21 @@ export interface UiListenerOptions {
 }
 
 /** Builds one UI listener app. The caller listens on it (LAN: 0.0.0.0, relay: 127.0.0.1). */
+/** Media, PPTX and Canva packages are uploaded through the UI (piprogram takes 50 MB as base64). */
+const UI_UPLOAD_BODY_LIMIT = 60 * 1024 * 1024;
+/** Without a session a request may not carry more than this, so the big limit does not help anonymous callers. */
+const UI_ANON_BODY_LIMIT = 256 * 1024;
+
 export function buildUiListener(options: UiListenerOptions): FastifyInstance {
-  const app = Fastify({ trustProxy: false, loggerInstance: options.logger.child({ component: `ui-${options.role}` }), disableRequestLogging: true, bodyLimit: 256 * 1024 });
+  const app = Fastify({ trustProxy: false, loggerInstance: options.logger.child({ component: `ui-${options.role}` }), disableRequestLogging: true, bodyLimit: UI_UPLOAD_BODY_LIMIT });
   const allowedOrigins = new Set(options.corsOrigins ?? []);
   const originFor = (origin: string | undefined): string | null => (origin && allowedOrigins.has(origin) ? origin : null);
 
   app.addHook("onRequest", async (request, reply) => {
+    const declared = Number(request.headers["content-length"] ?? 0);
+    if (declared > UI_ANON_BODY_LIMIT && !options.auth.authenticate(request, options.role)) {
+      return reply.code(401).send({ error: { code: "LOGIN_REQUIRED", message: "Log in with the PIN" } });
+    }
     if (request.method !== "OPTIONS") return;
     const allowed = originFor(request.headers.origin);
     if (!allowed) return reply.code(403).send();
