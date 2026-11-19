@@ -13,7 +13,7 @@ import Fastify, { type FastifyBaseLogger, type FastifyInstance, type FastifyRequ
  */
 
 export type UiRole = "lan" | "relay";
-export type UiModule = "pimatrix" | "pivoice" | "piencoder" | "pitube" | "piradio" | "pisound" | "pitally" | "pigraphics" | "piprogram" | "pirundown" | "pipoe" | "pistorage" | "piagent" | "pinotify" | "piperception" | "pispace" | "picam" | "piswitch";
+export type UiModule = "pimatrix" | "pivoice" | "piencoder" | "pitube" | "piradio" | "pisound" | "pitally" | "pigraphics" | "piprogram" | "pirundown" | "pipoe" | "pistorage" | "piagent" | "pinotify" | "piperception" | "pispace" | "picam" | "piswitch" | "ui";
 export type UiMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 export interface UiRouteRule {
@@ -86,6 +86,19 @@ export const UI_ROUTES: readonly UiRouteRule[] = [
   { method: "POST", path: "/api/v1/quick-options/:id/apply", module: "pimatrix" },
   { method: "POST", path: "/api/v1/quick-options/number/:number/apply", module: "pimatrix" },
 
+  // which modules the UI may show (the page reads this at start-up); never filtered by the module list itself
+  { method: "GET", path: "/api/v1/ui/modules", module: "ui" },
+  // YouTube tab through the gateway's own pitube-facing routes (in-process, not the pitube upstream)
+  { method: "GET", path: "/api/v1/youtube/status", module: "pitube" },
+  { method: "GET", path: "/api/v1/youtube/broadcasts", module: "pitube" },
+  { method: "GET", path: "/api/v1/youtube/broadcasts/current", module: "pitube" },
+  { method: "POST", path: "/api/v1/youtube/broadcasts/select", module: "pitube" },
+  { method: "POST", path: "/api/v1/youtube/broadcasts/create", module: "pitube" },
+  { method: "POST", path: "/api/v1/youtube/broadcasts/start", module: "pitube" },
+  { method: "POST", path: "/api/v1/youtube/broadcasts/stop", module: "pitube" },
+  { method: "POST", path: "/api/v1/youtube/broadcasts/stop/request", module: "pitube" },
+  { method: "POST", path: "/api/v1/cameras/:cameraId/stream/start", module: "picam", lanOnly: true },
+  { method: "POST", path: "/api/v1/cameras/:cameraId/stream/stop", module: "picam", lanOnly: true },
   // picontrol Outputs, Cameras, Pipeline tabs: status, effects, cameras, ATEM, encoder start/stop
   { method: "GET", path: "/api/v1/effects", module: "pimatrix" },
   { method: "GET", path: "/api/v1/outputs/rtsp", module: "pimatrix" },
@@ -315,6 +328,7 @@ const COMPILED: CompiledRule[] = UI_ROUTES.map((rule) => ({
 }));
 
 function isModuleAllowed(ruleModule: string, allowedModules: ReadonlySet<string>): boolean {
+  if (ruleModule === "ui") return true;
   if (allowedModules.has(ruleModule)) return true;
   const aliasMap: Record<string, string> = {
     pimatrix: "matrix",

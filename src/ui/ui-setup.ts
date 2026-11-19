@@ -22,7 +22,7 @@ function notConfigured(module: string): ForwardedResponse {
 export function createUiForward(app: FastifyInstance, config: AppConfig): UiForward {
   return async (rule: UiRouteRule, request: { method: UiMethod; url: string; body: unknown }): Promise<ForwardedResponse> => {
     const payload = request.body === undefined ? undefined : JSON.stringify(request.body);
-    if (rule.module === "pitube") {
+    if (rule.module === "pitube" && !rule.path.startsWith("/api/v1/youtube/")) {
       if (!config.pitubeApiUrl) return notConfigured("pitube");
       const headers: Record<string, string> = { accept: "application/json" };
       if (payload !== undefined) headers["content-type"] = "application/json";

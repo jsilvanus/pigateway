@@ -221,8 +221,8 @@ test("the routes behind the Outputs, Cameras and Pipeline tabs are on the allowl
     ["GET", "/api/v1/video-mixer"], ["PUT", "/api/v1/video-mixer/program"], ["POST", "/api/v1/video-mixer/cut"], ["POST", "/api/v1/encoder/start"]
   ] as const) assert.ok(rule(m, u), `${m} ${u}`);
   assert.equal(rule("POST", "/api/v1/cameras/cam1/presets/2/save")?.setup, true);
-  // not opened: camera stream control, free-d, power-off style and device config stay off the UI listeners
-  assert.equal(rule("POST", "/api/v1/cameras/cam1/stream/start"), null);
+  // camera stream control is LAN-only; free-d and device config stay off the UI listeners
+  assert.equal(rule("POST", "/api/v1/cameras/cam1/stream/start")?.lanOnly, true);
   assert.equal(rule("POST", "/api/v1/cameras/cam1/freed"), null);
 });
 
@@ -235,4 +235,13 @@ test("camera and ATEM routes are served on the LAN listener and refused on the r
     assert.equal((await app.inject({ method: "POST", url: "/api/v1/video-mixer/cut", headers: { cookie } })).statusCode, expected, `${role} atem`);
     await app.close();
   }
+});
+
+test("module list and YouTube routes are on the allowlist; the module list ignores the module filter", async () => {
+  assert.equal(findUiRoute("GET", "/api/v1/ui/modules")?.module, "ui");
+  assert.equal(findUiRoute("GET", "/api/v1/youtube/status")?.module, "pitube");
+  assert.equal(findUiRoute("PUT", "/api/v1/youtube/status"), null, "writing the status stays internal");
+  const app = buildUiListener({ role: "lan", auth: createOpenAuth(), forward: async () => ({ statusCode: 200, contentType: "application/json", body: "{}" }), modules: new Set(["matrix"]), logger });
+  assert.equal((await app.inject({ method: "GET", url: "/api/v1/ui/modules" })).statusCode, 200);
+  await app.close();
 });
