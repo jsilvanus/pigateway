@@ -354,6 +354,7 @@ export class ActionRegistry {
         stepIndex: { type: "number", required: false, description: "For gotoStep (0-based)" },
         itemIndex: { type: "number", required: false, description: "For gotoItem (0-based)" },
         itemId: { type: "string", required: false, description: "For gotoItem, instead of itemIndex" },
+        entryId: { type: "string", required: false, description: "For gotoItem: one playlist entry (the same item can be listed twice); wins over itemId" },
       },
     });
     const pimatrixAvailable = Boolean(this.pimatrix?.configured());
@@ -785,7 +786,7 @@ export class ActionRegistry {
           return { ok: false, action: actionId, error: `action must be one of: ${PIPGM_CONTROL_ACTIONS.join(", ")}` };
         }
         const body: Record<string, unknown> = { action: control };
-        for (const key of ["stepIndex", "itemIndex", "itemId"] as const) {
+        for (const key of ["stepIndex", "itemIndex", "itemId", "entryId"] as const) {
           if (params[key] !== undefined) body[key] = params[key];
         }
         const state = await this.pipgm.controlPipeline(feed, body);

@@ -22,7 +22,7 @@ After a Canva export is ready the plugin offers play options (feed, Pi output, l
   - `pipgm:playlist-set {feed, itemIds, name?}` replaces the feed's playlist atomically (and saves it under `name`),
   - `pipgm:route {feed, output: pi1|pi2}` sends the feed to the Pi's HDMI output (through pimatrix),
   - `matrix:route {input: 3|4, output: 1|2}` sends a Pi input to a projector (left = 1, right = 2),
-  - `pipgm:ftb {feed, on}` and `pipgm:control {feed, action, stepIndex?, itemIndex?, itemId?}` (for example `gotoItem`).
+  - `pipgm:ftb {feed, on}` and `pipgm:control {feed, action, stepIndex?, itemIndex?, itemId?, entryId?}` (for example `gotoItem`).
 - `GET /api/v1/canva/action-lists/:id` reads it. There is no run, list or delete here.
 - Defaults: single use, valid 15 minutes (`ttlSeconds` 30 to 86400). A failing step stops the run; a failed run does not use the list up, so the link can retry.
 - **Running** is picontrol's job: the link opens `/run/<id>` there, which reads the list and runs it with `POST /api/v1/action-lists/:id/run` on the LAN UI listener. The internet relay can read lists and run those without a matrix step; a list that routes a projector answers 403 `PROJECTOR_NOT_ON_RELAY` there.
