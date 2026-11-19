@@ -93,8 +93,9 @@ export class PiMatrixClient {
   }
 
   setOutputSource(outputId: string, data: unknown) {
+    // pimatrix waits up to 30 s for an on-demand stream (RTMP, Hama) to appear before it answers.
     // pimatrix serves this route as PUT only.
-    return this.request("PUT", `/api/v1/outputs/${encodeURIComponent(outputId)}/source`, data);
+    return this.request("PUT", `/api/v1/outputs/${encodeURIComponent(outputId)}/source`, data, 35000);
   }
 
   getMultiviewLayout() {
