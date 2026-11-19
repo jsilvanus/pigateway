@@ -102,15 +102,15 @@ export class PiMatrixClient {
   }
 
   setMultiviewLayout(data: unknown) {
-    return this.request("POST", "/api/v1/outputs/multiview/layout", data);
+    return this.request("PUT", "/api/v1/outputs/multiview/layout", data);
   }
 
   setMultiviewSlot(data: unknown) {
-    return this.request("POST", "/api/v1/outputs/multiview/slot", data);
+    return this.request("PUT", "/api/v1/outputs/multiview/slot", data);
   }
 
   setRtspSource(data: unknown) {
-    return this.request("POST", "/api/v1/outputs/rtsp/source", data);
+    return this.request("PUT", "/api/v1/outputs/rtsp/source", data);
   }
 
   setRtspStream(data: unknown) {
@@ -118,7 +118,7 @@ export class PiMatrixClient {
   }
 
   setCrop(sourceId: string, data: unknown) {
-    return this.request("POST", `/api/v1/sources/${encodeURIComponent(sourceId)}/effects/crop`, data);
+    return this.request("PUT", `/api/v1/sources/${encodeURIComponent(sourceId)}/effects/crop`, data);
   }
 
   setCropPreset(sourceId: string, data: unknown) {
