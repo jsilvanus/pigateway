@@ -84,6 +84,14 @@ export class PiMatrixClient {
     return this.request("GET", "/api/v1/sources");
   }
 
+  getStatus() {
+    return this.request("GET", "/api/v1/status");
+  }
+
+  getTelemetry() {
+    return this.request("GET", "/api/v1/telemetry");
+  }
+
   getSource(id: string) {
     return this.request("GET", `/api/v1/sources/${encodeURIComponent(id)}`);
   }

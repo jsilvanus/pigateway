@@ -5,7 +5,25 @@ export function registerMatrixProxyRoutes(
   app: FastifyInstance,
   { client }: { client: PiMatrixClient }
 ): void {
-  // 1. Sources
+  // 1. Sources & Telemetry
+  app.get("/api/v1/matrix/status", async (_request, reply) => {
+    try {
+      return await client.getStatus();
+    } catch (err: unknown) {
+      const error = err as { statusCode?: number; code?: string; message?: string };
+      return reply.code(error.statusCode ?? 502).send({ error: { code: error.code ?? "pimatrix_unavailable", message: error.message } });
+    }
+  });
+
+  app.get("/api/v1/matrix/telemetry", async (_request, reply) => {
+    try {
+      return await client.getTelemetry();
+    } catch (err: unknown) {
+      const error = err as { statusCode?: number; code?: string; message?: string };
+      return reply.code(error.statusCode ?? 502).send({ error: { code: error.code ?? "pimatrix_unavailable", message: error.message } });
+    }
+  });
+
   app.get("/api/v1/sources", async (_request, reply) => {
     try {
       return await client.getSources();

@@ -53,6 +53,7 @@ import { RundownStore } from "./rundown/rundown-store.js";
 import { registerRundownRoutes } from "./rundown/rundown-routes.js";
 import { SpatialStatusStore } from "./spatial/spatial-status.js";
 import { registerSpatialRoutes } from "./spatial/spatial-routes.js";
+import { createGatewayMetricsSampler } from "./system/telemetry.js";
 import { WorldStateAggregator } from "./world/world-state.js";
 import { registerWorldStateRoutes } from "./world/world-routes.js";
 import { PiPoeClient } from "./pipoe/client.js";
@@ -608,6 +609,49 @@ export function buildApp(config: AppConfig): FastifyInstance {
       ecosystem: eco,
       activePlugins: eco.activePlugins,
       inUseTabs: eco.inUseTabs
+    };
+  });
+
+  const sampleGatewayMetrics = createGatewayMetricsSampler();
+
+  app.get("/api/v1/system/telemetry", async () => {
+    const eco = ecosystemTracker.getSummary();
+    let pimatrix: Record<string, unknown> | null = null;
+    if (pimatrixClient.configured()) {
+      try {
+        pimatrix = (await pimatrixClient.getTelemetry()) as Record<string, unknown>;
+      } catch {
+        pimatrix = null;
+      }
+    }
+
+    const atemState = atem.getState();
+    const encState = encoder.getState();
+    const matrixMedia = (pimatrix?.mediaMtx as { status?: string; readyPaths?: string[] } | undefined) ?? null;
+    const matrixFleet = (pimatrix?.fffleet as { status?: string; workers?: unknown[] } | undefined) ?? null;
+
+    return {
+      service: "pigateway",
+      mode: config.mode,
+      timestamp: new Date().toISOString(),
+      gateway: sampleGatewayMetrics(),
+      pimatrix,
+      fps: pimatrix?.fps ?? null,
+      system: pimatrix?.system ?? sampleGatewayMetrics(),
+      fffleet: matrixFleet ?? { status: "not-configured", workers: [] },
+      mediaMtx: matrixMedia ?? { status: "not-configured", readyPaths: [] },
+      connections: {
+        atem: {
+          configured: Boolean(config.atemHost),
+          connected: atemState.connected
+        },
+        encoder: {
+          configured: encState.configured,
+          connected: encState.connected
+        },
+        cameras: cameraService.list().map((cam) => ({ id: cam.id, connection: cam.connection }))
+      },
+      ecosystem: eco
     };
   });
 
