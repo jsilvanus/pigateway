@@ -3589,6 +3589,20 @@
         }
       }
     },
+    "/api/v1/conditionals": {
+      "get": {
+        "operationId": "getTallyConditionals",
+        "tags": [
+          "PiTally"
+        ],
+        "summary": "Conditional rule catalog from PiTally",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/designer/agent/chat": {
       "post": {
         "operationId": "designerAgentChat",
@@ -3859,48 +3873,6 @@
         "responses": {
           "200": {
             "description": "Validation result"
-          }
-        }
-      }
-    },
-    "/api/v1/system/telemetry": {
-      "get": {
-        "operationId": "getSystemTelemetry",
-        "tags": [
-          "System"
-        ],
-        "summary": "Aggregated system telemetry, FPS budget, CPU/memory, fffleet workers, and live connections",
-        "responses": {
-          "200": {
-            "description": "System telemetry snapshot"
-          }
-        }
-      }
-    },
-    "/api/v1/matrix/status": {
-      "get": {
-        "operationId": "getMatrixStatus",
-        "tags": [
-          "PiMatrix"
-        ],
-        "summary": "PiMatrix runtime status",
-        "responses": {
-          "200": {
-            "description": "PiMatrix status"
-          }
-        }
-      }
-    },
-    "/api/v1/matrix/telemetry": {
-      "get": {
-        "operationId": "getMatrixTelemetry",
-        "tags": [
-          "PiMatrix"
-        ],
-        "summary": "PiMatrix FPS budget, CPU/memory, MediaMTX, and fffleet worker telemetry",
-        "responses": {
-          "200": {
-            "description": "PiMatrix telemetry"
           }
         }
       }
@@ -5159,6 +5131,126 @@
         }
       }
     },
+    "/api/v1/lights/{id}/rules": {
+      "get": {
+        "operationId": "getTallyLightRules",
+        "tags": [
+          "PiTally"
+        ],
+        "summary": "List conditional rules of a tally light",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "operationId": "setTallyLightRules",
+        "tags": [
+          "PiTally"
+        ],
+        "summary": "Replace the conditional rules of a tally light",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "operationId": "addTallyLightRule",
+        "tags": [
+          "PiTally"
+        ],
+        "summary": "Add a conditional rule to a tally light",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/lights/{id}/rules/{ruleId}": {
+      "delete": {
+        "operationId": "deleteTallyLightRule",
+        "tags": [
+          "PiTally"
+        ],
+        "summary": "Delete a conditional rule of a tally light",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ruleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/lights/{id}/segments": {
       "post": {
         "operationId": "setTallyLightSegments",
@@ -5349,6 +5441,34 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/matrix/status": {
+      "get": {
+        "operationId": "getMatrixStatus",
+        "tags": [
+          "PiMatrix"
+        ],
+        "summary": "PiMatrix runtime status",
+        "responses": {
+          "200": {
+            "description": "PiMatrix status"
+          }
+        }
+      }
+    },
+    "/api/v1/matrix/telemetry": {
+      "get": {
+        "operationId": "getMatrixTelemetry",
+        "tags": [
+          "PiMatrix"
+        ],
+        "summary": "PiMatrix FPS budget, CPU/memory, MediaMTX, and fffleet worker telemetry",
+        "responses": {
+          "200": {
+            "description": "PiMatrix telemetry"
           }
         }
       }
@@ -11025,6 +11145,20 @@
         "responses": {
           "200": {
             "description": "Stream created"
+          }
+        }
+      }
+    },
+    "/api/v1/system/telemetry": {
+      "get": {
+        "operationId": "getSystemTelemetry",
+        "tags": [
+          "System"
+        ],
+        "summary": "Aggregated system telemetry, FPS budget, CPU/memory, fffleet workers, and live connections",
+        "responses": {
+          "200": {
+            "description": "System telemetry snapshot"
           }
         }
       }
