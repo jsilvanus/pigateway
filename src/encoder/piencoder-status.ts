@@ -17,6 +17,15 @@ function unit(value: unknown): EncoderState["encoder1"] {
   return typeof v?.mode === "string" && typeof v?.state === "string" ? { mode: v.mode, state: v.state } : { ...EMPTY };
 }
 
+const PACKED = /ENC1:([^,;]*)[,;]([^,;]*)[,;]ENC2:([^,;]*)[,;]([^,;]*)/;
+
+/** Older piencoder builds put the whole "ENC1:RTMP,ON,ENC2:RECORD,READY,NAME:x" string in encoder1.mode. */
+function packedUnits(primary: Record<string, unknown>): [EncoderState["encoder1"], EncoderState["encoder2"]] | null {
+  const mode = (primary.encoder1 as { mode?: unknown } | undefined)?.mode;
+  const m = typeof mode === "string" ? PACKED.exec(mode) : null;
+  return m ? [{ mode: m[1]!.trim(), state: m[2]!.trim() }, { mode: m[3]!.trim(), state: m[4]!.trim() }] : null;
+}
+
 /**
  * Reads the hardware encoder state from piencoder (which owns the Monarch connection), so the
  * gateway status does not depend on its own legacy PIGATEWAY_ENCODER_* settings.
@@ -57,12 +66,13 @@ export class PiencoderStatus {
       const data = (await res.json()) as Record<string, unknown>;
       const items = Array.isArray(data.items) ? (data.items as Array<Record<string, unknown>>) : [];
       const primary = items.find((i) => i.id === 1) ?? items[0] ?? data;
+      const packed = packedUnits(primary);
       this.#state = {
         configured: primary.configured !== false,
         connected: primary.connected === true,
         name: typeof primary.name === "string" ? primary.name : "",
-        encoder1: unit(primary.encoder1),
-        encoder2: unit(primary.encoder2),
+        encoder1: packed ? packed[0] : unit(primary.encoder1),
+        encoder2: packed ? packed[1] : unit(primary.encoder2),
         ...(typeof primary.error === "string" ? { error: primary.error } : {})
       };
     } catch (err) {

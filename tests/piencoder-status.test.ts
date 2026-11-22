@@ -30,3 +30,13 @@ test("caches within ttl", async () => {
   await s.refresh(); await s.refresh(); t = 3000; await s.refresh();
   assert.equal(calls, 2);
 });
+
+test("accepts the packed status string older piencoder builds send", async () => {
+  const s = new PiencoderStatus({
+    url: "http://pi:3300",
+    fetchFn: ok({ id: 1, connected: true, encoder1: { mode: "ENC1:RTMP,ON,ENC2:RECORD,READY,NAME:MonarchHDX" }, encoder2: {}, items: [] })
+  });
+  const st = await s.refresh(true);
+  assert.deepEqual(st.encoder1, { mode: "RTMP", state: "ON" });
+  assert.deepEqual(st.encoder2, { mode: "RECORD", state: "READY" });
+});
