@@ -39,6 +39,8 @@ export interface EcosystemTrackerOptions {
   youtubeStatus?: YoutubeStatusStore | undefined;
   atemAdapter?: AtemAdapter | undefined;
   encoderService?: EncoderService | undefined;
+  /** Overrides encoderService state (e.g. state read from piencoder). */
+  encoderStateProvider?: (() => ReturnType<EncoderService["getState"]>) | undefined;
   cameraService?: CameraService | undefined;
   onPisoundActivate?: (() => Promise<void>) | undefined;
   probeFetch?: ((url: string) => Promise<boolean>) | undefined;
@@ -54,6 +56,7 @@ export class EcosystemTracker {
   readonly #youtubeStatus: YoutubeStatusStore | undefined;
   readonly #atemAdapter: AtemAdapter | undefined;
   readonly #encoderService: EncoderService | undefined;
+  readonly #encoderStateProvider: (() => ReturnType<EncoderService["getState"]>) | undefined;
   readonly #cameraService: CameraService | undefined;
   readonly #onPisoundActivate: (() => Promise<void>) | undefined;
   readonly #probeFetch: (url: string) => Promise<boolean>;
@@ -78,6 +81,7 @@ export class EcosystemTracker {
     this.#youtubeStatus = options.youtubeStatus;
     this.#atemAdapter = options.atemAdapter;
     this.#encoderService = options.encoderService;
+    this.#encoderStateProvider = options.encoderStateProvider;
     this.#cameraService = options.cameraService;
     this.#onPisoundActivate = options.onPisoundActivate;
     this.#now = options.now ?? Date.now;
@@ -488,7 +492,7 @@ export class EcosystemTracker {
     components.atem = { ...switchComponent, id: "atem", tab: "atem", name: "ATEM Switcher" };
 
     // 11. Encoder
-    const encoderState = this.#encoderService?.getState();
+    const encoderState = this.#encoderStateProvider?.() ?? this.#encoderService?.getState();
     const encoderConfigured = Boolean(encoderState?.configured);
     const encoderConnected = Boolean(encoderState?.connected);
     components.encoder = {

@@ -14,6 +14,7 @@ import { SimulatedMonarch } from "./simulation/simulated-monarch.js";
 import { registerAtemRoutes } from "./atem/atem-routes.js";
 import { registerEncoderRoutes } from "./encoder/encoder-routes.js";
 import { EncoderService } from "./encoder/encoder-service.js";
+import { PiencoderStatus } from "./encoder/piencoder-status.js";
 import { registerYoutubeRoutes } from "./youtube/youtube-routes.js";
 import { YoutubeStatusStore } from "./youtube/youtube-status.js";
 import type { PanTiltDirection, ZoomAction } from "./camera/visca-protocol.js";
@@ -262,6 +263,10 @@ export function buildApp(config: AppConfig): FastifyInstance {
     onChange: (state) => eventBroker.emit({ type: "encoder", data: state })
   });
   registerEncoderRoutes(app, encoder, { piencoderUrl: config.piencoderApiUrl });
+  // The hardware encoder is owned by piencoder; report its state unless the legacy direct Monarch settings are in use.
+  const piencoderStatus = config.piencoderApiUrl && !config.encoderHost ? new PiencoderStatus({ url: config.piencoderApiUrl }) : undefined;
+  const effectiveEncoderState = () => (piencoderStatus ? piencoderStatus.getState() : encoder.getState());
+  let piencoderPoll: NodeJS.Timeout | undefined;
 
   const youtube = new YoutubeStatusStore({ onChange: (record) => eventBroker.emit({ type: "youtube", data: record }) });
   registerYoutubeRoutes(app, youtube, pitubeClient);
@@ -348,6 +353,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
     youtubeStatus: youtube,
     atemAdapter: atem,
     encoderService: encoder,
+    ...(piencoderStatus ? { encoderStateProvider: effectiveEncoderState } : {}),
     cameraService,
     onPisoundActivate: async () => {
       app.log.info({ port: config.pisoundUdpPort }, "PiSound detected active; starting UDP telemetry receiver");
@@ -419,7 +425,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
         downstreamKeyers: s.downstreamKeyers?.map((k) => ({ dsk: k.dsk, onAir: k.onAir, tie: k.tie }))
       };
     },
-    encoderState: () => encoder.getState(),
+    encoderState: effectiveEncoderState,
     atemPreview: async (input) => { await atem.setPreview(input); },
     atemCut: async () => { await atem.cut(); },
     atemAuto: async () => { await atem.autoTransition(); },
@@ -487,6 +493,11 @@ export function buildApp(config: AppConfig): FastifyInstance {
     if (trackingReceiver) await safely("screen-tracking-udp", () => trackingReceiver.start());
     if (config.amxMasterHost) await safely("atlona-polling", () => matrix.startPolling());
     await safely("encoder", () => encoder.start());
+    if (piencoderStatus) {
+      void piencoderStatus.refresh(true);
+      piencoderPoll = setInterval(() => void piencoderStatus.refresh(true), 5000);
+      piencoderPoll.unref();
+    }
     if (freedReceiver) {
       const startFreed = async (): Promise<void> => {
         try {
@@ -516,6 +527,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
     auditorSse.stop();
     matrix.stopPolling();
     encoder.stop();
+    if (piencoderPoll) clearInterval(piencoderPoll);
     youtube.stop();
     await Promise.allSettled([
       pivoice.stop(),
@@ -590,13 +602,20 @@ export function buildApp(config: AppConfig): FastifyInstance {
   });
 
   app.get("/api/v1/status", async () => {
+    const encoderNow = piencoderStatus ? await piencoderStatus.refresh() : encoder.getState();
     const eco = ecosystemTracker.getSummary();
     return {
       service: "pigateway",
       mode: config.mode,
       atem: { configured: Boolean(config.atemHost), connected: atem.getState().connected },
       youtube: { state: youtube.get().state },
-      encoder: { configured: encoder.getState().configured, connected: encoder.getState().connected },
+      encoder: {
+        configured: encoderNow.configured,
+        connected: encoderNow.connected,
+        source: piencoderStatus ? "piencoder" : "direct",
+        ...(piencoderStatus ? { name: encoderNow.name, encoder1: encoderNow.encoder1, encoder2: encoderNow.encoder2 } : {}),
+        ...(encoderNow.error ? { error: encoderNow.error } : {})
+      },
       pivoice: pivoice.getState(),
       pisound: pisound.getState(),
       pivoiceActivity: pivoiceActivity.getState(),
@@ -626,7 +645,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
     }
 
     const atemState = atem.getState();
-    const encState = encoder.getState();
+    const encState = piencoderStatus ? await piencoderStatus.refresh() : encoder.getState();
     const matrixMedia = (pimatrix?.mediaMtx as { status?: string; readyPaths?: string[] } | undefined) ?? null;
     const matrixFleet = (pimatrix?.fffleet as { status?: string; workers?: unknown[] } | undefined) ?? null;
 
