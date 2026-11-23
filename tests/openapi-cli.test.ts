@@ -15,7 +15,11 @@ test("every route the app serves is in the OpenAPI document, and the other way r
   await app.close();
   const documented = new Set<string>();
   for (const [path, item] of Object.entries(spec.paths as Record<string, Record<string, unknown>>)) {
-    for (const method of Object.keys(item)) documented.add(`${method.toUpperCase()} ${path}`);
+    for (const [method, op] of Object.entries(item)) {
+      // Routes of the separate Canva listener are documented but not on the main app.
+      if (/Canva listener only/.test((op as { summary?: string }).summary ?? "")) continue;
+      documented.add(`${method.toUpperCase()} ${path}`);
+    }
   }
   for (const r of served) assert.ok(documented.has(r), `${r} is served but not documented`);
   for (const d of documented) assert.ok(served.has(d), `${d} is documented but not served`);
