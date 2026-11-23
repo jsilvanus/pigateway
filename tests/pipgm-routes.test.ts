@@ -104,3 +104,28 @@ test("pipgm-routes proxies pipelines, controls, items, and canva ingestion", asy
 
   await app.close();
 });
+
+test("pipgm-routes answers Range requests for assets and proxies hymnals and the hymnal filter", async () => {
+  const app = Fastify();
+  const seen: string[] = [];
+  const fakeFetch: typeof fetch = async (input) => {
+    const url = new URL(String(input));
+    seen.push(url.pathname + url.search);
+    if (url.pathname === "/api/v1/pipgm/assets/a1") return new Response(new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]), { status: 200, headers: { "content-type": "audio/mpeg" } });
+    if (url.pathname === "/api/v1/pipgm/hymnals") return new Response(JSON.stringify({ hymnals: [{ prefix: "VK", name: "Virsikirja" }] }), { status: 200, headers: { "content-type": "application/json" } });
+    return new Response(JSON.stringify({ items: [] }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  registerPiPgmRoutes(app, { client: new PiProgramClient({ baseUrl: "http://piprogram.test", fetchFn: fakeFetch }) });
+  const whole = await app.inject({ method: "GET", url: "/api/v1/pipgm/assets/a1" });
+  assert.equal(whole.statusCode, 200);
+  assert.equal(whole.headers["accept-ranges"], "bytes");
+  const part = await app.inject({ method: "GET", url: "/api/v1/pipgm/assets/a1", headers: { range: "bytes=2-4" } });
+  assert.equal(part.statusCode, 206);
+  assert.equal(part.headers["content-range"], "bytes 2-4/10");
+  assert.deepEqual([...part.rawPayload], [2, 3, 4]);
+  assert.equal((await app.inject({ method: "GET", url: "/api/v1/pipgm/assets/a1", headers: { range: "bytes=50-" } })).statusCode, 416);
+  assert.equal((await app.inject({ method: "GET", url: "/api/v1/pipgm/hymnals" })).json().hymnals[0].prefix, "VK");
+  await app.inject({ method: "GET", url: "/api/v1/pipgm/items?hymnal=LV" });
+  assert.ok(seen.includes("/api/v1/pipgm/items?hymnal=LV"));
+  await app.close();
+});

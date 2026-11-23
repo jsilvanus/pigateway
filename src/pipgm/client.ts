@@ -16,6 +16,9 @@ export interface PiProgramClientOptions {
 export interface BinaryResponse {
   body: Buffer;
   contentType: string;
+  /** 206 when the upstream honoured a Range request. */
+  status?: number;
+  contentRange?: string | undefined;
 }
 
 type Query = Record<string, string | number | boolean | undefined>;
@@ -112,8 +115,8 @@ export class PiProgramClient {
   }
 
   /** For PNG, JPEG and other binary answers (frames, step pictures, assets). */
-  async requestBinary(path: string, query?: Query, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<BinaryResponse> {
-    const { res } = await this.#fetchUpstream("GET", withQuery(path, query), undefined, timeoutMs);
+  async requestBinary(path: string, query?: Query, timeoutMs = DEFAULT_TIMEOUT_MS, range?: string): Promise<BinaryResponse> {
+    const { res } = await this.#fetchUpstream("GET", withQuery(path, query), undefined, timeoutMs, range ? { range } : undefined);
     if (!res.ok) {
       const payload = await res.json().catch(() => ({}));
       const message = (payload as { error?: { message?: string } }).error?.message ?? `PiProgram returned HTTP ${res.status}`;
@@ -125,7 +128,8 @@ export class PiProgramClient {
     }
     return {
       body: Buffer.from(await res.arrayBuffer()),
-      contentType: res.headers.get("content-type") || "application/octet-stream"
+      contentType: res.headers.get("content-type") || "application/octet-stream",
+      ...(res.status === 206 ? { status: 206, contentRange: res.headers.get("content-range") ?? undefined } : {})
     };
   }
 
@@ -303,8 +307,12 @@ export class PiProgramClient {
     return this.request("GET", "/api/v1/pipgm/library/storage");
   }
 
-  getAsset(assetId: string) {
-    return this.requestBinary(`/api/v1/pipgm/assets/${encodeURIComponent(assetId)}`);
+  getAsset(assetId: string, range?: string) {
+    return this.requestBinary(`/api/v1/pipgm/assets/${encodeURIComponent(assetId)}`, undefined, DEFAULT_TIMEOUT_MS, range);
+  }
+
+  getHymnals() {
+    return this.request("GET", "/api/v1/pipgm/hymnals");
   }
 
   createHymnItem(body: unknown) {

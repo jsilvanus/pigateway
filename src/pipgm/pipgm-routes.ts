@@ -202,8 +202,30 @@ export function registerPiPgmRoutes(app: FastifyInstance, options: { client: PiP
     return handle(() => client.getLibraryStorage(), reply);
   });
 
+  // Sound and video previews in the browser need Range answers (Safari refuses a media file without them).
+  // piprogram answers ranges for files it caches on disk; a file kept in storage comes whole and is cut here.
   app.get<{ Params: { assetId: string } }>("/api/v1/pipgm/assets/:assetId", async (request, reply) => {
-    return handleBinary(() => client.getAsset(request.params.assetId), reply);
+    const range = /^bytes=(\d*)-(\d*)$/.exec(String(request.headers.range ?? ""));
+    try {
+      const got = await client.getAsset(request.params.assetId, range && (range[1] || range[2]) ? String(request.headers.range) : undefined);
+      reply.type(got.contentType).header("accept-ranges", "bytes").header("cache-control", "private, max-age=300");
+      if (got.status === 206 && got.contentRange) return reply.code(206).header("content-range", got.contentRange).send(got.body);
+      const size = got.body.length;
+      if (range && (range[1] || range[2])) {
+        const start = range[1] ? Number(range[1]) : Math.max(0, size - Number(range[2]));
+        const end = range[1] && range[2] ? Math.min(Number(range[2]), size - 1) : size - 1;
+        if (start >= size || start > end) return reply.code(416).header("content-range", `bytes */${size}`).send();
+        return reply.code(206).header("content-range", `bytes ${start}-${end}/${size}`).send(got.body.subarray(start, end + 1));
+      }
+      return reply.send(got.body);
+    } catch (err: unknown) {
+      const error = err as { statusCode?: number; code?: string; message?: string };
+      return reply.code(error.statusCode ?? 502).send({ error: { code: error.code ?? "PIPGM_ERROR", message: error.message } });
+    }
+  });
+
+  app.get("/api/v1/pipgm/hymnals", async (_request, reply) => {
+    return handle(() => client.getHymnals(), reply);
   });
 
   app.post("/api/v1/pipgm/items/hymn", async (request, reply) => {
