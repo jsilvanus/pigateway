@@ -234,6 +234,14 @@ export const UI_ROUTES: readonly UiRouteRule[] = [
   { method: "POST", path: "/api/v1/pipgm/tts/prepare", module: "piprogram", setup: true },
   { method: "PUT", path: "/api/v1/pipgm/pipelines/:pipelineId/basic-image", module: "piprogram", setup: true },
   { method: "DELETE", path: "/api/v1/pipgm/items/:itemId", module: "piprogram", setup: true },
+  // Generic library: filters, type/title edits, and the active folder. Adding (put, one removal, playlist from it)
+  // works through the relay; emptying the whole folder is LAN only.
+  { method: "PATCH", path: "/api/v1/pipgm/items/:itemId", module: "piprogram" },
+  { method: "GET", path: "/api/v1/pipgm/library/active", module: "piprogram" },
+  { method: "PUT", path: "/api/v1/pipgm/library/active/:itemId", module: "piprogram" },
+  { method: "DELETE", path: "/api/v1/pipgm/library/active/:itemId", module: "piprogram" },
+  { method: "DELETE", path: "/api/v1/pipgm/library/active", module: "piprogram", setup: true },
+  { method: "POST", path: "/api/v1/pipgm/library/active/playlist", module: "piprogram" },
   { method: "POST", path: "/api/v1/pipgm/items/hymn", module: "piprogram" },
   { method: "POST", path: "/api/v1/pipgm/items/youtube", module: "piprogram" },
   { method: "POST", path: "/api/v1/pipgm/items/media", module: "piprogram" },

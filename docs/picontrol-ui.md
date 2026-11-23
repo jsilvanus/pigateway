@@ -26,4 +26,4 @@ allowlist of module routes (`src/ui/ui-listener.ts`, `UI_ROUTES`); everything el
 
 ## piprogram on the relay
 
-Adding content works from outside the church network, behind the PIN: items (hymn, YouTube, media, PPTX, Canva), `use-at`, prepare, playlist order, save, generate and replace. Only deleting items and playlists, feed config, audio arm and play, text to speech and the basic image stay LAN only. The UI listeners accept bodies up to 60 MB for uploads, but a request without a session may not carry more than 256 KB.
+Adding content works from outside the church network, behind the PIN: items (hymn, YouTube, media incl. sound upload and recording, PPTX, Canva), `use-at`, item type and title edits, the active folder (add, remove one, playlist from it), prepare, playlist order, save, generate and replace. Only deleting items and playlists, emptying the whole active folder, feed config, audio arm and play, text to speech and the basic image stay LAN only. The UI listeners accept bodies up to 60 MB for uploads, but a request without a session may not carry more than 256 KB.

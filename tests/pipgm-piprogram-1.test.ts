@@ -62,6 +62,13 @@ test("writes and reads map to the piprogram 1.0 paths", async () => {
     ["PUT", "/api/v1/pipgm/items/h-1/use-at", { useAt: "2026-11-08" }],
     ["POST", "/api/v1/pipgm/items/youtube", { urlOrId: "abc" }],
     ["GET", "/api/v1/pipgm/library/storage"],
+    ["GET", "/api/v1/pipgm/items?type=sound,tts&usedFrom=2026-11-22&limit=20"],
+    ["PATCH", "/api/v1/pipgm/items/h-1", { type: "song" }],
+    ["GET", "/api/v1/pipgm/library/active?date=2026-11-22"],
+    ["PUT", "/api/v1/pipgm/library/active/h-1"],
+    ["DELETE", "/api/v1/pipgm/library/active/h-1"],
+    ["DELETE", "/api/v1/pipgm/library/active"],
+    ["POST", "/api/v1/pipgm/library/active/playlist", { name: "Sunday" }],
     ["GET", "/api/v1/pipgm/tasks/t-1"]
   ];
   for (const [method, url, payload] of calls) {
@@ -86,6 +93,13 @@ test("writes and reads map to the piprogram 1.0 paths", async () => {
       "PUT /api/v1/pipgm/items/h-1/use-at",
       "POST /api/v1/pipgm/items/youtube",
       "GET /api/v1/pipgm/library/storage",
+      "GET /api/v1/pipgm/items?type=sound%2Ctts&usedFrom=2026-11-22&limit=20",
+      "PATCH /api/v1/pipgm/items/h-1",
+      "GET /api/v1/pipgm/library/active?date=2026-11-22",
+      "PUT /api/v1/pipgm/library/active/h-1",
+      "DELETE /api/v1/pipgm/library/active/h-1",
+      "DELETE /api/v1/pipgm/library/active",
+      "POST /api/v1/pipgm/library/active/playlist",
       "GET /api/v1/pipgm/tasks/t-1"
     ]
   );
@@ -176,6 +190,11 @@ test("the relay gets reads, control, ftb, playlist and audio kill/stop; LAN-only
     assert.ok(relay(m, u), `${m} ${u}`);
   }
   assert.equal(relay("DELETE", "/api/v1/pipgm/items/h-1"), false);
+  // generic library: filters, type edits, active folder and a playlist from it work through the relay; clearing it does not
+  for (const [m, u] of [["GET", "/api/v1/pipgm/items"], ["PATCH", "/api/v1/pipgm/items/h-1"], ["GET", "/api/v1/pipgm/library/active"], ["PUT", "/api/v1/pipgm/library/active/h-1"], ["DELETE", "/api/v1/pipgm/library/active/h-1"], ["POST", "/api/v1/pipgm/library/active/playlist"]] as const) {
+    assert.ok(relay(m, u), `${m} ${u}`);
+  }
+  assert.equal(relay("DELETE", "/api/v1/pipgm/library/active"), false);
 });
 
 test("without a configured piprogram the routes answer 503", async () => {

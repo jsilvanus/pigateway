@@ -6925,10 +6925,10 @@
         "tags": [
           "PiProgram"
         ],
-        "summary": "Library items",
+        "summary": "Library items (filter by type, kind, text, use date)",
         "responses": {
           "200": {
-            "description": "Items",
+            "description": "Items, total and counts per type",
             "content": {
               "application/json": {
                 "schema": {
@@ -6950,7 +6950,90 @@
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "description": "Comma list of types (sound, tts, hymn, song, ...)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "description": "Comma list of kinds (audio, image, video, slides, ...)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Text search",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "usedFrom",
+            "in": "query",
+            "required": false,
+            "description": "Use date from, YYYY-MM-DD",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "usedTo",
+            "in": "query",
+            "required": false,
+            "description": "Use date to, YYYY-MM-DD",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "unscheduled",
+            "in": "query",
+            "required": false,
+            "description": "true: only items without a use date; false: only with",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "description": "Sort order",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Page size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "description": "Page start",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
       }
     },
     "/api/v1/pipgm/items/canva": {
@@ -7047,7 +7130,7 @@
         "tags": [
           "PiProgram"
         ],
-        "summary": "Create a video, image or audio item from base64 (LAN only)",
+        "summary": "Create a video, image or audio item from base64 (audio: any format, optional type, useAt, recorded)",
         "requestBody": {
           "required": true,
           "content": {
@@ -7248,6 +7331,58 @@
                 }
               }
             }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updatePipgmItem",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Change an item's title or type",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
           }
         }
       }
@@ -11689,6 +11824,214 @@
         "responses": {
           "200": {
             "description": "Alive"
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/library/active": {
+      "get": {
+        "operationId": "getPipgmActiveFolder",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Active folder: items for a day plus hand-picked ones",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "description": "YYYY-MM-DD, default today",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active folder",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "clearPipgmActiveFolder",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Empty the hand-picked list (LAN only)",
+        "responses": {
+          "200": {
+            "description": "Removed count and the folder",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/library/active/{itemId}": {
+      "put": {
+        "operationId": "addPipgmActiveItem",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Add an item to the active folder",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active folder",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Active folder is full"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "removePipgmActiveItem",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Remove one item from the active folder",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active folder",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/library/active/playlist": {
+      "post": {
+        "operationId": "createPipgmPlaylistFromActive",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Save a playlist from the active folder",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created playlist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         }
       }
