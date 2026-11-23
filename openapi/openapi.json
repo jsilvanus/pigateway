@@ -6857,7 +6857,7 @@
         "tags": [
           "PiProgram"
         ],
-        "summary": "Asset bytes with the stored MIME type",
+        "summary": "Asset bytes with the stored MIME type (Range requests are answered with 206)",
         "parameters": [
           {
             "name": "assetId",
@@ -6866,6 +6866,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "Range",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "bytes=start-end; sound and video previews need it"
           }
         ],
         "responses": {
@@ -6892,6 +6901,20 @@
                 }
               }
             }
+          },
+          "206": {
+            "description": "Part of the asset",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "416": {
+            "description": "Range not satisfiable"
           }
         }
       }
@@ -7077,6 +7100,15 @@
             "schema": {
               "type": "integer"
             }
+          },
+          {
+            "name": "hymnal",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated hymnal prefixes (VK, LV, ...): only hymn items of those books; a number without a prefix is VK"
           }
         ]
       }
@@ -12234,6 +12266,40 @@
           },
           "201": {
             "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/hymnals": {
+      "get": {
+        "operationId": "getPipgmHymnals",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "The configured hymnals (prefix and name, e.g. VK, LV)",
+        "responses": {
+          "200": {
+            "description": "Hymnals",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
             "content": {
               "application/json": {
                 "schema": {
