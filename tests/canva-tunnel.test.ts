@@ -79,3 +79,28 @@ test("canva tunnel: a user token alone (no shared key) still works, and refuses 
   assert.equal((await app.inject({ url: "/api/v1/canva/status", headers: { authorization: "Bearer a.b.c" } })).statusCode, 404);
   assert.equal((await app.inject({ url: "/api/v1/canva/status", headers: { authorization: "Bearer plain" } })).statusCode, 401);
 });
+
+test("request log names the sign-in method and rights, never the token", async () => {
+  const lines: Record<string, unknown>[] = [];
+  const { Writable } = await import("node:stream");
+  const sink = new Writable({ write(chunk, _e, cb) { lines.push(JSON.parse(String(chunk))); cb(); } });
+  const logger = Fastify({ logger: { level: "info", stream: sink } }).log;
+  const token = "aaa.bbb.secret-token-value";
+  const app = buildCanvaTunnelApp(
+    { apiKey: "shared-key-123", userAuth: { async verify() { return { userId: "u1", brandId: "team-ok" }; } } } as never,
+    new CanvaService({ piprogramUrl: "http://pg", fetchFn: async () => new Response("{}", { status: 404 }) }),
+    {} as never,
+    logger
+  );
+  await app.inject({ method: "GET", url: "/api/v1/canva/session", headers: { authorization: `Bearer ${token}` } });
+  await app.inject({ method: "GET", url: "/api/v1/canva/session", headers: { authorization: "Bearer shared-key-123" } });
+  const reqs = lines.filter((l) => l.event === "http_request");
+  assert.equal(reqs[0]?.auth, "canva-user");
+  assert.equal(reqs[0]?.sub, "u1");
+  assert.equal(reqs[0]?.brandId, "team-ok");
+  assert.deepEqual(reqs[0]?.rights, ["canva:read", "canva:write", "canva:operate"]);
+  assert.equal(reqs[1]?.auth, "key");
+  const all = JSON.stringify(lines);
+  assert.ok(!all.includes("secret-token-value") && !all.includes("shared-key-123"));
+  await app.close();
+});

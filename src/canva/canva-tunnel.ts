@@ -11,6 +11,8 @@ export interface CanvaSession {
   auth: "tunnus" | "canva-user" | "key";
   sub?: string | undefined;
   name?: string | undefined;
+  /** Canva user token: the Canva team the token was issued for. */
+  brandId?: string | undefined;
   rights: Set<string>;
 }
 
@@ -134,8 +136,8 @@ export function buildCanvaTunnelApp(
     }
     if (config.userAuth && token && looksLikeJwt(token)) {
       try {
-        await config.userAuth.verify(token);
-        request.canvaSession = { auth: "canva-user", rights: new Set(FULL_CANVA_RIGHTS) };
+        const user = await config.userAuth.verify(token);
+        request.canvaSession = { auth: "canva-user", sub: user.userId, brandId: user.brandId, rights: new Set(FULL_CANVA_RIGHTS) };
         return;
       } catch (err) {
         if (err instanceof CanvaTeamNotAllowed) {
@@ -173,7 +175,12 @@ export function buildCanvaTunnelApp(
     return payload;
   });
   app.addHook("onResponse", async (request, reply) => {
-    request.log.info({ event: "http_request", method: request.method, route: request.routeOptions?.url ?? "(unmatched)", status: reply.statusCode }, "request");
+    // Who and how, never the token: auth method, sub/name (Tunnus) or user and team id (Canva), and the granted canva rights.
+    const session = request.canvaSession;
+    request.log.info({
+      event: "http_request", method: request.method, route: request.routeOptions?.url ?? "(unmatched)", status: reply.statusCode,
+      ...(session ? { auth: session.auth, sub: session.sub, name: session.name, brandId: session.brandId, rights: effectiveRights(session.rights, "canva") } : {})
+    }, "request");
   });
 
   registerCanvaRoutes(app, service, routeOptions);
