@@ -2,6 +2,7 @@ import { EventEmitter } from "node:events";
 import type { PiVoiceTelemetry } from "./pivoice/telemetry.js";
 import type { PiSoundTelemetry } from "./pisound/telemetry.js";
 import type { TranscriptEvent } from "./transcripts/transcript-hub.js";
+import type { TranslationEvent } from "./transcripts/translation-hub.js";
 import type { EcosystemStatus } from "./ecosystem/ecosystem-tracker.js";
 import type { FreedTelemetry } from "./camera/freed-receiver.js";
 import type { RundownStatusSnapshot } from "./rundown/rundown-store.js";
@@ -102,6 +103,7 @@ export type GatewayEvent =
   | { type: "pisound"; data: PiSoundTelemetry }
   | { type: "pivoice-activity"; data: unknown }
   | { type: "transcript"; data: TranscriptEvent }
+  | { type: "translation"; data: TranslationEvent }
   | { type: "ecosystem"; data: EcosystemStatus }
   | { type: "action"; data: ActionEventPayload }
   | { type: "rundown"; data: RundownStatusSnapshot }
