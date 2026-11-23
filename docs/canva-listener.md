@@ -55,3 +55,7 @@ A route with no rule is refused (403). Cameras and the rest of the gateway are n
 `GET /api/v1/canva/session` returns `{ auth, name, rights }` (for example `["canva:read","canva:write"]`) so the plugin can hide what the person may not do. Key and Canva-user-token callers get every canva right, as before.
 
 Unverified against a real Tunnus; the tests use a fake issuer.
+
+## Request log
+
+Every request on this listener logs one `http_request` line with `auth` (`tunnus`, `canva-user` or `key`), `sub` and `name` (Tunnus), `sub` (the Canva user id) and `brandId` (Canva team), and `rights` (the granted `canva:` levels). Tokens and keys are never logged. Requests that fail auth carry no `auth` field; refusals have their own `canva_*` warn lines.
