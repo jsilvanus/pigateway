@@ -7,6 +7,8 @@ import { CanvaService } from "./canva/canva-service.js";
 import { registerCanvaRoutes, type CanvaRoutesOptions } from "./canva/canva-routes.js";
 import { buildCanvaTunnelApp } from "./canva/canva-tunnel.js";
 import { createCanvaUserAuth } from "./canva/canva-user-auth.js";
+import { parseGroupRights } from "./auth/rights.js";
+import { createTunnusVerifier } from "./auth/tunnus.js";
 import { REDACT_PATHS, serializers } from "./log/redact.js";
 import { AtemAdapter, type AtemClient } from "./atem/atem-adapter.js";
 import { SimulatedAtemClient } from "./simulation/simulated-atem.js";
@@ -343,7 +345,14 @@ export function buildApp(config: AppConfig): FastifyInstance {
   if (config.canvaTunnelPort !== undefined) {
     // Same service and routes, on a separate local port that needs the API key or a Canva user token of an allowed team (see canva-tunnel.ts).
     const userAuth = config.canvaAppId ? createCanvaUserAuth({ appId: config.canvaAppId, allowedBrands: config.canvaAllowedBrands ?? [] }) : undefined;
-    const tunnel = buildCanvaTunnelApp({ apiKey: config.apiKey, corsOrigins: config.canvaTunnelCorsOrigins, userAuth }, canvaService, canvaRouteOptions, app.log);
+    let tunnus;
+    if (config.canvaOidcEnabled) {
+      if (!config.oidcIssuer) throw new Error("PIGATEWAY_CANVA_OIDC=true needs PIGATEWAY_OIDC_ISSUER");
+      const groupRights = parseGroupRights(config.oidcGroupRights);
+      if (groupRights.size === 0) throw new Error("PIGATEWAY_CANVA_OIDC=true needs PIGATEWAY_OIDC_GROUP_RIGHTS");
+      tunnus = { verifier: createTunnusVerifier({ issuer: config.oidcIssuer, audience: config.oidcAudience, jwksCacheFile: config.oidcJwksCacheFile }), groupRights };
+    }
+    const tunnel = buildCanvaTunnelApp({ apiKey: config.apiKey, allowApiKey: config.canvaApiKeyFallback, tunnus, corsOrigins: config.canvaTunnelCorsOrigins, userAuth }, canvaService, canvaRouteOptions, app.log);
     app.decorate("canvaTunnel", tunnel);
     app.addHook("onClose", async () => {
       await tunnel.close();

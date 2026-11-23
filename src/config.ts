@@ -41,6 +41,17 @@ export interface AppConfig {
   canvaAppId?: string | undefined;
   /** Canva team (brand) ids whose users may use the tunnel listener (PIGATEWAY_CANVA_ALLOWED_BRANDS). */
   canvaAllowedBrands?: string[] | undefined;
+  /** Tunnus sign-in for the Canva listener (all off by default). Issuer URL (PIGATEWAY_OIDC_ISSUER) and the name tokens must carry in `aud` (PIGATEWAY_OIDC_AUDIENCE, default "pigateway"). */
+  oidcIssuer?: string | undefined;
+  oidcAudience: string;
+  /** PIGATEWAY_OIDC_GROUP_RIGHTS: `<group>=<module>:<level>[,...];...` (presets @viewer @operator @content @admin). */
+  oidcGroupRights?: string | undefined;
+  /** PIGATEWAY_CANVA_OIDC=true turns Tunnus sign-in on for the Canva listener; needs the issuer and the group rights. */
+  canvaOidcEnabled: boolean;
+  /** PIGATEWAY_CANVA_TUNNEL_API_KEY_FALLBACK=false stops the shared key opening the Canva listener (default true). */
+  canvaApiKeyFallback: boolean;
+  /** Optional file that keeps the last Tunnus key set (PIGATEWAY_OIDC_JWKS_CACHE_FILE). */
+  oidcJwksCacheFile?: string | undefined;
   picanvaApiUrl?: string | undefined;
   /** Bearer token for the pitube API (PIGATEWAY_PITUBE_API_TOKEN), used by the picontrol UI listener only. */
   pitubeApiToken?: string | undefined;
@@ -330,6 +341,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     canvaTunnelCorsOrigins: list(env.PIGATEWAY_CANVA_TUNNEL_CORS_ORIGINS),
     canvaAppId: env.PIGATEWAY_CANVA_APP_ID?.trim() || undefined,
     canvaAllowedBrands: list(env.PIGATEWAY_CANVA_ALLOWED_BRANDS),
+    oidcIssuer: urlWithScheme(env.PIGATEWAY_OIDC_ISSUER, "PIGATEWAY_OIDC_ISSUER", ["https:", "http:"]),
+    oidcAudience: env.PIGATEWAY_OIDC_AUDIENCE?.trim() || "pigateway",
+    oidcGroupRights: env.PIGATEWAY_OIDC_GROUP_RIGHTS?.trim() || undefined,
+    canvaOidcEnabled: env.PIGATEWAY_CANVA_OIDC === "true",
+    canvaApiKeyFallback: env.PIGATEWAY_CANVA_TUNNEL_API_KEY_FALLBACK !== "false",
+    oidcJwksCacheFile: env.PIGATEWAY_OIDC_JWKS_CACHE_FILE?.trim() || undefined,
     picanvaApiUrl,
     pirundownApiUrl,
     pirundownDesignerApiUrl,
