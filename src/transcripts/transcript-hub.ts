@@ -64,6 +64,7 @@ export class TranscriptHub {
   readonly #ring: TranscriptEvent[] = [];
   readonly #seen = new Set<string>();
   readonly #seenOrder: string[] = [];
+  readonly #seqBySource = new Map<string, number>();
   #seq = 0;
   #stats = { accepted: 0, duplicates: 0, rejected: 0, lastAcceptedAt: null as string | null };
 
@@ -98,6 +99,7 @@ export class TranscriptHub {
       }
       if (dedupeKey) this.#remember(dedupeKey);
       const event: TranscriptEvent = { epoch: this.epoch, seq: ++this.#seq, session, ...checked, source: "auditor" };
+      if (dedupeKey) this.#seqBySource.set(dedupeKey, event.seq);
       this.#ring.push(event);
       if (this.#ring.length > this.#capacity) this.#ring.splice(0, this.#ring.length - this.#capacity);
       this.#stats.accepted++;
@@ -118,12 +120,26 @@ export class TranscriptHub {
     return this.#ring.filter((event) => event.seq > id.seq).slice(0, Math.max(1, limit));
   }
 
+  /**
+   * The bus id (`<epoch>:<seq>`) of the transcript an STT session numbered `sequence`, while that
+   * transcript is still in the replay ring; null otherwise. Translations use it as `sourceId`.
+   */
+  resolveId(session: string, sequence: number): string | null {
+    const seq = this.#seqBySource.get(`${session}#${sequence}`);
+    const oldest = this.#ring[0]?.seq;
+    if (seq === undefined || oldest === undefined || seq < oldest) return null;
+    return transcriptId({ epoch: this.epoch, seq });
+  }
+
   #remember(key: string): void {
     this.#seen.add(key);
     this.#seenOrder.push(key);
     if (this.#seenOrder.length > this.#capacity * 4) {
       const old = this.#seenOrder.splice(0, this.#seenOrder.length - this.#capacity * 4);
-      for (const k of old) this.#seen.delete(k);
+      for (const k of old) {
+        this.#seen.delete(k);
+        this.#seqBySource.delete(k);
+      }
     }
   }
 

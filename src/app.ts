@@ -45,6 +45,7 @@ import { registerDesignerRoutes } from "./designer/designer-routes.js";
 import { RadioRelayClient } from "./radio-relay/radio-relay-client.js";
 import { AuditorSseSource } from "./transcripts/auditor-sse-source.js";
 import { TranscriptHub, transcriptId } from "./transcripts/transcript-hub.js";
+import { parseTranslationId, TranslationHub, translationId } from "./transcripts/translation-hub.js";
 import { EcosystemTracker } from "./ecosystem/ecosystem-tracker.js";
 import { ActionRegistry } from "./actions/action-registry.js";
 import { registerActionRoutes } from "./actions/action-routes.js";
@@ -123,6 +124,11 @@ export function buildApp(config: AppConfig): FastifyInstance {
   const transcripts = new TranscriptHub({
     capacity: config.transcriptBuffer,
     onTranscript: (event) => eventBroker.emit({ type: "transcript", data: event })
+  });
+  const translations = new TranslationHub({
+    capacity: config.transcriptBuffer,
+    resolveSourceId: (session, sequence) => transcripts.resolveId(session, sequence),
+    onTranslation: (event) => eventBroker.emit({ type: "translation", data: event })
   });
   const auditorSse = new AuditorSseSource({ baseUrl: config.auditorUrl, apiKey: config.auditorApiKey, hub: transcripts, logger: app.log });
   const transcriptDelivery =
@@ -620,6 +626,7 @@ export function buildApp(config: AppConfig): FastifyInstance {
       pisound: pisound.getState(),
       pivoiceActivity: pivoiceActivity.getState(),
       transcripts: { delivery: transcriptDelivery?.mode ?? null, ...transcripts.status(), source: auditorSse.status() },
+      translations: translations.status(),
       radioRelay: await radioRelay.safeLifecycle(),
       cameras: cameraService.list().map((cam) => ({ id: cam.id, connection: cam.connection })),
       freed: freedReceiver ? freedReceiver.getStats() : null,
@@ -728,6 +735,24 @@ export function buildApp(config: AppConfig): FastifyInstance {
     return reply.send({ epoch: transcripts.epoch, transcripts: transcripts.since(query.after, limit) });
   });
 
+  app.post("/api/v1/translations", async (request, reply) => {
+    const body = request.body as { events?: unknown } | undefined;
+    if (!Array.isArray(body?.events) || body.events.length === 0 || body.events.length > 100) {
+      return reply.code(400).send({ error: { code: "invalid_request", message: "body must be { events: [1-100 translation events] }" } });
+    }
+    const result = translations.ingest(body.events as unknown[]);
+    if (result.accepted.length === 0 && result.duplicates === 0) {
+      return reply.code(422).send({ error: { code: "invalid_translations", message: "no translation in the batch was acceptable" }, rejected: result.rejected });
+    }
+    return reply.code(202).send({ accepted: result.accepted.length, duplicates: result.duplicates, rejected: result.rejected });
+  });
+
+  app.get("/api/v1/translations", async (request, reply) => {
+    const query = request.query as { after?: string; limit?: string };
+    const limit = Math.min(500, Math.max(1, Number.parseInt(query.limit ?? "200", 10) || 200));
+    return reply.send({ epoch: translations.epoch, translations: translations.since(query.after, limit) });
+  });
+
   app.get("/api/v1/events", async (request, reply) => {
     // ?types=transcript,pivoice limits the stream to those event types; "ready" is always sent.
     const typesParam = (request.query as { types?: string }).types;
@@ -750,7 +775,12 @@ export function buildApp(config: AppConfig): FastifyInstance {
     );
     const send = (event: GatewayEvent) => {
       if (wanted && !wanted.has(event.type)) return;
-      const id = event.type === "transcript" ? `id: ${transcriptId(event.data)}\n` : "";
+      const id =
+        event.type === "transcript"
+          ? `id: ${transcriptId(event.data)}\n`
+          : event.type === "translation"
+            ? `id: ${translationId(event.data)}\n`
+            : "";
       try {
         reply.raw.write(`${id}event: ${event.type}\ndata: ${JSON.stringify(event.data)}\n\n`);
       } catch {
@@ -759,7 +789,13 @@ export function buildApp(config: AppConfig): FastifyInstance {
     };
     // Replay and subscribe in the same tick, so nothing falls in between.
     if (typeof lastEventId === "string") {
-      for (const missed of transcripts.since(lastEventId, 500)) send({ type: "transcript", data: missed });
+      // A `t<seq>` id replays translations; a plain id replays transcripts. Each stream only
+      // replays what the client asked for (types filter), so ids of the other kind are harmless.
+      if (parseTranslationId(lastEventId)) {
+        for (const missed of translations.since(lastEventId, 500)) send({ type: "translation", data: missed });
+      } else {
+        for (const missed of transcripts.since(lastEventId, 500)) send({ type: "transcript", data: missed });
+      }
     }
     const unsubscribe = eventBroker.subscribe(send);
     const heartbeat = setInterval(() => {

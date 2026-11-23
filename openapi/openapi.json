@@ -11427,6 +11427,170 @@
         }
       }
     },
+    "/api/v1/translations": {
+      "get": {
+        "operationId": "listTranslations",
+        "tags": [
+          "Transcripts"
+        ],
+        "summary": "Buffered translations newer than an event id (catch-up without SSE)",
+        "parameters": [
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "description": "Last seen translation id, <epoch>:t<seq>. Empty or from another epoch returns nothing.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500,
+              "default": 200
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Translations of the current epoch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "epoch": {
+                      "type": "string"
+                    },
+                    "translations": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Translation"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "ingestTranslations",
+        "tags": [
+          "Transcripts"
+        ],
+        "summary": "PiVoice posts caption translations here; they go on the bus as `translation` events",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "events"
+                ],
+                "properties": {
+                  "events": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 100,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "sourceKey",
+                        "sourceSeq",
+                        "session",
+                        "source",
+                        "lang",
+                        "text",
+                        "startMs",
+                        "endMs",
+                        "origin"
+                      ],
+                      "properties": {
+                        "sourceKey": {
+                          "type": "string"
+                        },
+                        "sourceSeq": {
+                          "type": "integer"
+                        },
+                        "session": {
+                          "type": "string"
+                        },
+                        "source": {
+                          "type": "string",
+                          "description": "Language of the original"
+                        },
+                        "lang": {
+                          "type": "string",
+                          "description": "Language of text"
+                        },
+                        "text": {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "startMs": {
+                          "type": "integer",
+                          "description": "Epoch ms of the spoken audio, not of translation."
+                        },
+                        "endMs": {
+                          "type": "integer"
+                        },
+                        "origin": {
+                          "type": "string",
+                          "enum": [
+                            "memory",
+                            "model"
+                          ]
+                        },
+                        "route": {
+                          "type": "string",
+                          "enum": [
+                            "mt",
+                            "llm",
+                            "hosted"
+                          ]
+                        },
+                        "model": {
+                          "type": "string"
+                        },
+                        "latencyMs": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed body"
+          },
+          "422": {
+            "description": "Nothing in the batch was acceptable"
+          }
+        }
+      }
+    },
     "/api/v1/ui/modules": {
       "get": {
         "operationId": "getUiModules",
@@ -13050,6 +13214,86 @@
           }
         },
         "additionalProperties": true
+      },
+      "Translation": {
+        "type": "object",
+        "required": [
+          "epoch",
+          "seq",
+          "sourceKey",
+          "sourceSeq",
+          "session",
+          "source",
+          "lang",
+          "text",
+          "startMs",
+          "endMs",
+          "origin"
+        ],
+        "properties": {
+          "epoch": {
+            "type": "string"
+          },
+          "seq": {
+            "type": "integer"
+          },
+          "sourceId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Bus id of the transcript this translates (<epoch>:<seq>), when it was still buffered."
+          },
+          "sourceKey": {
+            "type": "string"
+          },
+          "sourceSeq": {
+            "type": "integer"
+          },
+          "session": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "description": "Language of the original"
+          },
+          "lang": {
+            "type": "string",
+            "description": "Language of text"
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "startMs": {
+            "type": "integer",
+            "description": "Epoch ms of the spoken audio, not of translation."
+          },
+          "endMs": {
+            "type": "integer"
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "memory",
+              "model"
+            ]
+          },
+          "route": {
+            "type": "string",
+            "enum": [
+              "mt",
+              "llm",
+              "hosted"
+            ]
+          },
+          "model": {
+            "type": "string"
+          },
+          "latencyMs": {
+            "type": "integer"
+          }
+        }
       }
     },
     "responses": {
