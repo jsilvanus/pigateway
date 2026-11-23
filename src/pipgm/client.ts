@@ -262,8 +262,33 @@ export class PiProgramClient {
 
   // Library items and storage
 
-  listItems() {
-    return this.request("GET", "/api/v1/pipgm/items");
+  /** Filters (type, kind, q, usedFrom, usedTo, unscheduled, sort, limit, offset) go to piprogram as they are. */
+  listItems(query?: Query) {
+    return this.request("GET", withQuery("/api/v1/pipgm/items", query));
+  }
+
+  updateItem(itemId: string, body: unknown) {
+    return this.request("PATCH", item(itemId), body);
+  }
+
+  getActiveFolder(query?: Query) {
+    return this.request("GET", withQuery("/api/v1/pipgm/library/active", query));
+  }
+
+  addToActiveFolder(itemId: string) {
+    return this.request("PUT", `/api/v1/pipgm/library/active/${encodeURIComponent(itemId)}`);
+  }
+
+  removeFromActiveFolder(itemId: string) {
+    return this.request("DELETE", `/api/v1/pipgm/library/active/${encodeURIComponent(itemId)}`);
+  }
+
+  clearActiveFolder() {
+    return this.request("DELETE", "/api/v1/pipgm/library/active");
+  }
+
+  createPlaylistFromActiveFolder(body: unknown) {
+    return this.request("POST", "/api/v1/pipgm/library/active/playlist", body);
   }
 
   getItem(itemId: string) {

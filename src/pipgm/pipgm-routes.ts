@@ -161,8 +161,33 @@ export function registerPiPgmRoutes(app: FastifyInstance, options: { client: PiP
   });
 
   // Library items and storage
-  app.get("/api/v1/pipgm/items", async (_request, reply) => {
-    return handle(() => client.listItems(), reply);
+  app.get<{ Querystring: Record<string, string | undefined> }>("/api/v1/pipgm/items", async (request, reply) => {
+    return handle(() => client.listItems(request.query), reply);
+  });
+
+  app.patch<{ Params: { itemId: string } }>("/api/v1/pipgm/items/:itemId", async (request, reply) => {
+    return handle(() => client.updateItem(request.params.itemId, request.body), reply);
+  });
+
+  // Active folder: the items for a day (by use date) plus hand-picked ones
+  app.get<{ Querystring: Record<string, string | undefined> }>("/api/v1/pipgm/library/active", async (request, reply) => {
+    return handle(() => client.getActiveFolder(request.query), reply);
+  });
+
+  app.post("/api/v1/pipgm/library/active/playlist", async (request, reply) => {
+    return handle(() => client.createPlaylistFromActiveFolder(request.body), reply);
+  });
+
+  app.put<{ Params: { itemId: string } }>("/api/v1/pipgm/library/active/:itemId", async (request, reply) => {
+    return handle(() => client.addToActiveFolder(request.params.itemId), reply);
+  });
+
+  app.delete<{ Params: { itemId: string } }>("/api/v1/pipgm/library/active/:itemId", async (request, reply) => {
+    return handle(() => client.removeFromActiveFolder(request.params.itemId), reply);
+  });
+
+  app.delete("/api/v1/pipgm/library/active", async (_request, reply) => {
+    return handle(() => client.clearActiveFolder(), reply);
   });
 
   app.get<{ Params: { itemId: string } }>("/api/v1/pipgm/items/:itemId", async (request, reply) => {
