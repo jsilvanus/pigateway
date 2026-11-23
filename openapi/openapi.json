@@ -3309,6 +3309,51 @@
         }
       }
     },
+    "/api/v1/canva/session": {
+      "get": {
+        "operationId": "getCanvaSession",
+        "tags": [
+          "Canva"
+        ],
+        "summary": "Who the Canva listener thinks you are (Canva listener only)",
+        "description": "Returns the signed-in name and the canva rights: read, write (push slides, save playlists and action lists), operate (go live, presentation controls, projector routing). Shared-key callers get all canva rights.",
+        "responses": {
+          "200": {
+            "description": "Session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "auth": {
+                      "type": "string",
+                      "enum": [
+                        "tunnus",
+                        "canva-user",
+                        "key"
+                      ]
+                    },
+                    "name": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "rights": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "example": "canva:write"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/canva/status": {
       "get": {
         "operationId": "getCanvaStatus",
