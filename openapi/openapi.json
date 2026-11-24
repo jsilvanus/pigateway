@@ -6889,6 +6889,19 @@
               }
             }
           },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
           "206": {
             "description": "Part of the asset",
             "content": {
@@ -6900,21 +6913,8 @@
               }
             }
           },
-          "404": {
-            "description": "Not found"
-          },
           "416": {
             "description": "Range not satisfiable"
-          },
-          "default": {
-            "description": "Upstream error (piprogram error code and status are passed on)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
           }
         }
       }
@@ -7448,9 +7448,6 @@
               }
             }
           },
-          "404": {
-            "description": "Not found"
-          },
           "default": {
             "description": "Upstream error (piprogram error code and status are passed on)",
             "content": {
@@ -7460,6 +7457,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not found"
           }
         }
       }
@@ -12284,12 +12284,6 @@
               }
             }
           },
-          "404": {
-            "description": "Not found"
-          },
-          "409": {
-            "description": "Active folder is full"
-          },
           "default": {
             "description": "Upstream error (piprogram error code and status are passed on)",
             "content": {
@@ -12299,6 +12293,12 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Active folder is full"
           }
         }
       },
@@ -12370,8 +12370,8 @@
               }
             }
           },
-          "201": {
-            "description": "Created",
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
             "content": {
               "application/json": {
                 "schema": {
@@ -12380,8 +12380,8 @@
               }
             }
           },
-          "default": {
-            "description": "Upstream error (piprogram error code and status are passed on)",
+          "201": {
+            "description": "Created",
             "content": {
               "application/json": {
                 "schema": {
@@ -12778,15 +12778,14 @@
           }
         }
       }
-    },
+    }
+,
     "/api/v1/canva/animations": {
       "get": {
         "operationId": "listCanvaAnimations",
-        "tags": [
-          "Canva"
-        ],
+        "tags": ["Canva"],
         "summary": "List DVE movements supported by PiGraphics for Canva graphics",
-        "description": "Returns the movements accepted by PiGraphics' Canva graphic push endpoint. The `none` option is a Canva convenience sentinel and is mapped to `cut` by the plugin.",
+        "description": "Returns the movements accepted by PiGraphics' Canva graphic push endpoint. The Canva-only none option is mapped to cut by the plugin.",
         "responses": {
           "200": {
             "description": "Supported DVE movements",
@@ -12794,24 +12793,13 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "animations"
-                  ],
+                  "required": ["animations"],
                   "properties": {
                     "animations": {
                       "type": "array",
                       "items": {
                         "type": "string",
-                        "enum": [
-                          "none",
-                          "fly-left",
-                          "fly-right",
-                          "fly-bottom",
-                          "fly-top",
-                          "zoom",
-                          "dissolve",
-                          "cut"
-                        ]
+                        "enum": ["none", "fly-left", "fly-right", "fly-bottom", "fly-top", "zoom", "dissolve", "cut"]
                       }
                     }
                   }
