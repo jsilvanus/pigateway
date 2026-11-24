@@ -204,6 +204,9 @@ export const UI_ROUTES: readonly UiRouteRule[] = [
   { method: "POST", path: "/api/v1/pipgm/pipelines/:pipelineId/play", module: "piprogram" },
   { method: "POST", path: "/api/v1/pipgm/pipelines/:pipelineId/pause", module: "piprogram" },
   { method: "GET", path: "/api/v1/pipgm/feeders", module: "piprogram" },
+  // Start and stop publishing of each feed to MediaMTX (live streams, so operate level; all off by default).
+  { method: "GET", path: "/api/v1/pipgm/publish", module: "piprogram" },
+  { method: "PUT", path: "/api/v1/pipgm/publish", module: "piprogram" },
   { method: "GET", path: "/api/v1/pipgm/items", module: "piprogram" },
   { method: "GET", path: "/api/v1/pipgm/items/:itemId", module: "piprogram" },
   { method: "GET", path: "/api/v1/pipgm/items/:itemId/steps", module: "piprogram" },
