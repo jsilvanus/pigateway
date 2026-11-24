@@ -12778,8 +12778,7 @@
           }
         }
       }
-    }
-,
+    },
     "/api/v1/canva/animations": {
       "get": {
         "operationId": "listCanvaAnimations",
