@@ -12778,6 +12778,36 @@
           }
         }
       }
+    },
+    "/api/v1/canva/animations": {
+      "get": {
+        "operationId": "listCanvaAnimations",
+        "tags": ["Canva"],
+        "summary": "List DVE movements supported by PiGraphics for Canva graphics",
+        "description": "Returns the movements accepted by PiGraphics' Canva graphic push endpoint. The Canva-only none option is mapped to cut by the plugin.",
+        "responses": {
+          "200": {
+            "description": "Supported DVE movements",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["animations"],
+                  "properties": {
+                    "animations": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": ["none", "fly-left", "fly-right", "fly-bottom", "fly-top", "zoom", "dissolve", "cut"]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

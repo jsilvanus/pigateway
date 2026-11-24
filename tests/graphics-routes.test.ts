@@ -67,6 +67,12 @@ test("graphics-routes proxies active, templates, assets, and canva push/off-air"
   });
   registerGraphicsRoutes(app, { client });
 
+  const animationsRes = await app.inject({ method: "GET", url: "/api/v1/canva/animations" });
+  assert.equal(animationsRes.statusCode, 200);
+  assert.deepEqual(JSON.parse(animationsRes.body), {
+    animations: ["none", "fly-left", "fly-right", "fly-bottom", "fly-top", "zoom", "dissolve", "cut"]
+  });
+
   const activeRes = await app.inject({ method: "GET", url: "/api/v1/graphics/active" });
   assert.equal(activeRes.statusCode, 200);
 

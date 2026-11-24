@@ -76,6 +76,12 @@ export function registerGraphicsRoutes(app: FastifyInstance, options: { client: 
   });
 
   // Canva integration endpoints
+  // Keep this list aligned with PiGraphics' CanvaGraphicPushOptions movement enum.
+  // "none" is a plugin convenience option; Canva maps it to "cut" when publishing.
+  app.get("/api/v1/canva/animations", async () => ({
+    animations: ["none", "fly-left", "fly-right", "fly-bottom", "fly-top", "zoom", "dissolve", "cut"]
+  }));
+
   app.post("/api/v1/graphics/canva/push", async (request, reply) => {
     return handle(() => client.canvaPush(request.body), reply);
   });
