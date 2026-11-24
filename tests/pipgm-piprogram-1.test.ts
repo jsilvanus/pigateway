@@ -179,6 +179,12 @@ test("the relay gets reads, control, ftb, playlist and audio kill/stop; LAN-only
   assert.ok(relay("POST", "/api/v1/pipgm/audio/kill"));
   assert.ok(relay("POST", "/api/v1/pipgm/pipelines/PiPGM1/audio/stop"));
   assert.ok(relay("POST", "/api/v1/pipgm/pipelines/PiPGM1/step"));
+  assert.ok(relay("GET", "/api/v1/pipgm/publish"));
+  assert.ok(relay("PUT", "/api/v1/pipgm/publish"));
+  // relay: never speaks or touches the sound devices
+  assert.equal(relay("POST", "/api/v1/pipgm/audio/speak"), false);
+  assert.equal(relay("PUT", "/api/v1/pipgm/local-audio"), false);
+  assert.equal(relay("PUT", "/api/v1/pipgm/audio/sound-output"), false);
   // relay: LAN only
   assert.equal(relay("POST", "/api/v1/pipgm/pipelines/PiPGM1/audio"), false);
   assert.equal(relay("POST", "/api/v1/pipgm/pipelines/PiPGM1/audio/play"), false);
