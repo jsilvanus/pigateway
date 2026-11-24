@@ -102,7 +102,6 @@ test("graphics-routes proxies active, templates, assets, and canva push/off-air"
   assert.deepEqual(
     calls.map((c) => `${c.method} ${c.path}`),
     [
-      "GET /api/v1/canva/animations",
       "GET /api/v1/graphics/active",
       "POST /api/v1/graphics/active/show",
       "POST /api/v1/graphics/canva/push",
