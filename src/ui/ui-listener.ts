@@ -251,6 +251,8 @@ export const UI_ROUTES: readonly UiRouteRule[] = [
   { method: "POST", path: "/api/v1/pipgm/items/pptx", module: "piprogram" },
   { method: "POST", path: "/api/v1/pipgm/items/canva", module: "piprogram" },
   { method: "PUT", path: "/api/v1/pipgm/items/:itemId/use-at", module: "piprogram" },
+  { method: "POST", path: "/api/v1/pipgm/items/:itemId/used-on", module: "piprogram" },
+  { method: "DELETE", path: "/api/v1/pipgm/items/:itemId/used-on/:date", module: "piprogram" },
   { method: "POST", path: "/api/v1/pipgm/items/:itemId/prepare", module: "piprogram" },
   { method: "POST", path: "/api/v1/pipgm/items/:itemId/canva/export-package", module: "piprogram" },
 

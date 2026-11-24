@@ -276,6 +276,14 @@ export function registerPiPgmRoutes(app: FastifyInstance, options: { client: PiP
     return handle(() => client.setItemUseAt(request.params.itemId, request.body), reply);
   });
 
+  app.post<{ Params: { itemId: string } }>("/api/v1/pipgm/items/:itemId/used-on", async (request, reply) => {
+    return handle(() => client.addItemUsedOn(request.params.itemId, request.body), reply);
+  });
+
+  app.delete<{ Params: { itemId: string; date: string } }>("/api/v1/pipgm/items/:itemId/used-on/:date", async (request, reply) => {
+    return handle(() => client.removeItemUsedOn(request.params.itemId, request.params.date), reply);
+  });
+
   app.get<{ Params: { itemId: string }; Querystring: Orientation }>("/api/v1/pipgm/items/:itemId/steps", async (request, reply) => {
     return handle(() => client.listItemSteps(request.params.itemId, request.query?.orientation), reply);
   });

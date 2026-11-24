@@ -7822,6 +7822,122 @@
         }
       }
     },
+    "/api/v1/pipgm/items/{itemId}/used-on": {
+      "post": {
+        "operationId": "addPipgmItemUsedOn",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Record a day an item was used, YYYY-MM-DD (LAN only)",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "date"
+                ],
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "example": "2026-11-08"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Item, with its usedOn list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/items/{itemId}/used-on/{date}": {
+      "delete": {
+        "operationId": "removePipgmItemUsedOn",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Take one recorded use day off an item (LAN only)",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "date",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "2026-11-08"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Item, with its usedOn list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/pipgm/library/storage": {
       "get": {
         "operationId": "getPipgmLibraryStorage",
