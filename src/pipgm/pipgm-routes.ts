@@ -1,10 +1,11 @@
 import type { FastifyInstance, FastifyReply } from "fastify";
 import { PIPGM_UPLOAD_BODY_LIMIT, type PiProgramClient } from "./client.js";
+import type { SoundOutputForwarder } from "./sound-output-forwarder.js";
 
 type Orientation = { orientation?: string };
 
-export function registerPiPgmRoutes(app: FastifyInstance, options: { client: PiProgramClient }): void {
-  const { client } = options;
+export function registerPiPgmRoutes(app: FastifyInstance, options: { client: PiProgramClient; soundForwarder?: SoundOutputForwarder }): void {
+  const { client, soundForwarder } = options;
 
   // Canva export packages arrive as a zip; the gateway keeps the bytes as they are and piprogram unpacks them.
   app.addContentTypeParser("application/zip", { parseAs: "buffer", bodyLimit: PIPGM_UPLOAD_BODY_LIMIT }, (_req, body, done) => {
@@ -33,6 +34,29 @@ export function registerPiPgmRoutes(app: FastifyInstance, options: { client: PiP
       });
     }
   };
+
+  // Runtime switches of piprogram (PiPGM publishing to MediaMTX, spoken announcements to the Pi HDMI audio).
+  // All are off until someone turns them on; nothing here plays sound unless /audio/speak is called with dryRun false.
+  app.get("/api/v1/pipgm/publish", async (_request, reply) => handle(() => client.request("GET", "/api/v1/pipgm/publish"), reply));
+  app.put("/api/v1/pipgm/publish", async (request, reply) => handle(() => client.request("PUT", "/api/v1/pipgm/publish", request.body ?? {}), reply));
+  app.get("/api/v1/pipgm/local-audio", async (_request, reply) => handle(() => client.request("GET", "/api/v1/pipgm/local-audio"), reply));
+  app.put("/api/v1/pipgm/local-audio", async (request, reply) => handle(() => client.request("PUT", "/api/v1/pipgm/local-audio", request.body ?? {}), reply));
+  app.get("/api/v1/pipgm/audio/sound-output", async (_request, reply) => handle(() => client.request("GET", "/api/v1/pipgm/audio/sound-output"), reply));
+  app.put("/api/v1/pipgm/audio/sound-output", async (request, reply) => handle(() => client.request("PUT", "/api/v1/pipgm/audio/sound-output", request.body ?? {}), reply));
+  app.post("/api/v1/pipgm/audio/speak", async (request, reply) => handle(() => client.request("POST", "/api/v1/pipgm/audio/speak", request.body ?? {}), reply));
+  app.post("/api/v1/pipgm/audio/speak/stop", async (_request, reply) => handle(() => client.request("POST", "/api/v1/pipgm/audio/speak/stop"), reply));
+
+  // Whether the gateway keeps piprogram told which Pi HDMI reaches the PA (answer comes from pimatrix).
+  app.get("/api/v1/pipgm/audio/sound-output/forwarding", async (_request, reply) => {
+    if (!soundForwarder) return reply.code(503).send({ error: { code: "FORWARDING_UNAVAILABLE", message: "sound output forwarding is not available" } });
+    return soundForwarder.status();
+  });
+  app.put<{ Body: { enabled?: unknown } }>("/api/v1/pipgm/audio/sound-output/forwarding", async (request, reply) => {
+    if (!soundForwarder) return reply.code(503).send({ error: { code: "FORWARDING_UNAVAILABLE", message: "sound output forwarding is not available" } });
+    const enabled = request.body?.enabled;
+    if (typeof enabled !== "boolean") return reply.code(422).send({ error: { code: "INVALID_ENABLED", message: "enabled must be a boolean" } });
+    return soundForwarder.setEnabled(enabled);
+  });
 
   // Pipelines
   app.get<{ Querystring: { includeHidden?: string } }>("/api/v1/pipgm/pipelines", async (request, reply) => {
