@@ -12310,6 +12310,358 @@
           }
         }
       }
+    },
+    "/api/v1/pipgm/publish": {
+      "get": {
+        "operationId": "getPipgmPublish",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Whether PiPGM1-3 are published to MediaMTX (off by default)",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "setPipgmPublish",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Turn publishing on or off at runtime: enabled, rtspBase, audio",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/local-audio": {
+      "get": {
+        "operationId": "getPipgmLocalAudio",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Local audio device per Pi HDMI output (off until configured)",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "setPipgmLocalAudio",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Set the ALSA device per Pi HDMI output at runtime",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/audio/sound-output": {
+      "get": {
+        "operationId": "getPipgmSoundOutput",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Which Pi HDMI output reaches the PA, as last reported",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "setPipgmSoundOutput",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Report which Pi HDMI output reaches the PA (hdmi0, hdmi1 or null)",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/audio/sound-output/forwarding": {
+      "get": {
+        "operationId": "getPipgmSoundOutputForwarding",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Whether the gateway reports pimatrix's sound output to piprogram",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "setPipgmSoundOutputForwarding",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Turn the sound output report on or off (off by default); body {enabled}",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/audio/speak": {
+      "post": {
+        "operationId": "speakPipgmAudio",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Play an audio item on the HDMI that reaches the PA: itemId, level or volume, dryRun",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pipgm/audio/speak/stop": {
+      "post": {
+        "operationId": "stopPipgmSpeak",
+        "tags": [
+          "PiProgram"
+        ],
+        "summary": "Stop a running spoken announcement",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Upstream error (piprogram error code and status are passed on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

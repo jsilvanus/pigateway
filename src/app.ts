@@ -41,6 +41,7 @@ import { registerMatrixProxyRoutes } from "./matrix/matrix-proxy-routes.js";
 import { PiGraphicsClient } from "./graphics/client.js";
 import { registerGraphicsRoutes } from "./graphics/graphics-routes.js";
 import { PiProgramClient } from "./pipgm/client.js";
+import { SoundOutputForwarder } from "./pipgm/sound-output-forwarder.js";
 import { registerPiPgmRoutes } from "./pipgm/pipgm-routes.js";
 import { PiDesignerClient } from "./designer/client.js";
 import { registerDesignerRoutes } from "./designer/designer-routes.js";
@@ -716,7 +717,9 @@ export function buildApp(config: AppConfig): FastifyInstance {
   registerTallyRoutes(app, { client: pitallyClient });
   registerMatrixProxyRoutes(app, { client: pimatrixClient });
   registerGraphicsRoutes(app, { client: pigraphicsClient });
-  registerPiPgmRoutes(app, { client: piprogramClient });
+  const soundForwarder = new SoundOutputForwarder({ pimatrix: pimatrixClient, piprogram: piprogramClient, eventBroker, logger: app.log });
+  app.addHook("onClose", async () => soundForwarder.stop());
+  registerPiPgmRoutes(app, { client: piprogramClient, soundForwarder });
   registerDesignerRoutes(app, { client: pidesignerClient });
   registerPoeRoutes(app, { client: pipoeClient });
   registerStorageRoutes(app, { client: pistorageClient });
