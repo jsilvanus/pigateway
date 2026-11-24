@@ -339,6 +339,14 @@ export class PiProgramClient {
     return this.request("PUT", `${item(itemId)}/use-at`, body);
   }
 
+  addItemUsedOn(itemId: string, body: unknown) {
+    return this.request("POST", `${item(itemId)}/used-on`, body);
+  }
+
+  removeItemUsedOn(itemId: string, date: string) {
+    return this.request("DELETE", `${item(itemId)}/used-on/${encodeURIComponent(date)}`);
+  }
+
   listItemSteps(itemId: string, orientation?: string | undefined) {
     return this.request("GET", withQuery(`${item(itemId)}/steps`, { orientation }));
   }
