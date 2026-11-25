@@ -46,7 +46,7 @@ export function registerCanvaRoutes(app: FastifyInstance, service: CanvaService,
   };
 
   // Step 1: the plugin's export URLs go in, a task comes out (202). The task shows download and preparation progress.
-  app.post<{ Body: { title?: unknown; pages?: unknown; orientation?: unknown; useAt?: unknown } }>("/api/v1/canva/push", async (request, reply) => {
+  app.post<{ Body: { title?: unknown; pages?: unknown; orientation?: unknown; useAt?: unknown; designId?: unknown; itemId?: unknown } }>("/api/v1/canva/push", async (request, reply) => {
     try {
       const { task } = service.start(request.body ?? {});
       return reply.code(202).header("location", `/api/v1/canva/tasks/${task.taskId}`).send(task);

@@ -108,16 +108,18 @@ export class CanvaService {
   }
 
   /** Validates the request and starts the job. Resolves with the new task; the work goes on in the background. */
-  start(input: { title?: unknown; pages?: unknown; orientation?: unknown; useAt?: unknown }): { task: CanvaTask; done: Promise<void> } {
+  start(input: { title?: unknown; pages?: unknown; orientation?: unknown; useAt?: unknown; designId?: unknown; itemId?: unknown }): { task: CanvaTask; done: Promise<void> } {
     const pages = this.#validatePages(input.pages);
     const title = typeof input.title === "string" && input.title.trim() ? input.title.trim().slice(0, 200) : "Canva presentation";
     const orientation = this.#orientation(input.orientation);
     const useAt = this.#useAt(input.useAt);
+    const designId = typeof input.designId === "string" && /^[a-zA-Z0-9_-]{3,64}$/.test(input.designId.trim()) ? input.designId.trim() : undefined;
+    const overwriteItemId = typeof input.itemId === "string" && input.itemId.trim() ? input.itemId.trim() : undefined;
     const now = new Date().toISOString();
     const task: CanvaTask = {
       taskId: `ctask_${randomUUID().slice(0, 12)}`,
       presentationId: `pres_${randomUUID().slice(0, 8)}`,
-      itemId: null,
+      itemId: overwriteItemId ?? null,
       title,
       state: "queued",
       progress: 0,
@@ -132,22 +134,37 @@ export class CanvaService {
     };
     this.#tasks.set(task.taskId, task);
     this.#trim();
-    const done = this.#run(task, pages, orientation, useAt).catch((error: unknown) => {
+    const done = this.#run(task, pages, orientation, useAt, { designId, overwriteItemId }).catch((error: unknown) => {
       this.#update(task, { state: "failed", error: error instanceof Error ? error.message : String(error) });
       this.#opts.logger?.warn({ taskId: task.taskId, err: task.error }, "canva push failed");
     });
     return { task, done };
   }
 
-  async #run(task: CanvaTask, pages: CanvaPushPage[], orientation: string, useAt: string[]): Promise<void> {
-    const item = await this.#pg<{ id: string }>("POST", "/api/v1/pipgm/items/canva", {
-      designId: `push-${task.presentationId.replace(/^pres_/, "")}`,
-      title: task.title,
-      pageCount: pages.length,
-      ...(useAt.length ? { useAt } : {})
-    });
-    this.#update(task, { itemId: item.id });
-    this.#presentations.set(task.presentationId, { itemId: item.id, taskId: task.taskId });
+  async #run(
+    task: CanvaTask,
+    pages: CanvaPushPage[],
+    orientation: string,
+    useAt: string[],
+    opts: { designId?: string | undefined; overwriteItemId?: string | undefined } = {}
+  ): Promise<void> {
+    let itemId = opts.overwriteItemId;
+    if (itemId) {
+      await this.#pg("GET", `/api/v1/pipgm/items/${encodeURIComponent(itemId)}`);
+      if (useAt.length > 0) {
+        await this.pg("PUT" as "POST", `/api/v1/pipgm/items/${encodeURIComponent(itemId)}/use-at`, { useAt });
+      }
+    } else {
+      const item = await this.#pg<{ id: string }>("POST", "/api/v1/pipgm/items/canva", {
+        designId: opts.designId || `push-${task.presentationId.replace(/^pres_/, "")}`,
+        title: task.title,
+        pageCount: pages.length,
+        ...(useAt.length ? { useAt } : {})
+      });
+      itemId = item.id;
+    }
+    this.#update(task, { itemId });
+    this.#presentations.set(task.presentationId, { itemId, taskId: task.taskId });
 
     this.#update(task, { state: "downloading" });
     const files: Array<{ pageNumber: number; filename: string; mimeType: string; dataBase64: string }> = [];
@@ -167,7 +184,7 @@ export class CanvaService {
 
     const accepted = await this.#pg<{ taskId: string }>(
       "POST",
-      `/api/v1/pipgm/items/${encodeURIComponent(item.id)}/canva/export-package?orientation=${orientation}`,
+      `/api/v1/pipgm/items/${encodeURIComponent(itemId)}/canva/export-package?orientation=${orientation}`,
       { pages: files }
     );
     files.length = 0;
@@ -286,7 +303,7 @@ export class CanvaService {
     return this.pg<T>(method, path, body);
   }
 
-  async pg<T>(method: "GET" | "POST", path: string, body?: unknown): Promise<T> {
+  async pg<T>(method: "GET" | "POST" | "PUT", path: string, body?: unknown): Promise<T> {
     const headers: Record<string, string> = { accept: "application/json" };
     if (body !== undefined) headers["content-type"] = "application/json";
     if (this.#opts.piprogramApiKey) headers.authorization = `Bearer ${this.#opts.piprogramApiKey}`;
