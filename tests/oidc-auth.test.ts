@@ -92,6 +92,31 @@ test("OidcVerifier: verifies token, resolves groups and flags correctly", async 
   const canva = await verifier.verify(canvaToken);
   assert.equal(canva.canCanva, true);
   assert.equal(canva.isOperator, false);
+
+  // Highest role resolution when multiple groups are present
+  // 1. Both Viewer and Operator -> resolves to Operator (not Viewer)
+  const opAndViewerToken = await makeToken({ groups: [OIDC_GROUPS.VIEWER, OIDC_GROUPS.OPERATOR] });
+  const opAndViewer = await verifier.verify(opAndViewerToken);
+  assert.equal(opAndViewer.role, "operator");
+  assert.equal(opAndViewer.isOperator, true);
+  assert.equal(opAndViewer.isAdmin, false);
+
+  // 2. Both Viewer and Admin -> resolves to Admin
+  const adminAndViewerToken = await makeToken({ groups: [OIDC_GROUPS.VIEWER, OIDC_GROUPS.ADMIN] });
+  const adminAndViewer = await verifier.verify(adminAndViewerToken);
+  assert.equal(adminAndViewer.role, "admin");
+  assert.equal(adminAndViewer.isAdmin, true);
+
+  // 3. Flexible group name matching across tenants and delimiters
+  const colonAdminToken = await makeToken({ groups: ["parish/keskuskirkko/picontrol:admin", "parish/keskuskirkko/picontrol:viewer"] });
+  const colonAdmin = await verifier.verify(colonAdminToken);
+  assert.equal(colonAdmin.role, "admin");
+  assert.equal(colonAdmin.isAdmin, true);
+
+  const dashOpToken = await makeToken({ groups: ["parish/keskuskirkko/picontrol-operator", "parish/keskuskirkko/picontrol-viewer"] });
+  const dashOp = await verifier.verify(dashOpToken);
+  assert.equal(dashOp.role, "operator");
+  assert.equal(dashOp.isOperator, true);
 });
 
 test("OidcVerifier: checkPermission enforces RBAC for church roles", async () => {

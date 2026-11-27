@@ -17,6 +17,7 @@ export interface OidcUser {
   email?: string | undefined;
   name?: string | undefined;
   groups: string[];
+  role: "admin" | "operator" | "viewer";
   isAdmin: boolean;
   isOperator: boolean;
   isViewer: boolean;
@@ -118,19 +119,55 @@ export class OidcVerifier {
     const name = typeof payload["name"] === "string" ? payload["name"] : undefined;
     const groups = normalizeGroups(payload["groups"]);
 
-    const isAdmin = groups.includes(OIDC_GROUPS.ADMIN);
-    const isOperator = isAdmin || groups.includes(OIDC_GROUPS.OPERATOR);
-    const isViewer = isOperator || groups.includes(OIDC_GROUPS.VIEWER);
+    // Flexible role matching across groups; always resolves to highest privilege
+    const norm = groups.map((g) => g.trim().toLowerCase());
+
+    const hasLevel = (levelRegex: RegExp) =>
+      norm.some((g) => {
+        if (levelRegex.test(g)) return true;
+        const parish = g.match(/^parish\/[^/]+\/(.+)$/);
+        const tail = parish ? parish[1]! : g;
+        const parts = tail.split(/[:\-_]/);
+        const level = parts[parts.length - 1]!;
+        const app = parts.slice(0, -1).join("-");
+        if (!app || app === "picontrol" || app === "mcp" || app === "picontrol-mcp" || app === "gateway" || app === "pigateway") {
+          return levelRegex.test(level);
+        }
+        return false;
+      });
+
+    const isAdmin =
+      norm.includes(OIDC_GROUPS.ADMIN.toLowerCase()) ||
+      hasLevel(/^(admin)$/i);
+
+    const isOperator =
+      isAdmin ||
+      norm.includes(OIDC_GROUPS.OPERATOR.toLowerCase()) ||
+      hasLevel(/^(operator|operate|write|director|editor)$/i);
+
+    const isViewer =
+      isOperator ||
+      norm.includes(OIDC_GROUPS.VIEWER.toLowerCase()) ||
+      hasLevel(/^(viewer|view|read)$/i);
+
     const canCanva =
       isAdmin ||
-      groups.includes(OIDC_GROUPS.CANVA_WRITE) ||
-      groups.includes(OIDC_GROUPS.CANVA_OPERATE);
+      norm.includes(OIDC_GROUPS.CANVA_WRITE.toLowerCase()) ||
+      norm.includes(OIDC_GROUPS.CANVA_OPERATE.toLowerCase()) ||
+      norm.some((g) => /canva/i.test(g));
+
+    const role: "admin" | "operator" | "viewer" = isAdmin
+      ? "admin"
+      : isOperator
+        ? "operator"
+        : "viewer";
 
     return {
       sub,
       email,
       name,
       groups,
+      role,
       isAdmin,
       isOperator,
       isViewer,

@@ -485,7 +485,7 @@ export function withOidcAuth(inner: UiAuthAdapter, oidcVerifier?: OidcVerifier |
         if (token.startsWith("ey")) {
           try {
             const user = await oidcVerifier.verify(token);
-            const role: UiRole = user.isAdmin ? "lan" : user.isOperator ? listenerRole : "viewer";
+            const role: UiRole = user.isAdmin ? "lan" : user.isOperator ? "lan" : "viewer";
             return { role, user };
           } catch {
             // fall through to session cookie or inner auth
