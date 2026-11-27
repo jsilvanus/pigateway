@@ -32,7 +32,7 @@ test("allowlist admits module routes and nothing else", () => {
   assert.equal(findUiRoute("GET", "/api/v1/voice/transcripts")?.module, "pivoice");
   assert.equal(findUiRoute("POST", "/api/v1/matrix"), null, "method must match");
   assert.equal(findUiRoute("GET", "/api/v1/canva/status"), null);
-  assert.equal(findUiRoute("GET", "/api/v1/cameras")?.lanOnly, true, "cameras: LAN listener only");
+  assert.equal(findUiRoute("GET", "/api/v1/cameras")?.module, "picam");
   assert.equal(findUiRoute("POST", "/api/v1/broadcasts/start/extra"), null);
   assert.equal(findUiRoute("GET", "/api/v1/broadcasts/current?x=1")?.module, "pitube");
 });
@@ -221,18 +221,18 @@ test("the routes behind the Outputs, Cameras and Pipeline tabs are on the allowl
     ["GET", "/api/v1/video-mixer"], ["PUT", "/api/v1/video-mixer/program"], ["POST", "/api/v1/video-mixer/cut"], ["POST", "/api/v1/encoder/start"]
   ] as const) assert.ok(rule(m, u), `${m} ${u}`);
   assert.equal(rule("POST", "/api/v1/cameras/cam1/presets/2/save")?.setup, true);
-  // camera stream control is LAN-only; free-d and device config stay off the UI listeners
-  assert.equal(rule("POST", "/api/v1/cameras/cam1/stream/start")?.lanOnly, true);
+  // camera stream control is on the allowlist; free-d and device config stay off the UI listeners
+  assert.equal(rule("POST", "/api/v1/cameras/cam1/stream/start")?.module, "picam");
   assert.equal(rule("POST", "/api/v1/cameras/cam1/freed"), null);
 });
 
-test("camera and ATEM routes are served on the LAN listener and refused on the relay", async () => {
-  for (const [role, expected] of [["lan", 200], ["relay", 403]] as const) {
+test("camera routes are served on both listeners; ATEM routes are LAN only", async () => {
+  for (const [role, expectedAtem] of [["lan", 200], ["relay", 403]] as const) {
     const { app } = setup(role);
     const login2 = await app.inject({ method: "POST", url: "/ui/api/login", payload: { pin: "123456" } });
     const cookie = String(login2.headers["set-cookie"]).split(";")[0]!;
-    assert.equal((await app.inject({ method: "GET", url: "/api/v1/cameras", headers: { cookie } })).statusCode, expected, `${role} cameras`);
-    assert.equal((await app.inject({ method: "POST", url: "/api/v1/video-mixer/cut", headers: { cookie } })).statusCode, expected, `${role} atem`);
+    assert.equal((await app.inject({ method: "GET", url: "/api/v1/cameras", headers: { cookie } })).statusCode, 200, `${role} cameras`);
+    assert.equal((await app.inject({ method: "POST", url: "/api/v1/video-mixer/cut", headers: { cookie } })).statusCode, expectedAtem, `${role} atem`);
     await app.close();
   }
 });
