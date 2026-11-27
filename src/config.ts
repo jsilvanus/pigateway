@@ -94,6 +94,8 @@ export interface AppConfig {
   piagentApiKey?: string | undefined;
   pinotifyApiUrl?: string | undefined;
   pinotifyApiKey?: string | undefined;
+  pitimerApiUrl?: string | undefined;
+  pitimerApiKey?: string | undefined;
   ecosystemPollIntervalMs: number;
   radioRelayApiUrl?: string | undefined;
   radioRelayApiToken?: string | undefined;
@@ -304,6 +306,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const pistorageApiUrl = urlWithScheme(env.PIGATEWAY_PISTORAGE_API_URL, "PIGATEWAY_PISTORAGE_API_URL", ["http:", "https:"]);
   const piagentApiUrl = urlWithScheme(env.PIGATEWAY_PIAGENT_API_URL, "PIGATEWAY_PIAGENT_API_URL", ["http:", "https:"]);
   const pinotifyApiUrl = urlWithScheme(env.PIGATEWAY_PINOTIFY_API_URL, "PIGATEWAY_PINOTIFY_API_URL", ["http:", "https:"]);
+  const pitimerApiUrl = urlWithScheme(env.PIGATEWAY_PITIMER_API_URL, "PIGATEWAY_PITIMER_API_URL", ["http:", "https:"]);
   const ecosystemPollIntervalMs = validInteger(env.PIGATEWAY_ECOSYSTEM_POLL_INTERVAL_MS, 15000, 0, 3600000, "PIGATEWAY_ECOSYSTEM_POLL_INTERVAL_MS");
 
   return {
@@ -388,6 +391,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     piagentApiKey: env.PIGATEWAY_PIAGENT_API_KEY?.trim() || undefined,
     pinotifyApiUrl,
     pinotifyApiKey: env.PIGATEWAY_PINOTIFY_API_KEY?.trim() || undefined,
+    pitimerApiUrl,
+    pitimerApiKey: env.PIGATEWAY_PITIMER_API_KEY?.trim() || undefined,
     ecosystemPollIntervalMs,
     radioRelayApiUrl,
     radioRelayApiToken,

@@ -189,22 +189,22 @@ test("the relay gets reads, control, ftb, playlist and audio kill/stop; LAN-only
   assert.equal(relay("POST", "/api/v1/pipgm/audio/speak"), false);
   assert.equal(relay("PUT", "/api/v1/pipgm/local-audio"), false);
   assert.equal(relay("PUT", "/api/v1/pipgm/audio/sound-output"), false);
-  // relay: LAN only
-  assert.equal(relay("POST", "/api/v1/pipgm/pipelines/PiPGM1/audio"), false);
-  assert.equal(relay("POST", "/api/v1/pipgm/pipelines/PiPGM1/audio/play"), false);
-  assert.equal(relay("POST", "/api/v1/pipgm/tts/prepare"), false);
-  assert.equal(relay("PUT", "/api/v1/pipgm/pipelines/PiPGM1/config"), false);
-  assert.equal(relay("PUT", "/api/v1/pipgm/pipelines/PiPGM1/basic-image"), false);
+  // piprogram management outside LAN allowed (decision 2cbf79f)
+  assert.ok(relay("POST", "/api/v1/pipgm/pipelines/PiPGM1/audio"));
+  assert.ok(relay("POST", "/api/v1/pipgm/pipelines/PiPGM1/audio/play"));
+  assert.ok(relay("POST", "/api/v1/pipgm/tts/prepare"));
+  assert.ok(relay("PUT", "/api/v1/pipgm/pipelines/PiPGM1/config"));
+  assert.ok(relay("PUT", "/api/v1/pipgm/pipelines/PiPGM1/basic-image"));
   // adding content works from outside the church network too (decision of 2026-11-19)
   for (const [m, u] of [["POST", "/api/v1/pipgm/items/hymn"], ["POST", "/api/v1/pipgm/items/youtube"], ["POST", "/api/v1/pipgm/items/media"], ["POST", "/api/v1/pipgm/items/pptx"], ["POST", "/api/v1/pipgm/items/canva"], ["PUT", "/api/v1/pipgm/items/h-1/use-at"], ["POST", "/api/v1/pipgm/items/h-1/prepare"], ["POST", "/api/v1/pipgm/items/h-1/canva/export-package"]] as const) {
     assert.ok(relay(m, u), `${m} ${u}`);
   }
-  assert.equal(relay("DELETE", "/api/v1/pipgm/items/h-1"), false);
-  // generic library: filters, type edits, active folder and a playlist from it work through the relay; clearing it does not
+  assert.ok(relay("DELETE", "/api/v1/pipgm/items/h-1"));
+  // generic library: filters, type edits, active folder and a playlist from it work through the relay
   for (const [m, u] of [["GET", "/api/v1/pipgm/items"], ["PATCH", "/api/v1/pipgm/items/h-1"], ["GET", "/api/v1/pipgm/library/active"], ["PUT", "/api/v1/pipgm/library/active/h-1"], ["DELETE", "/api/v1/pipgm/library/active/h-1"], ["POST", "/api/v1/pipgm/library/active/playlist"]] as const) {
     assert.ok(relay(m, u), `${m} ${u}`);
   }
-  assert.equal(relay("DELETE", "/api/v1/pipgm/library/active"), false);
+  assert.ok(relay("DELETE", "/api/v1/pipgm/library/active"));
 });
 
 test("without a configured piprogram the routes answer 503", async () => {
@@ -263,10 +263,8 @@ test("relay: playlists may be read and loaded; content, saving, reordering and g
     ["POST", "/api/v1/pipgm/playlists/generate"],
     ["PUT", "/api/v1/pipgm/playlists/pl_1"]
   ] as const) assert.ok(relay(m, u), `${m} ${u}`);
-  // destructive: LAN only
-  const del = rule("DELETE", "/api/v1/pipgm/playlists/pl_1");
-  assert.ok(del);
-  assert.equal(del.setup, true);
+  // playlists: deleting is now allowed outside LAN (commit 2cbf79f)
+  assert.ok(relay("DELETE", "/api/v1/pipgm/playlists/pl_1"));
   // wrong method or unknown path stays off the allowlist
   assert.equal(rule("DELETE", "/api/v1/pipgm/playlists"), null);
   assert.equal(rule("PUT", "/api/v1/pipgm/playlists"), null);

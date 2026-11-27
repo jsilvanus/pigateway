@@ -12912,6 +12912,266 @@
           }
         }
       }
+    },
+    "/api/v1/timers/status": {
+      "get": {
+        "operationId": "getTimerStatus",
+        "tags": [
+          "Timer"
+        ],
+        "summary": "Scheduler & mute status summary",
+        "responses": {
+          "200": {
+            "description": "Status summary"
+          }
+        }
+      }
+    },
+    "/api/v1/timers/mute": {
+      "post": {
+        "operationId": "setTimerMute",
+        "tags": [
+          "Timer"
+        ],
+        "summary": "Mute or snooze all timers",
+        "responses": {
+          "200": {
+            "description": "New mute state"
+          }
+        }
+      }
+    },
+    "/api/v1/timers/unmute": {
+      "post": {
+        "operationId": "clearTimerMute",
+        "tags": [
+          "Timer"
+        ],
+        "summary": "Unmute all timers immediately",
+        "responses": {
+          "200": {
+            "description": "New mute state"
+          }
+        }
+      }
+    },
+    "/api/v1/timers/parse": {
+      "post": {
+        "operationId": "parseTimerScript",
+        "tags": [
+          "Timer"
+        ],
+        "summary": "Convert between DSL script text and structured timer definition",
+        "responses": {
+          "200": {
+            "description": "Parsed and serialized output"
+          }
+        }
+      }
+    },
+    "/api/v1/timers": {
+      "get": {
+        "operationId": "listTimers",
+        "tags": [
+          "Timer"
+        ],
+        "summary": "List all configured timers",
+        "responses": {
+          "200": {
+            "description": "List of timers"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createTimer",
+        "tags": [
+          "Timer"
+        ],
+        "summary": "Create or apply a timer (JSON or scriptText)",
+        "responses": {
+          "201": {
+            "description": "Created timer"
+          }
+        }
+      }
+    },
+    "/api/v1/timers/{id}": {
+      "get": {
+        "operationId": "getTimer",
+        "tags": [
+          "Timer"
+        ],
+        "summary": "Get one timer definition and rendered scriptText",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Timer details"
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateTimer",
+        "tags": [
+          "Timer"
+        ],
+        "summary": "Update a timer definition",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Updated timer"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteTimer",
+        "tags": [
+          "Timer"
+        ],
+        "summary": "Delete a timer",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          }
+        }
+      }
+    },
+    "/api/v1/timers/{id}/mute": {
+      "post": {
+        "operationId": "muteTimer",
+        "tags": [
+          "Timer"
+        ],
+        "summary": "Mute or snooze a specific timer",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Updated timer"
+          }
+        }
+      }
+    },
+    "/api/v1/timers/{id}/unmute": {
+      "post": {
+        "operationId": "unmuteTimer",
+        "tags": [
+          "Timer"
+        ],
+        "summary": "Unmute a specific timer",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Updated timer"
+          }
+        }
+      }
+    },
+    "/api/v1/timers/{id}/run": {
+      "post": {
+        "operationId": "runTimerPhase",
+        "tags": [
+          "Timer"
+        ],
+        "summary": "Manually trigger a timer phase now",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Completed run record"
+          }
+        }
+      }
+    },
+    "/api/v1/timers/runs/{runId}/cancel": {
+      "post": {
+        "operationId": "cancelTimerRun",
+        "tags": [
+          "Timer"
+        ],
+        "summary": "Cancel an active timer run",
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cancelled"
+          }
+        }
+      }
+    },
+    "/api/v1/timers/runs": {
+      "get": {
+        "operationId": "listTimerRuns",
+        "tags": [
+          "Timer"
+        ],
+        "summary": "Get execution history and logs",
+        "responses": {
+          "200": {
+            "description": "List of runs"
+          }
+        }
+      }
     }
   },
   "components": {

@@ -454,6 +454,24 @@ export class EcosystemTracker {
       url: this.#config.pinotifyApiUrl ?? "http://127.0.0.1:3109"
     };
 
+    // PiTimer
+    const pitimerConfigured = Boolean(this.#config.pitimerApiUrl);
+    const pitimerAvailable = this.#availableMap.get("pitimer") ?? false;
+    const pitimerInUse = pitimerAvailable || pitimerConfigured;
+    components.pitimer = {
+      id: "pitimer",
+      tab: "timer",
+      name: "PiTimer Scheduled Actions",
+      description: "Deterministic scheduled action runner and pre-flight monitor",
+      active: pitimerInUse,
+      inUse: pitimerInUse,
+      available: pitimerAvailable,
+      configured: pitimerConfigured,
+      connecting: false,
+      lastSeenAt: this.#lastSeenMap.get("pitimer") ?? null,
+      url: this.#config.pitimerApiUrl ?? "http://127.0.0.1:3403"
+    };
+
     // 9. Radio Relay
     const relayConfigured = Boolean(this.#config.radioRelayApiUrl);
     components.radioRelay = {
@@ -648,7 +666,8 @@ export class EcosystemTracker {
         { id: "pipoe", url: `${this.#config.pipoeApiUrl ?? "http://127.0.0.1:3108"}/health` },
         { id: "pistorage", url: `${this.#config.pistorageApiUrl ?? "http://127.0.0.1:3700"}/health` },
         { id: "piagent", url: `${this.#config.piagentApiUrl ?? "http://127.0.0.1:3301"}/health` },
-        { id: "pinotify", url: `${this.#config.pinotifyApiUrl ?? "http://127.0.0.1:3109"}/health` }
+        { id: "pinotify", url: `${this.#config.pinotifyApiUrl ?? "http://127.0.0.1:3109"}/health` },
+        { id: "pitimer", url: `${this.#config.pitimerApiUrl ?? "http://127.0.0.1:3403"}/health` }
       ];
 
       const results = await Promise.allSettled(

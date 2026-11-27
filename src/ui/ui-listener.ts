@@ -15,7 +15,7 @@ import type { OidcUser, OidcVerifier } from "../auth/oidc.js";
  */
 
 export type UiRole = "lan" | "relay" | "viewer";
-export type UiModule = "pimatrix" | "pivoice" | "piencoder" | "pitube" | "piradio" | "pisound" | "pitally" | "pigraphics" | "piprogram" | "pirundown" | "pipoe" | "pistorage" | "piagent" | "pinotify" | "piperception" | "pispace" | "picam" | "piswitch" | "ui";
+export type UiModule = "pimatrix" | "pivoice" | "piencoder" | "pitube" | "piradio" | "pisound" | "pitally" | "pigraphics" | "piprogram" | "pirundown" | "pipoe" | "pistorage" | "piagent" | "pinotify" | "pitimer" | "piperception" | "pispace" | "picam" | "piswitch" | "ui";
 export type UiMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 export interface UiRouteRule {
@@ -314,6 +314,22 @@ export const UI_ROUTES: readonly UiRouteRule[] = [
   { method: "DELETE", path: "/api/v1/notify/provider", module: "pinotify", setup: true },
   { method: "GET", path: "/api/v1/notify/log", module: "pinotify" },
   { method: "GET", path: "/api/v1/notify/outbox", module: "pinotify" },
+
+  // pitimer
+  { method: "GET", path: "/api/v1/timers/status", module: "pitimer" },
+  { method: "POST", path: "/api/v1/timers/mute", module: "pitimer" },
+  { method: "POST", path: "/api/v1/timers/unmute", module: "pitimer" },
+  { method: "POST", path: "/api/v1/timers/parse", module: "pitimer" },
+  { method: "GET", path: "/api/v1/timers", module: "pitimer" },
+  { method: "POST", path: "/api/v1/timers", module: "pitimer" },
+  { method: "GET", path: "/api/v1/timers/:id", module: "pitimer" },
+  { method: "PUT", path: "/api/v1/timers/:id", module: "pitimer" },
+  { method: "DELETE", path: "/api/v1/timers/:id", module: "pitimer", setup: true },
+  { method: "POST", path: "/api/v1/timers/:id/mute", module: "pitimer" },
+  { method: "POST", path: "/api/v1/timers/:id/unmute", module: "pitimer" },
+  { method: "POST", path: "/api/v1/timers/:id/run", module: "pitimer" },
+  { method: "POST", path: "/api/v1/timers/runs/:runId/cancel", module: "pitimer" },
+  { method: "GET", path: "/api/v1/timers/runs", module: "pitimer" },
 
   // piperception
   { method: "GET", path: "/api/v1/perception/streams", module: "piperception" },

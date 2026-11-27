@@ -27,6 +27,11 @@ test("pipoe, pistorage, piagent, pinotify routes return 503 when not configured"
   assert.equal(notifyRes.statusCode, 503);
   assert.equal(notifyRes.json().error.code, "PINOTIFY_NOT_CONFIGURED");
 
+  // Timer
+  const timerRes = await app.inject({ method: "GET", url: "/api/v1/timers/status" });
+  assert.equal(timerRes.statusCode, 503);
+  assert.equal(timerRes.json().error.code, "PITIMER_NOT_CONFIGURED");
+
   await app.close();
 });
 

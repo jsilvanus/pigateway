@@ -69,6 +69,8 @@ import { PiAgentClient } from "./piagent/client.js";
 import { registerAgentRoutes } from "./piagent/agent-routes.js";
 import { PiNotifyClient } from "./notify/client.js";
 import { registerNotifyRoutes } from "./notify/notify-routes.js";
+import { PiTimerClient } from "./timer/client.js";
+import { registerTimerRoutes } from "./timer/timer-routes.js";
 import { PiPerceptionClient } from "./perception/client.js";
 import { registerPerceptionRoutes } from "./perception/perception-routes.js";
 import { ScreenTrackingUdpReceiver } from "./perception/tracking-receiver.js";
@@ -217,6 +219,11 @@ export function buildApp(config: AppConfig, overrides: { oidcVerifier?: OidcVeri
   const pinotifyClient = new PiNotifyClient({
     baseUrl: config.pinotifyApiUrl,
     token: config.pinotifyApiKey,
+    logger: app.log
+  });
+  const pitimerClient = new PiTimerClient({
+    baseUrl: config.pitimerApiUrl,
+    token: config.pitimerApiKey,
     logger: app.log
   });
   const piperceptionClient = new PiPerceptionClient({
@@ -762,6 +769,7 @@ export function buildApp(config: AppConfig, overrides: { oidcVerifier?: OidcVeri
   registerStorageRoutes(app, { client: pistorageClient });
   registerAgentRoutes(app, { client: piagentClient });
   registerNotifyRoutes(app, { client: pinotifyClient });
+  registerTimerRoutes(app, { client: pitimerClient });
   registerPerceptionRoutes(app, { client: piperceptionClient, eventBroker, trackingReceiver });
 
   app.post("/api/v1/transcripts", async (request, reply) => {
