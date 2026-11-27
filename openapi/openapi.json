@@ -5364,6 +5364,140 @@
         }
       }
     },
+    "/api/v1/conditionals": {
+      "get": {
+        "operationId": "getTallyConditionals",
+        "tags": [
+          "PiTally"
+        ],
+        "summary": "Get catalog of supported conditional tally rules",
+        "responses": {
+          "200": {
+            "description": "List of supported conditional rules"
+          }
+        }
+      }
+    },
+    "/api/v1/lights/{id}/rules": {
+      "get": {
+        "operationId": "getTallyLightRules",
+        "tags": [
+          "PiTally"
+        ],
+        "summary": "Get conditional rules for a tally light",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of light conditional rules"
+          }
+        }
+      },
+      "put": {
+        "operationId": "setTallyLightRules",
+        "tags": [
+          "PiTally"
+        ],
+        "summary": "Replace conditional rules for a tally light",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tally light rules updated"
+          }
+        }
+      },
+      "post": {
+        "operationId": "addTallyLightRule",
+        "tags": [
+          "PiTally"
+        ],
+        "summary": "Add conditional rule to a tally light",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tally light rule added"
+          }
+        }
+      }
+    },
+    "/api/v1/lights/{id}/rules/{ruleId}": {
+      "delete": {
+        "operationId": "deleteTallyLightRule",
+        "tags": [
+          "PiTally"
+        ],
+        "summary": "Delete conditional rule from a tally light",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ruleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tally light rule deleted"
+          }
+        }
+      }
+    },
     "/api/v1/matrix": {
       "get": {
         "operationId": "getMatrix",

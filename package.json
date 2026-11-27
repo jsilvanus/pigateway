@@ -18,7 +18,8 @@
     "@canva/app-middleware": "0.0.0-beta.8",
     "@jsilvanus/matrox-monarch-control": "^0.6.0",
     "atem-connection": "^2.5.0",
-    "fastify": "^5.2.1"
+    "fastify": "^5.2.1",
+    "jose": "^6.2.18"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

@@ -1,18 +1,20 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { Readable } from "node:stream";
 import Fastify, { type FastifyBaseLogger, type FastifyInstance, type FastifyRequest } from "fastify";
+import type { OidcUser, OidcVerifier } from "../auth/oidc.js";
 
 /**
  * The picontrol UI listeners. Each is a separate HTTP app that serves only an allowlist of module routes
  * (pimatrix, pivoice, piencoder, pitube) and nothing else. The role comes from the listener, never from a header:
  * - "lan": PIGATEWAY_UI_PORT on the LAN; operate routes and the setup routes marked `setup`.
  * - "relay": PIGATEWAY_UI_RELAY_PORT on 127.0.0.1, reached only through an ssh tunnel from a public relay; operate routes only.
+ * - "viewer": read-only confidence monitor role for Tunnus users with parish/riihimaki/picontrol-viewer.
  * Neither listener can reach the device config, the pitube RTMP ingest or the Canva/transcript routes.
  *
  * Module names match piecosystem repo names (e.g. pimatrix, pivoice, piencoder, pitube).
  */
 
-export type UiRole = "lan" | "relay";
+export type UiRole = "lan" | "relay" | "viewer";
 export type UiModule = "pimatrix" | "pivoice" | "piencoder" | "pitube" | "piradio" | "pisound" | "pitally" | "pigraphics" | "piprogram" | "pirundown" | "pipoe" | "pistorage" | "piagent" | "pinotify" | "piperception" | "pispace" | "picam" | "piswitch" | "ui";
 export type UiMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -387,12 +389,12 @@ export function findUiRoute(method: string, url: string): UiRouteRule | null {
   return hit ? { method: hit.method, path: hit.path, module: hit.module, ...(hit.setup ? { setup: true } : {}), ...(hit.lanOnly ? { lanOnly: true } : {}) } : null;
 }
 
-/** Who a request is. Replaceable: the PIN adapter now, an OIDC adapter later. */
+/** Who a request is. Replaceable: the PIN adapter, or withOidcAuth for Tunnus OIDC tokens. */
 export interface UiAuthAdapter {
   /** A session token for valid credentials, or null. Wrong credentials are slowed down by the adapter. */
-  login(credentials: { pin?: unknown }): Promise<string | null>;
+  login(credentials: { pin?: unknown; token?: unknown }): Promise<string | null>;
   /** The request's role when it carries a valid session, else null. A valid session is extended (sliding expiry). */
-  authenticate(request: FastifyRequest, listenerRole: UiRole): { role: UiRole } | null;
+  authenticate(request: FastifyRequest, listenerRole: UiRole): Promise<{ role: UiRole; user?: OidcUser } | null> | { role: UiRole; user?: OidcUser } | null;
   logout(request: FastifyRequest): void;
   /** Set-Cookie value for a session token, and the cookie that clears it. */
   cookie(token: string): string;
@@ -437,9 +439,84 @@ export function withTrustedAddresses(inner: UiAuthAdapter, addresses: readonly s
   const trusted = new Set(addresses);
   return {
     ...inner,
-    authenticate(request, listenerRole) {
+    async authenticate(request, listenerRole) {
       if (trusted.has(clientAddress(request))) return { role: listenerRole };
       return inner.authenticate(request, listenerRole);
+    }
+  };
+}
+
+/**
+ * Wraps UI authentication to support Tunnus OIDC Bearer tokens and PKCE user tokens.
+ * Maps Tunnus church groups to picontrol UI roles:
+ * - picontrol-admin -> role "lan" (full operate and setup access)
+ * - picontrol-operator -> role listenerRole (live operate access)
+ * - picontrol-viewer -> role "viewer" (confidence read-only)
+ */
+export function withOidcAuth(inner: UiAuthAdapter, oidcVerifier?: OidcVerifier | undefined): UiAuthAdapter {
+  if (!oidcVerifier) return inner;
+
+  const oidcSessions = new Map<string, { role: UiRole; user: OidcUser; expires: number }>();
+
+  return {
+    ...inner,
+    async login(credentials) {
+      if (typeof credentials.token === "string" && credentials.token.trim()) {
+        try {
+          const user = await oidcVerifier.verify(credentials.token.trim());
+          const role: UiRole = user.isAdmin ? "lan" : user.isOperator ? "lan" : "viewer";
+          const sessionToken = randomBytes(32).toString("base64url");
+          oidcSessions.set(sha256(sessionToken).toString("hex"), {
+            role,
+            user,
+            expires: Date.now() + SESSION_MS
+          });
+          return sessionToken;
+        } catch {
+          return null;
+        }
+      }
+      return inner.login(credentials);
+    },
+    async authenticate(request, listenerRole) {
+      // 1. Direct Bearer token from header
+      const authHeader = request.headers.authorization;
+      if (authHeader?.startsWith("Bearer ")) {
+        const token = authHeader.slice(7).trim();
+        if (token.startsWith("ey")) {
+          try {
+            const user = await oidcVerifier.verify(token);
+            const role: UiRole = user.isAdmin ? "lan" : user.isOperator ? listenerRole : "viewer";
+            return { role, user };
+          } catch {
+            // fall through to session cookie or inner auth
+          }
+        }
+      }
+
+      // 2. OIDC session cookie
+      const cookie = cookieValue(request, UI_COOKIE);
+      if (cookie) {
+        const key = sha256(cookie).toString("hex");
+        const oidcSession = oidcSessions.get(key);
+        if (oidcSession) {
+          if (oidcSession.expires < Date.now()) {
+            oidcSessions.delete(key);
+          } else {
+            oidcSession.expires = Date.now() + SESSION_MS;
+            return { role: oidcSession.role, user: oidcSession.user };
+          }
+        }
+      }
+
+      return inner.authenticate(request, listenerRole);
+    },
+    logout(request) {
+      const cookie = cookieValue(request, UI_COOKIE);
+      if (cookie) {
+        oidcSessions.delete(sha256(cookie).toString("hex"));
+      }
+      inner.logout(request);
     }
   };
 }
@@ -555,7 +632,7 @@ export function buildUiListener(options: UiListenerOptions): FastifyInstance {
 
   app.addHook("onRequest", async (request, reply) => {
     const declared = Number(request.headers["content-length"] ?? 0);
-    if (declared > UI_ANON_BODY_LIMIT && !options.auth.authenticate(request, options.role)) {
+    if (declared > UI_ANON_BODY_LIMIT && !(await options.auth.authenticate(request, options.role))) {
       return reply.code(401).send({ error: { code: "LOGIN_REQUIRED", message: "Log in with the PIN" } });
     }
     if (request.method !== "OPTIONS") return;
@@ -566,7 +643,7 @@ export function buildUiListener(options: UiListenerOptions): FastifyInstance {
       .header("Access-Control-Allow-Origin", allowed)
       .header("Access-Control-Allow-Credentials", "true")
       .header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-      .header("Access-Control-Allow-Headers", "Content-Type")
+      .header("Access-Control-Allow-Headers", "Content-Type, Authorization")
       .header("Access-Control-Max-Age", "600")
       .header("Vary", "Origin")
       .send();
@@ -589,35 +666,39 @@ export function buildUiListener(options: UiListenerOptions): FastifyInstance {
     const token = cookieValue(request, UI_COOKIE);
     if (token && reply.statusCode < 400 && !reply.hasHeader("Set-Cookie") && request.url !== "/ui/api/logout") {
       const cookie = options.auth.cookie(token);
-      if (cookie && options.auth.authenticate(request, options.role)) reply.header("Set-Cookie", cookie);
+      if (cookie && (await options.auth.authenticate(request, options.role))) reply.header("Set-Cookie", cookie);
     }
     return payload;
   });
 
   app.get("/health", async () => ({ ok: true, role: options.role }));
 
-  app.post<{ Body: { pin?: unknown } | undefined }>("/ui/api/login", async (request, reply) => {
+  app.post<{ Body: { pin?: unknown; token?: unknown } | undefined }>("/ui/api/login", async (request, reply) => {
     const token = await options.auth.login(request.body ?? {});
-    if (token === null) return reply.code(401).send({ error: { code: "WRONG_PIN", message: "Wrong PIN" } });
+    if (token === null) {
+      const isTokenLogin = typeof request.body?.token === "string";
+      return reply.code(401).send({ error: { code: isTokenLogin ? "INVALID_TOKEN" : "WRONG_PIN", message: isTokenLogin ? "Invalid Tunnus token" : "Wrong PIN" } });
+    }
     const cookie = options.auth.cookie(token);
     if (cookie) reply.header("Set-Cookie", cookie);
-    return reply.send({ role: options.role });
+    const session = await options.auth.authenticate(request, options.role);
+    return reply.send({ role: session?.role ?? options.role, user: (session as { user?: unknown })?.user });
   });
   app.post("/ui/api/logout", async (request, reply) => {
     options.auth.logout(request);
     return reply.header("Set-Cookie", options.auth.clearCookie()).send({ ok: true });
   });
   app.get("/ui/api/session", async (request, reply) => {
-    const session = options.auth.authenticate(request, options.role);
+    const session = await options.auth.authenticate(request, options.role);
     if (!session) return reply.code(401).send({ error: { code: "LOGIN_REQUIRED", message: "Log in with the PIN" } });
-    return { role: session.role };
+    return { role: session.role, user: (session as { user?: unknown })?.user };
   });
 
   // Live events (SSE): a read-only stream of a fixed set of event types, session required. The client cannot widen
   // the set: `types` is always replaced, only a short `client` label is passed on.
   app.get("/api/v1/events", async (request, reply) => {
     if (!options.openEvents) return reply.code(404).send({ error: { code: "NOT_FOUND", message: "Not available on the picontrol UI" } });
-    if (!options.auth.authenticate(request, options.role)) {
+    if (!(await options.auth.authenticate(request, options.role))) {
       return reply.code(401).send({ error: { code: "LOGIN_REQUIRED", message: "Log in with the PIN" } });
     }
     const client = (request.query as { client?: unknown }).client;
@@ -648,13 +729,17 @@ export function buildUiListener(options: UiListenerOptions): FastifyInstance {
     handler: async (request, reply) => {
       const rule = findUiRoute(request.method, request.url);
       if (!rule || (options.modules && !isModuleAllowed(rule.module, options.modules))) return reply.code(404).send({ error: { code: "NOT_FOUND", message: "Not available on the picontrol UI" } });
-      if (!options.auth.authenticate(request, options.role)) {
+      const session = await options.auth.authenticate(request, options.role);
+      if (!session) {
         return reply.code(401).send({ error: { code: "LOGIN_REQUIRED", message: "Log in with the PIN" } });
       }
-      if ((rule.setup || rule.lanOnly) && options.role !== "lan") {
+      if (session.role === "viewer" && !["GET", "HEAD", "OPTIONS"].includes(request.method)) {
+        return reply.code(403).send({ error: { code: "FORBIDDEN", message: "Viewer role does not have permission to execute mutating commands" } });
+      }
+      if ((rule.setup || rule.lanOnly) && session.role !== "lan") {
         return reply.code(403).send({ error: { code: "SETUP_NOT_ON_THIS_LISTENER", message: "Setup is not available through the internet relay" } });
       }
-      const forwarded = await options.forward(rule, { method: request.method as UiMethod, url: request.url, body: request.body, role: options.role });
+      const forwarded = await options.forward(rule, { method: request.method as UiMethod, url: request.url, body: request.body, role: session.role });
       return reply.code(forwarded.statusCode).type(forwarded.contentType).send(forwarded.body);
     }
   });

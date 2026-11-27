@@ -73,8 +73,9 @@ import { PiPerceptionClient } from "./perception/client.js";
 import { registerPerceptionRoutes } from "./perception/perception-routes.js";
 import { ScreenTrackingUdpReceiver } from "./perception/tracking-receiver.js";
 import { PiSpaceClient } from "./spatial/client.js";
+import { OidcVerifier } from "./auth/oidc.js";
 
-export function buildApp(config: AppConfig): FastifyInstance {
+export function buildApp(config: AppConfig, overrides: { oidcVerifier?: OidcVerifier } = {}): FastifyInstance {
   const app = Fastify({
     trustProxy: true,
     logger: {
@@ -121,6 +122,17 @@ export function buildApp(config: AppConfig): FastifyInstance {
     }
   });
   (app as unknown as { routeTable: Set<string> }).routeTable = routeTable;
+
+  const oidcVerifier =
+    overrides.oidcVerifier ??
+    (config.oidcEnabled
+      ? new OidcVerifier({
+          issuer: config.oidcIssuer,
+          clientId: config.oidcClientId,
+          audiences: config.oidcAudiences,
+          jwksUri: config.oidcJwksUri
+        })
+      : undefined);
 
   const eventBroker = new GatewayEventBroker();
   (app as unknown as { eventBroker: GatewayEventBroker }).eventBroker = eventBroker;
@@ -583,23 +595,48 @@ export function buildApp(config: AppConfig): FastifyInstance {
     return payload;
   });
 
-  // Writes under /api/v1 need the API key unless the client is on the allowed list.
+  // Writes under /api/v1 need the API key or valid Tunnus OIDC token unless the client is on the allowed list.
   app.addHook("onRequest", async (request, reply) => {
-    if (["GET", "HEAD", "OPTIONS"].includes(request.method)) return;
     if (!(request.url.split("?")[0] ?? "").startsWith("/api/v1/")) return;
+
+    const header = request.headers.authorization;
+    const bearer = header?.startsWith("Bearer ") ? header.slice(7).trim() : undefined;
+    const apiKey = typeof request.headers["x-api-key"] === "string" ? request.headers["x-api-key"].trim() : undefined;
+    const token = bearer || apiKey;
+
+    // Check Tunnus OIDC token when present
+    if (oidcVerifier && bearer && bearer.startsWith("ey")) {
+      try {
+        const user = await oidcVerifier.verify(bearer);
+        (request as unknown as { user: typeof user }).user = user;
+        oidcVerifier.checkPermission(user, { method: request.method, url: request.url });
+        return;
+      } catch (err: unknown) {
+        const authErr = err as { statusCode?: number; message?: string };
+        if (authErr.statusCode === 403) {
+          return reply.status(403).send({
+            statusCode: 403,
+            error: "Forbidden",
+            message: authErr.message || "Forbidden"
+          });
+        }
+        return reply.status(401).send({
+          statusCode: 401,
+          error: "Unauthorized",
+          message: authErr.message || "Invalid Tunnus Bearer token"
+        });
+      }
+    }
+
+    if (["GET", "HEAD", "OPTIONS"].includes(request.method)) return;
     if (isIpWhitelisted(request.ip, config.authAllowedHosts)) return;
     if (!config.apiKey) return;
-    const header = request.headers.authorization;
-    const token = header?.startsWith("Bearer ")
-      ? header.slice(7).trim()
-      : typeof request.headers["x-api-key"] === "string"
-        ? request.headers["x-api-key"].trim()
-        : undefined;
+
     if (token !== config.apiKey) {
       return reply.status(401).send({
         statusCode: 401,
         error: "Unauthorized",
-        message: "Valid API key or Bearer token required for control operations"
+        message: "Valid API key or Tunnus Bearer token required for control operations"
       });
     }
   });

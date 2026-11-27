@@ -88,6 +88,19 @@ journalctl --user -u pigateway -o cat | grep '"event":"amx_command"' | tail
 
 See [.env.example](.env.example). Camera and ATEM addresses, MediaMTX push URLs, API key, LAN allow list, CORS origins.
 
+## Tunnus OIDC Authentication & RBAC
+
+PiGateway integrates with the parish Tunnus identity service (`https://kehitys.riihimaenseurakunta.fi/identity`) for OpenID Connect Bearer token authentication and role-based access control.
+
+- **Client Registration**: `client_id: pigateway`, Public client (PKCE S256), allowed redirect URIs include `https://keskuskirkko.riihimaenseurakunta.fi/` and `http://localhost:8080/`.
+- **Audience**: `pigateway` and `picontrol-mcp`.
+- **Church Groups & RBAC**:
+  - `parish/riihimaki/picontrol-admin`: Full administrative access (hardware, configuration, setup, playlist mutation, shutdown).
+  - `parish/riihimaki/picontrol-operator`: Live control operations (cameras, ATEM, YouTube broadcast, matrix routing, audio, tally).
+  - `parish/riihimaki/picontrol-viewer`: Read-only confidence monitoring (GET endpoints allowed; mutating POST/PUT/DELETE operations return 403 Forbidden).
+  - `parish/riihimaki/canva-write` / `parish/riihimaki/canva-operate`: Canva graphic push and presentation integration.
+- **picontrol UI Listeners**: Support login via Tunnus tokens (`POST /ui/api/login` with `{ token }`) or direct `Authorization: Bearer <jwt>` headers, mapping Tunnus groups automatically to session roles.
+
 Unverified against the real ATEM and cameras since the code was moved from pimatrix; the tests use fakes.
 
 ---

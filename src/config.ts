@@ -43,7 +43,11 @@ export interface AppConfig {
   canvaAllowedBrands?: string[] | undefined;
   /** Tunnus sign-in for the Canva listener (all off by default). Issuer URL (PIGATEWAY_OIDC_ISSUER) and the name tokens must carry in `aud` (PIGATEWAY_OIDC_AUDIENCE, default "pigateway"). */
   oidcIssuer?: string | undefined;
+  oidcClientId?: string | undefined;
   oidcAudience: string;
+  oidcAudiences?: string[] | undefined;
+  oidcEnabled?: boolean | undefined;
+  oidcJwksUri?: string | undefined;
   /** PIGATEWAY_OIDC_GROUP_RIGHTS: `<group>=<module>:<level>[,...];...` (presets @viewer @operator @content @admin). */
   oidcGroupRights?: string | undefined;
   /** PIGATEWAY_CANVA_OIDC=true turns Tunnus sign-in on for the Canva listener; needs the issuer and the group rights. */
@@ -308,7 +312,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     mode,
     apiKey: env.PIGATEWAY_API_KEY?.trim() || undefined,
     authAllowedHosts: list(env.PIGATEWAY_AUTH_ALLOWED_HOSTS),
-    corsOrigins: list(env.PIGATEWAY_CORS_ORIGINS),
+    corsOrigins: list(env.PIGATEWAY_CORS_ORIGINS) || [
+      "https://keskuskirkko.riihimaenseurakunta.fi",
+      "http://localhost:8080",
+      "http://localhost:5173",
+      "http://127.0.0.1:8080",
+      "http://127.0.0.1:5173"
+    ],
     pivoiceEnabled,
     pivoiceUdpHost: env.PIGATEWAY_PIVOICE_UDP_HOST?.trim() || "0.0.0.0",
     pivoiceUdpPort: validPort(env.PIGATEWAY_PIVOICE_UDP_PORT, 3101, "PIGATEWAY_PIVOICE_UDP_PORT", true),
@@ -341,8 +351,15 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     canvaTunnelCorsOrigins: list(env.PIGATEWAY_CANVA_TUNNEL_CORS_ORIGINS),
     canvaAppId: env.PIGATEWAY_CANVA_APP_ID?.trim() || undefined,
     canvaAllowedBrands: list(env.PIGATEWAY_CANVA_ALLOWED_BRANDS),
-    oidcIssuer: urlWithScheme(env.PIGATEWAY_OIDC_ISSUER, "PIGATEWAY_OIDC_ISSUER", ["https:", "http:"]),
+    oidcIssuer: urlWithScheme(env.PIGATEWAY_OIDC_ISSUER, "PIGATEWAY_OIDC_ISSUER", ["https:", "http:"]) || "https://kehitys.riihimaenseurakunta.fi/identity",
+    oidcClientId: env.PIGATEWAY_OIDC_CLIENT_ID?.trim() || "pigateway",
     oidcAudience: env.PIGATEWAY_OIDC_AUDIENCE?.trim() || "pigateway",
+    oidcAudiences: list(env.PIGATEWAY_OIDC_AUDIENCE) || ["pigateway", "picontrol-mcp"],
+    oidcEnabled:
+      env.PIGATEWAY_OIDC_ENABLED === "false" || env.PIGATEWAY_OIDC_ENABLED === "0"
+        ? false
+        : true,
+    oidcJwksUri: env.PIGATEWAY_OIDC_JWKS_URI?.trim() || undefined,
     oidcGroupRights: env.PIGATEWAY_OIDC_GROUP_RIGHTS?.trim() || undefined,
     canvaOidcEnabled: env.PIGATEWAY_CANVA_OIDC === "true",
     canvaApiKeyFallback: env.PIGATEWAY_CANVA_TUNNEL_API_KEY_FALLBACK !== "false",
